@@ -1,0 +1,23 @@
+  E UN DATASET DI FILM!! INCOMINCIARE DA QUELLI
+il dataset è troppo grande... provare a
+pulire il dataset (miglioiramento minimo, non ci sono molte righe nulle)
+soluzione usare un subset... preferibile vedere quante occorrenze singole e quali
+    delle  country del film
+    quali nazioni voglianmo?:
+    paesi_di_interesse = [
+    'USA', 'France', 'UK', 'Japan', 'Germany', 'Italy', 'India', 'Canada', 'Spain',
+    'Czechoslovakia', 'Brazil', 'Hong Kong', 'USSR', 'Mexico', 'Sweden', 'Philippines',
+    'Russian Federation', 'South Korea', 'China', 'Argentina', 'Poland', 'Australia',
+    'Turkey', 'Denmark', 'Indonesia', 'Finland', 'Belgium', 'Egypt', 'Netherlands',
+    'Austria', 'Greece', 'Czechia', 'Norway', 'Switzerland', 'Thailand', 'Taiwan',
+    'Yugoslavia', 'Portugal', 'Hungary', 'Ireland', 'Romania', 'East Germany', 'Iran',
+    'Chile', 'South Africa', 'Serbia', 'Israel', 'Malaysia', 'New Zealand', 'Estonia',
+    'Bulgaria', 'Croatia', 'Ukraine', 'Slovakia', 'Slovenia', 'Puerto Rico', 'Colombia',
+    'Lithuania', 'Iceland', 'Luxembourg', 'Singapore', 'Latvia', 'Peru', 'Pakistan',
+    'Nigeria', 'Bangladesh', 'North Macedonia', 'Bosnia and Herzegovina', 'Uruguay',
+    'Bolivarian Republic of Venezuela', 'Cuba', 'Morocco', 'Vietnam', 'Kazakhstan',
+    'United Arab Emirates', 'Albania', 'Kuwait', 'Lebanon', 'Algeria', 'Dominican Republic',
+    'Saudi Arabia', 'Georgia', 'Belarus', 'Azerbaijan', 'Sri Lanka', 'Qatar', 'Tunisia',
+    'Iraq', 'Costa Rica', 'Nepal', 'Ecuador', 'Cyprus', 'Malta', 'Serbia and Montenegro',
+    'Armenia', 'Cambodia', 'State of Palestine', 'Montenegro', 'Kosovo', 'Syrian Arab Republic'
+]
