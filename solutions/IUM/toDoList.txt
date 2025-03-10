@@ -1,1 +1,24 @@
 eliminare i film con titolo nan e untitled
+
+# Crea gli intervalli di 1,0 da 0 a 5
+bins = np.arange(0, 6, 1)  # Crea intervalli: [0, 1, 2, 3, 4, 5]
+
+# Raggruppa i rating in questi intervalli
+df['rating_group'] = pd.cut(df['rating'], bins=bins, include_lowest=True)
+
+# Definisci la palette personalizzata usando oggetti Interval
+custom_palette = {
+    pd.Interval(-0.001, 1.0, closed='right'): '#000000',  # Nero per 0-1
+    pd.Interval(1.0, 2.0, closed='right'): '#8B0000',     # Rosso scuro per 1-2
+    pd.Interval(2.0, 3.0, closed='right'): '#FFFF00',     # Giallo per 2-3
+    pd.Interval(3.0, 4.0, closed='right'): '#00CED1',     # Celeste per 3-4
+    pd.Interval(4.0, 5.0, closed='right'): '#008000'      # Verde per 4-5
+}
+
+# Crea il grafico
+sns.scatterplot(x='release_year', y='minute', hue='rating_group', palette=custom_palette, data=df)
+plt.xlabel('Anno di rilascio')
+plt.ylabel('Durata (minuti)')
+plt.title('Relazione tra Anno, Durata e Rating dei film')
+plt.legend(title='Rating', bbox_to_anchor=(1.05, 1), loc='upper left')  # Legenda fuori dal grafico
+plt.show()
