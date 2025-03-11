@@ -1,24 +1,59 @@
-eliminare i film con titolo nan e untitled
+c) Rating vs. Genere e Nazione:
+Grafico: Heatmap.
 
-# Crea gli intervalli di 1,0 da 0 a 5
-bins = np.arange(0, 6, 1)  # Crea intervalli: [0, 1, 2, 3, 4, 5]
+Descrizione: Mostra il rating medio dei film per combinazioni di genere e nazione.
 
-# Raggruppa i rating in questi intervalli
-df['rating_group'] = pd.cut(df['rating'], bins=bins, include_lowest=True)
+Variante: Filtra solo le combinazioni con un numero minimo di film.
 
-# Definisci la palette personalizzata usando oggetti Interval
-custom_palette = {
-    pd.Interval(-0.001, 1.0, closed='right'): '#000000',  # Nero per 0-1
-    pd.Interval(1.0, 2.0, closed='right'): '#8B0000',     # Rosso scuro per 1-2
-    pd.Interval(2.0, 3.0, closed='right'): '#FFFF00',     # Giallo per 2-3
-    pd.Interval(3.0, 4.0, closed='right'): '#00CED1',     # Celeste per 3-4
-    pd.Interval(4.0, 5.0, closed='right'): '#008000'      # Verde per 4-5
-}
 
-# Crea il grafico
-sns.scatterplot(x='release_year', y='minute', hue='rating_group', palette=custom_palette, data=df)
-plt.xlabel('Anno di rilascio')
-plt.ylabel('Durata (minuti)')
-plt.title('Relazione tra Anno, Durata e Rating dei film')
-plt.legend(title='Rating', bbox_to_anchor=(1.05, 1), loc='upper left')  # Legenda fuori dal grafico
-plt.show()
+a) Rating e Durata per Genere:
+Grafico: Scatterplot con colori per genere.
+
+Descrizione: Esplora la relazione tra rating e durata, suddivisa per genere.
+
+Variante: Aggiungi una linea di regressione per ogni genere.
+
+b) Rating e Durata per Nazione:
+Grafico: Scatterplot con colori per nazione.
+
+Descrizione: Esplora la relazione tra rating e durata, suddivisa per nazione.
+
+Variante: Filtra solo le nazioni con un numero minimo di film.
+
+c) Rating, Durata e Genere:
+Grafico: Grafico a bolle (bubble plot).
+
+Descrizione: Usa l'asse x per la durata, l'asse y per il rating e la dimensione delle bolle per il numero di film.
+
+Variante: Colora le bolle in base al genere.
+
+
+6. Analisi avanzate:
+a) Top 5 nazioni per genere:
+Grafico: Barplot raggruppato.
+
+Descrizione: Mostra le top 5 nazioni per numero di film in ogni genere.
+
+Variante: Usa un grafico a barre sovrapposte.
+
+b) Durata e Rating per Nazione e Genere:
+Grafico: Facet grid (griglia di grafici).
+
+Descrizione: Crea una griglia di scatterplot, con una cella per ogni combinazione di nazione e genere.
+
+Variante: Filtra solo le combinazioni con un numero minimo di film.
+
+c) Mappa dei film per nazione:
+Grafico: Mappa geografica.
+
+Descrizione: Usa una libreria come plotly o geopandas per visualizzare il numero di film o il rating medio su una mappa.
+
+
+6. Grafici con dati esplosi:
+Una volta esplosi i dati, puoi creare grafici come:
+
+Heatmap: Mostra il numero di film per combinazione di paese e genere.
+
+Facet grid: Crea una griglia di grafici, con un grafico per ogni paese o genere.
+
+Barplot raggruppato: Mostra il numero di film per genere, suddiviso per paese.
