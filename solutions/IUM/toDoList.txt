@@ -1,48 +1,3 @@
-c) Rating vs. Genere e Nazione:
-Grafico: Heatmap.
-
-Descrizione: Mostra il rating medio dei film per combinazioni di genere e nazione.
-
-Variante: Filtra solo le combinazioni con un numero minimo di film.
-
-
-a) Rating e Durata per Genere:
-Grafico: Scatterplot con colori per genere.
-
-Descrizione: Esplora la relazione tra rating e durata, suddivisa per genere.
-
-Variante: Aggiungi una linea di regressione per ogni genere.
-
-b) Rating e Durata per Nazione:
-Grafico: Scatterplot con colori per nazione.
-
-Descrizione: Esplora la relazione tra rating e durata, suddivisa per nazione.
-
-Variante: Filtra solo le nazioni con un numero minimo di film.
-
-c) Rating, Durata e Genere:
-Grafico: Grafico a bolle (bubble plot).
-
-Descrizione: Usa l'asse x per la durata, l'asse y per il rating e la dimensione delle bolle per il numero di film.
-
-Variante: Colora le bolle in base al genere.
-
-
-6. Analisi avanzate:
-a) Top 5 nazioni per genere:
-Grafico: Barplot raggruppato.
-
-Descrizione: Mostra le top 5 nazioni per numero di film in ogni genere.
-
-Variante: Usa un grafico a barre sovrapposte.
-
-b) Durata e Rating per Nazione e Genere:
-Grafico: Facet grid (griglia di grafici).
-
-Descrizione: Crea una griglia di scatterplot, con una cella per ogni combinazione di nazione e genere.
-
-Variante: Filtra solo le combinazioni con un numero minimo di film.
-
 c) Mappa dei film per nazione:
 Grafico: Mappa geografica.
 
@@ -57,3 +12,48 @@ Heatmap: Mostra il numero di film per combinazione di paese e genere.
 Facet grid: Crea una griglia di grafici, con un grafico per ogni paese o genere.
 
 Barplot raggruppato: Mostra il numero di film per genere, suddiviso per paese.
+
+1️⃣ Analisi della distribuzione geografica per genere
+💡 Obiettivo: capire in quali paesi vengono distribuiti di più certi generi.
+
+📊 Grafico suggerito: Heatmap con sull'asse X i generi e sull’asse Y i paesi di distribuzione. Il colore rappresenta il numero di film distribuiti in quel paese per quel genere.
+
+📌 Cosa scopri?
+
+Quali generi hanno una distribuzione globale (es. Hollywood probabilmente domina tutti i mercati).
+Quali generi sono più localizzati (es. film storici europei distribuiti solo in Europa).
+Se ci sono differenze culturali nella diffusione dei generi (es. Horror molto popolare negli USA ma meno in Asia).
+2️⃣ Analisi del numero medio di paesi di distribuzione per genere
+💡 Obiettivo: vedere quali generi hanno una diffusione internazionale e quali rimangono più locali.
+
+📊 Grafico suggerito: Boxplot con l’asse X per i generi e l’asse Y per il numero di paesi in cui il film è stato distribuito.
+
+📌 Cosa scopri?
+
+Generi con ampia diffusione (probabilmente Action, Comedy, Animation).
+Generi con distribuzione più ristretta (probabilmente History, War, Western).
+Se la distribuzione incide sul rating: i film con più paesi di distribuzione tendono ad avere rating più alti?
+3️⃣ Trend nel tempo: evoluzione della produzione e del rating
+💡 Obiettivo: vedere come è cambiata la produzione di film nel tempo e se certi generi sono diventati più popolari o apprezzati.
+
+📊 Grafici suggeriti:
+
+Lineplot → per il numero di film prodotti ogni anno per genere.
+Lineplot → per il rating medio di ogni genere nel tempo.
+📌 Cosa scopri?
+
+Se la produzione di certi generi è aumentata/diminuita (es. Western probabilmente in calo, Superhero in crescita).
+Se alcuni generi stanno migliorando o peggiorando nel rating medio (es. se Comedy negli anni ha perso qualità o se Documentaries stanno diventando più apprezzati).
+Se ci sono cicli o trend evidenti legati a eventi storici (es. più film di guerra dopo conflitti importanti).
+4️⃣ Confronto della produzione tra paesi nel tempo
+💡 Obiettivo: vedere come è cambiato il dominio del mercato cinematografico nei vari paesi.
+
+📊 Grafici suggeriti:
+
+Stacked Area Chart → per mostrare la percentuale di film prodotti per paese dal 1900 a oggi.
+Bar Chart Animato (Seaborn/Plotly) → per visualizzare i primi 10 paesi per numero di film prodotti nel tempo.
+📌 Cosa scopri?
+
+Se Hollywood ha sempre dominato o se altri paesi stanno crescendo nella produzione.
+Se l’Asia sta aumentando la sua influenza nel cinema globale.
+Se ci sono eventi che hanno causato picchi o crolli nella produzione (es. guerre, crisi economiche).
