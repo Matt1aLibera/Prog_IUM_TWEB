@@ -1,18 +1,3 @@
-c) Mappa dei film per nazione:
-Grafico: Mappa geografica.
-
-Descrizione: Usa una libreria come plotly o geopandas per visualizzare il numero di film o il rating medio su una mappa.
-
-
-6. Grafici con dati esplosi:
-Una volta esplosi i dati, puoi creare grafici come:
-
-Heatmap: Mostra il numero di film per combinazione di paese e genere.
-
-Facet grid: Crea una griglia di grafici, con un grafico per ogni paese o genere.
-
-Barplot raggruppato: Mostra il numero di film per genere, suddiviso per paese.
-
 1️⃣ Analisi della distribuzione geografica per genere
 💡 Obiettivo: capire in quali paesi vengono distribuiti di più certi generi.
 
@@ -57,3 +42,57 @@ Bar Chart Animato (Seaborn/Plotly) → per visualizzare i primi 10 paesi per num
 Se Hollywood ha sempre dominato o se altri paesi stanno crescendo nella produzione.
 Se l’Asia sta aumentando la sua influenza nel cinema globale.
 Se ci sono eventi che hanno causato picchi o crolli nella produzione (es. guerre, crisi economiche).
+
+
+
+
+allora... non è rimasto molto da analizzare su questo data set secondo me, abbiamo ancora le crew i rilasci e gli attori da analizzare.
+ crew sia come numero che altro. attori dobbiamo magari vedere quali hanno fatto piu film in assoluto e se combaciano con quelli che hanno
+  miglior rating in assoluto(che abbiano un minimo di numero di film). poi le crew dobbiamo vedere anche qui la relazione con il n di crew per
+  genere e il num di attori per genere. poi il n di crew per ogni anno e poi le crew che hanno partecipato a film migliori (sempre che abbiano
+   fatto un minimo di film), poi rimangono i release... che non so quanto siano significativi come dato... ma potrebbe essere un indice interessante
+   vedere quali nazioni e quali generi fanno piu rilasci
+
+   1. Analisi delle Crew
+Numero di Crew per Genere:
+
+Confronta il numero medio di crew per genere e verifica se ci sono generi che richiedono più crew (ad esempio, film d'azione o fantascienza).
+
+Relazione tra Numero di Crew e Numero di Attori:
+
+Verifica se i generi con più attori tendono ad avere anche più crew.
+
+Crew con il Miglior Rating:
+
+Identifica le crew che hanno partecipato a film con i rating più alti, considerando solo quelle che hanno lavorato a un numero minimo di film (ad esempio, almeno 5 film).
+
+Numero di Crew per Anno:
+
+Analizza come il numero di crew è cambiato nel tempo, confrontandolo con il numero di film prodotti.
+
+2. Analisi degli Attori
+Attori con Più Film:
+
+Identifica gli attori che hanno partecipato al maggior numero di film.
+
+Attori con il Miglior Rating:
+
+Trova gli attori con il rating medio più alto, considerando solo quelli che hanno partecipato a un numero minimo di film (ad esempio, almeno 5 film).
+
+Relazione tra Numero di Film e Rating:
+
+Verifica se gli attori che hanno fatto più film tendono ad avere rating più alti o più bassi.
+
+3. Analisi dei Rilasci
+Nazioni con Più Rilasci:
+
+Identifica le nazioni che hanno prodotto più film e verifica se ci sono generi dominanti in ciascuna nazione.
+
+Generi per Nazione:
+
+Analizza quali generi sono più popolari in ciascuna nazione.
+
+Rilasci per Anno:
+
+Verifica come il numero di rilasci è cambiato nel tempo e se ci sono stati picchi in periodi specifici.
+
