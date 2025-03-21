@@ -1,98 +1,134 @@
-1️⃣ Analisi della distribuzione geografica per genere
-💡 Obiettivo: capire in quali paesi vengono distribuiti di più certi generi.
 
-📊 Grafico suggerito: Heatmap con sull'asse X i generi e sull’asse Y i paesi di distribuzione. Il colore rappresenta il numero di film distribuiti in quel paese per quel genere.
+1️⃣ Analisi delle Crew
+a) Numero di Crew per Genere
+Obiettivo: Capire se alcuni generi richiedono più crew (ad esempio, film d'azione o fantascienza).
 
-📌 Cosa scopri?
+Grafico suggerito: Barplot o Boxplot con sull'asse X i generi e sull'asse Y il numero medio di crew.
 
-Quali generi hanno una distribuzione globale (es. Hollywood probabilmente domina tutti i mercati).
-Quali generi sono più localizzati (es. film storici europei distribuiti solo in Europa).
-Se ci sono differenze culturali nella diffusione dei generi (es. Horror molto popolare negli USA ma meno in Asia).
-2️⃣ Analisi del numero medio di paesi di distribuzione per genere
-💡 Obiettivo: vedere quali generi hanno una diffusione internazionale e quali rimangono più locali.
+Cosa scopri:
 
-📊 Grafico suggerito: Boxplot con l’asse X per i generi e l’asse Y per il numero di paesi in cui il film è stato distribuito.
+Generi che richiedono più risorse tecniche (es. effetti speciali, scenografie complesse).
 
-📌 Cosa scopri?
+Generi con produzioni più piccole (es. documentari, commedie indipendenti).
 
-Generi con ampia diffusione (probabilmente Action, Comedy, Animation).
-Generi con distribuzione più ristretta (probabilmente History, War, Western).
-Se la distribuzione incide sul rating: i film con più paesi di distribuzione tendono ad avere rating più alti?
-3️⃣ Trend nel tempo: evoluzione della produzione e del rating
-💡 Obiettivo: vedere come è cambiata la produzione di film nel tempo e se certi generi sono diventati più popolari o apprezzati.
+b) Relazione tra Numero di Crew e Numero di Attori
+Obiettivo: Verificare se i generi con più attori tendono ad avere anche più crew.
 
-📊 Grafici suggeriti:
+Grafico suggerito: Scatterplot con sull'asse X il numero di attori e sull'asse Y il numero di crew, colorato per genere.
 
-Lineplot → per il numero di film prodotti ogni anno per genere.
-Lineplot → per il rating medio di ogni genere nel tempo.
-📌 Cosa scopri?
+Cosa scopri:
 
-Se la produzione di certi generi è aumentata/diminuita (es. Western probabilmente in calo, Superhero in crescita).
-Se alcuni generi stanno migliorando o peggiorando nel rating medio (es. se Comedy negli anni ha perso qualità o se Documentaries stanno diventando più apprezzati).
-Se ci sono cicli o trend evidenti legati a eventi storici (es. più film di guerra dopo conflitti importanti).
-4️⃣ Confronto della produzione tra paesi nel tempo
-💡 Obiettivo: vedere come è cambiato il dominio del mercato cinematografico nei vari paesi.
+Se esiste una correlazione positiva tra il numero di attori e il numero di crew.
 
-📊 Grafici suggeriti:
+Generi che richiedono un equilibrio diverso tra attori e crew.
 
-Stacked Area Chart → per mostrare la percentuale di film prodotti per paese dal 1900 a oggi.
-Bar Chart Animato (Seaborn/Plotly) → per visualizzare i primi 10 paesi per numero di film prodotti nel tempo.
-📌 Cosa scopri?
+c) Crew con il Miglior Rating
+Obiettivo: Identificare le crew che hanno partecipato a film con i rating più alti.
 
-Se Hollywood ha sempre dominato o se altri paesi stanno crescendo nella produzione.
-Se l’Asia sta aumentando la sua influenza nel cinema globale.
-Se ci sono eventi che hanno causato picchi o crolli nella produzione (es. guerre, crisi economiche).
+Grafico suggerito: Barplot con le migliori crew (quelle con almeno 5 film) e il loro rating medio.
 
+Cosa scopri:
 
+Se alcune crew sono associate sistematicamente a film di alta qualità.
 
+Se ci sono crew specializzate in determinati generi.
 
-allora... non è rimasto molto da analizzare su questo data set secondo me, abbiamo ancora le crew i rilasci e gli attori da analizzare.
- crew sia come numero che altro. attori dobbiamo magari vedere quali hanno fatto piu film in assoluto e se combaciano con quelli che hanno
-  miglior rating in assoluto(che abbiano un minimo di numero di film). poi le crew dobbiamo vedere anche qui la relazione con il n di crew per
-  genere e il num di attori per genere. poi il n di crew per ogni anno e poi le crew che hanno partecipato a film migliori (sempre che abbiano
-   fatto un minimo di film), poi rimangono i release... che non so quanto siano significativi come dato... ma potrebbe essere un indice interessante
-   vedere quali nazioni e quali generi fanno piu rilasci
+d) Numero di Crew per Anno
+Obiettivo: Analizzare come il numero di crew è cambiato nel tempo.
 
-   1. Analisi delle Crew
-Numero di Crew per Genere:
+Grafico suggerito: Lineplot con sull'asse X gli anni e sull'asse Y il numero medio di crew per film.
 
-Confronta il numero medio di crew per genere e verifica se ci sono generi che richiedono più crew (ad esempio, film d'azione o fantascienza).
+Cosa scopri:
 
-Relazione tra Numero di Crew e Numero di Attori:
+Se le produzioni cinematografiche stanno diventando più complesse (più crew).
 
-Verifica se i generi con più attori tendono ad avere anche più crew.
+Se ci sono picchi o cali legati a eventi storici o tecnologici.
 
-Crew con il Miglior Rating:
+2️⃣ Analisi degli Attori
+a) Attori con Più Film
+Obiettivo: Identificare gli attori che hanno partecipato al maggior numero di film.
 
-Identifica le crew che hanno partecipato a film con i rating più alti, considerando solo quelle che hanno lavorato a un numero minimo di film (ad esempio, almeno 5 film).
+Grafico suggerito: Barplot orizzontale con gli attori più prolifici.
 
-Numero di Crew per Anno:
+Cosa scopri:
 
-Analizza come il numero di crew è cambiato nel tempo, confrontandolo con il numero di film prodotti.
+Gli attori più attivi nel cinema.
 
-2. Analisi degli Attori
-Attori con Più Film:
+Se ci sono attori specializzati in determinati generi.
 
-Identifica gli attori che hanno partecipato al maggior numero di film.
+b) Attori con il Miglior Rating
+Obiettivo: Trovare gli attori con il rating medio più alto (considerando solo quelli con almeno 5 film).
 
-Attori con il Miglior Rating:
+Grafico suggerito: Barplot orizzontale con gli attori e il loro rating medio.
 
-Trova gli attori con il rating medio più alto, considerando solo quelli che hanno partecipato a un numero minimo di film (ad esempio, almeno 5 film).
+Cosa scopri:
 
-Relazione tra Numero di Film e Rating:
+Se gli attori più apprezzati sono anche quelli più prolifici.
 
-Verifica se gli attori che hanno fatto più film tendono ad avere rating più alti o più bassi.
+Se ci sono attori associati a generi specifici con rating alti.
 
-3. Analisi dei Rilasci
-Nazioni con Più Rilasci:
+c) Relazione tra Numero di Film e Rating
+Obiettivo: Verificare se gli attori che hanno fatto più film tendono ad avere rating più alti o più bassi.
 
-Identifica le nazioni che hanno prodotto più film e verifica se ci sono generi dominanti in ciascuna nazione.
+Grafico suggerito: Scatterplot con sull'asse X il numero di film e sull'asse Y il rating medio.
 
-Generi per Nazione:
+Cosa scopri:
 
-Analizza quali generi sono più popolari in ciascuna nazione.
+Se esiste una correlazione tra prolificità e qualità.
 
-Rilasci per Anno:
+Se gli attori con pochi film tendono ad avere rating più alti (effetto "nicchia").
 
-Verifica come il numero di rilasci è cambiato nel tempo e se ci sono stati picchi in periodi specifici.
+3️⃣ Analisi dei Rilasci
+a) Nazioni con Più Rilasci
+Obiettivo: Identificare le nazioni che hanno prodotto più film.
 
+Grafico suggerito: Barplot con le nazioni e il numero di film prodotti.
+
+Cosa scopri:
+
+Quali paesi dominano l'industria cinematografica.
+
+Se ci sono generi dominanti in ciascuna nazione.
+
+b) Generi per Nazione
+Obiettivo: Analizzare quali generi sono più popolari in ciascuna nazione.
+
+Grafico suggerito: Heatmap con sull'asse X i generi e sull'asse Y le nazioni, colorato per numero di film.
+
+Cosa scopri:
+
+Se ci sono generi specifici associati a determinate nazioni (es. Bollywood e musical).
+
+Se alcuni generi hanno una distribuzione globale.
+
+c) Rilasci per Anno
+Obiettivo: Verificare come il numero di rilasci è cambiato nel tempo.
+
+Grafico suggerito: Lineplot con sull'asse X gli anni e sull'asse Y il numero di rilasci.
+
+Cosa scopri:
+
+Se ci sono stati picchi o cali nella produzione cinematografica.
+
+Se eventi storici (es. guerre, crisi economiche) hanno influenzato la produzione.
+
+4️⃣ Analisi Geografiche (se possibile)
+a) Mappa dei Rilasci per Nazione
+Obiettivo: Visualizzare la distribuzione geografica dei film.
+
+Grafico suggerito: Mappa a coroplete con i paesi colorati in base al numero di film prodotti.
+
+Cosa scopri:
+
+Quali regioni del mondo dominano l'industria cinematografica.
+
+Se ci sono aree sottorappresentate.
+
+b) Mappa dei Generi per Nazione
+Obiettivo: Visualizzare la distribuzione geografica dei generi.
+
+Grafico suggerito: Mappa a coroplete con i paesi colorati in base al genere più popolare.
+
+Cosa scopri:
+
+Se alcuni generi sono associati a specifiche regioni culturali.
