@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="b8be779b-f821-4f7d-a966-18026fb2abfc" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/../mainServer/config/passport.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../mainServer/models/userModel.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../mainServer/routes/admin.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../mainServer/routes/auth.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../mainServer/services/uploadService.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../mainServer/views/pages/admin.hbs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../IUM/MattiaLiberatoreIUMSolution.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../IUM/MattiaLiberatoreIUMSolution.ipynb" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../../.." />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 1
+}]]></component>
+  <component name="ProjectId" id="2uohMTL7slRMwI2Ht6ldDS5y2RO" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "main",
+    "javascript.nodejs.core.library.configured.version": "22.14.0",
+    "javascript.nodejs.core.library.typings.version": "",
+    "last_opened_file_path": "C:/Users/pc",
+    "nodejs_interpreter_path": "node",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "settings.nodejs",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b8be779b-f821-4f7d-a966-18026fb2abfc" name="Changes" comment="" />
+      <created>1742920785412</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1742920785412</updated>
+      <workItem from="1742920786512" duration="4000" />
+    </task>
+    <servers />
+  </component>
+</project>
