@@ -6,3 +6,12 @@ body {
 a {
   color: #00B7FF;
 }
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+.alert-success {
+  background-color: #d4edda;
+  color: #155724;
+}

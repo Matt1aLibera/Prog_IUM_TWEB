@@ -1,8 +1,31 @@
-<h1>{{title}}</h1>
-<form action="/login" method="POST">
-    <label>Username:</label>
-    <input type="text" name="username" required>
-    <label>Password:</label>
-    <input type="password" name="password" required>
-    <button type="submit">Login</button>
-</form>
+<div class="login-container">
+    <h1>Benvenuto su {{title}}</h1>
+    <p>Inserisci i tuoi dati</p>
+
+    {{#if error}}
+        <div class="alert alert-{{alertType}}">{{error}}</div>
+    {{/if}}
+
+    <form action="/auth/login" method="POST">
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text"
+                   name="username"
+                   id="username"
+                   value="{{formData.username}}"
+                   required
+                   placeholder="Inserisci il tuo username">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password"
+                   name="password"
+                   id="password"
+                   required
+                   placeholder="Inserisci la password">
+        </div>
+
+        <button type="submit" class="btn-login">Accedi</button>
+    </form>
+</div>

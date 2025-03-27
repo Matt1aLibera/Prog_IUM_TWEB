@@ -8,11 +8,11 @@ function ensureAdmin(req, res, next) {
     if (req.isAuthenticated() && req.user.role === 'admin') {
         return next();
     }
-    res.redirect('/login');
+    res.redirect('/');
 }
 
 // Pagina admin con pulsante upload
-router.get('/', ensureAdmin, (req, res) => {
+router.get('/admin', ensureAdmin, (req, res) => {
     res.render('pages/admin', { user: req.user });
 });
 
