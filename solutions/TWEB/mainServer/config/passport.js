@@ -1,17 +1,16 @@
+javascript
+Copy
 const passport = require('passport');
 
-// Serializzazione: salva solo l'ID
+// Disabilita la serializzazione
 passport.serializeUser((user, done) => {
-    done(null, user._id || user.id);
+    done(null, {}); // Non salva nulla nella sessione
 });
 
-// Deserializzazione: mock fisso (bypass completo)
-passport.deserializeUser((id, done) => {
-    done(null, {
-        _id: id,
-        username: 'admin',
-        role: 'admin' // Forza ruolo admin per testing
-    });
+// Disabilita la deserializzazione
+passport.deserializeUser((obj, done) => {
+    done(null, {}); // Non carica nulla dalla sessione
 });
 
+// (Mantieni la tua strategia 'remote' se ti serve per la validazione)
 module.exports = passport;

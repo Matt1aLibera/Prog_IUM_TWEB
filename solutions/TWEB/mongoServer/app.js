@@ -3,10 +3,11 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const { connectDB } = require('./databases/user');
+const { connectUserDB } = require('./databases/user');
 const initializeAdmin = require('./services/adminInit');
 const bodyParser = require('body-parser');
 const authRoutes = require('./routes/index');
+const apiRoutes = require('./routes/api')
 
 
 const app = express();
@@ -16,6 +17,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/auth', authRoutes); // Tutte le route inizieranno con /auth
+
+app.use('/api', apiRoutes);
 
 // Configurazione view engine (se necessario, altrimenti rimuovere)
 app.set('views', path.join(__dirname, 'views'));
@@ -31,7 +34,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Connessione DB e inizializzazione automatica
 (async () => {
   try {
-    await connectDB();
+    await connectUserDB();
     await initializeAdmin(); // Usa il service dedicato
   } catch (error) {
     console.error('❌ Avvio fallito:', error);

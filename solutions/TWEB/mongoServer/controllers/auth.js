@@ -1,5 +1,5 @@
+//const User = require('../models/User');
 const User = require('../models/User');
-
 exports.verify = async (req, res) => {
     console.log('\n=== NUOVA RICHIESTA DI VERIFICA ===');
     console.log('Dati ricevuti:', {

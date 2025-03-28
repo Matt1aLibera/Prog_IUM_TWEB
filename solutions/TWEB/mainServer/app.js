@@ -11,6 +11,7 @@ const MongoStore = require('connect-mongo');
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var loginRouter = require('./routes/auth');
+var adminRouter =require ('./routes/admin')
 
 var app = express();
 
@@ -53,18 +54,21 @@ app.use(session({
     return require('crypto').randomUUID(); // Debug
   }
 }));
-app.use(passport.initialize());
-app.use(passport.authenticate('session'));
-
+app.use((req, res, next) => {
+  // Middleware vuoto che bypassa Passport per le sessioni
+  next();
+});
 // File statici
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(flash());
 
 // Route
+app.use('/admin', adminRouter);
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/auth', loginRouter);  // invece di '/login'
+
 
 // Gestione 404
 app.use(function(req, res, next) {
