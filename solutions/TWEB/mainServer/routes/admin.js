@@ -28,7 +28,7 @@ router.get('/', requireAdmin, (req, res) => {
 router.post('/upload-db', requireAdmin, async (req, res) => {
     try {
         // Invece di processare localmente, inoltra la richiesta al mongo server
-        const response = await axios.post('http://localhost:3001/api/upload-db');
+        const response = await axios.post('http://localhost:3002/api/upload-db');
 
         if (response.data.success) {
             req.flash('success', `Database aggiornato! ${response.data.message}`);
