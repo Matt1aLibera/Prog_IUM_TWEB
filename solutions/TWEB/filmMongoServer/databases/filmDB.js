@@ -14,8 +14,6 @@ const connectDB = async () => {
             serverSelectionTimeoutMS: 30000,
             socketTimeoutMS: 45000,
             maxPoolSize: 100,
-            useNewUrlParser: true,
-            useUnifiedTopology: true
         });
 
         // Registra i modelli PRIMA di restituire la connessione

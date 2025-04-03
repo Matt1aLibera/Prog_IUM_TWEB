@@ -5,7 +5,18 @@ const uploadRTReviews = async (csvPath) => {
     const RTReview = connection.model('RTReview');
 
     try {
-        const result = await loadRTReviews(csvPath, RTReview);
+        // 1. Controllo se esistono documenti nella collection
+        const existingCount = await RTReview.countDocuments();
+        if (existingCount > 0) {
+            return {
+                success: false,
+                message: "La collection RTReview è già popolata",
+                existingCount: existingCount
+            };
+        }
+
+        // 2. Procedura normale di caricamento (esistente)
+        const result = await loadRTReviews(csvPath);
 
         return {
             success: result.success,

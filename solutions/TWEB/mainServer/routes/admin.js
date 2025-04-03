@@ -27,17 +27,27 @@ router.get('/', requireAdmin, (req, res) => {
 // Avvia il caricamento dati sui database
 router.post('/upload-db', requireAdmin, async (req, res) => {
     try {
-        // Invece di processare localmente, inoltra la richiesta al mongo server
-        const response = await axios.post('http://localhost:3002/api/upload-db');
+        // 1. Invia prima a PostgreSQL (Spring Boot)
+        const pgResponse = await axios.post('http://localhost:8080/api/upload-db');
 
-        if (response.data.success) {
-            req.flash('success', `Database aggiornato! ${response.data.message}`);
-        } else {
-            req.flash('error', response.data.error || 'Errore sconosciuto');
-        }
+        // 2. Poi a MongoDB
+        const mongoResponse = await axios.post('http://localhost:3002/api/upload-db');
+
+        // Costruisci messaggio combinato
+        const messages = [
+            pgResponse.data.message,
+            mongoResponse.data.message
+        ].filter(Boolean).join(" | ");
+
+        req.flash('success', `Database aggiornato! ${messages}`);
     } catch (error) {
-        console.error('Errore comunicazione con mongo server:', error.response?.data || error.message);
-        req.flash('error', 'Errore durante il caricamento dei dati');
+        console.error('Errore durante il caricamento:', {
+            pgError: error.response?.data || error.message,
+            mongoError: error.response?.data || error.message
+        });
+
+        const errorMsg = error.response?.data?.message || 'Errore durante il caricamento dei dati';
+        req.flash('error', errorMsg);
     }
     res.redirect('/admin');
 });

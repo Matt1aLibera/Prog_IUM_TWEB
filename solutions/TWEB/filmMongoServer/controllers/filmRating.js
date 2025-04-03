@@ -32,8 +32,18 @@ const uploadRatings = async (csvPath) => {
     const FilmRating = connection.model('FilmRating');
 
     try {
-        const data = await parseCSV(csvPath);
+        // 1. Controllo se esistono documenti nella collection
+        const existingCount = await FilmRating.countDocuments();
+        if (existingCount > 0) {
+            return {
+                success: false,
+                message: "La collection FilmRating è già popolata",
+                existingCount: existingCount
+            };
+        }
 
+        // 2. Procedura normale di caricamento (esistente)
+        const data = await parseCSV(csvPath);
         if (data.length === 0) {
             return {
                 success: false,
@@ -41,7 +51,6 @@ const uploadRatings = async (csvPath) => {
             };
         }
 
-        // Inserimento con ulteriore validazione
         const results = await FilmRating.insertMany(data, { ordered: false });
 
         return {
@@ -50,34 +59,15 @@ const uploadRatings = async (csvPath) => {
             sample: results.slice(0, 3)
         };
     } catch (error) {
-        console.error('Error in uploadDB:', error);
+        console.error('Error in uploadRatings:', error);
         throw error;
     }
 };
 
-//non questo
-const loadRatings = async (csvData) => {
-    try {
-        // Svuota la collezione
-        await FilmRating.deleteMany({});
 
-        // Inserisci i nuovi dati
-        const results = await FilmRating.insertMany(csvData);
-
-        return {
-            success: true,
-            count: results.length,
-            sample: results.slice(0, 3)
-        };
-    } catch (error) {
-        console.error('Errore nel controller:', error);
-        throw error;
-    }
-};
 
 module.exports = {
     upsertRating,
     getRating,
     uploadRatings, // Aggiungi la nuova funzione
-    loadRatings
 };
