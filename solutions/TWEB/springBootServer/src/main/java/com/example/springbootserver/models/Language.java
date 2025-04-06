@@ -3,29 +3,32 @@ package com.example.springbootserver.models;
 import jakarta.persistence.*;
 
 @Entity
-@Table
+@Table(name = "language")
 public class Language {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // ID interno
+    private Long id;
 
-    @Column(nullable = false)
-    private Long movieId; // Riferimento a Movie (id CSV)
+    @Column(name = "movie_id", nullable = false)
+    private Long movieId;
 
-    @Column
+    @Column(length = 255)
     private String type; // "Primary language", "Spoken language", etc.
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String language;
 
     // Costruttori
-    public Language() {}
+    public Language() {
+    }
+
     public Language(Long movieId, String type, String language) {
         this.movieId = movieId;
         this.type = type;
         this.language = language;
     }
 
+    // Getter e Setter
     public Long getId() {
         return id;
     }

@@ -4,28 +4,30 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
-@Table
+@Table(name = "release")
 public class Release {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // ID interno
+    private Long id;
 
-    @Column(nullable = false)
-    private Long movieId; // Riferimento a Movie
+    @Column(name = "movie_id", nullable = false)
+    private Long movieId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String country;
 
+    @Column
     private LocalDate date;
 
-    @Column
+    @Column(length = 255)
     private String type; // "Theatrical", "Digital", etc.
 
-    @Column
+    @Column(length = 50)
     private String rating; // "PG", "ATP", etc.
 
     // Costruttori
     public Release() {}
+
     public Release(Long movieId, String country, LocalDate date, String type, String rating) {
         this.movieId = movieId;
         this.country = country;
@@ -34,6 +36,7 @@ public class Release {
         this.rating = rating;
     }
 
+    // Getter e Setter
     public Long getId() {
         return id;
     }
@@ -80,5 +83,6 @@ public class Release {
 
     public void setRating(String rating) {
         this.rating = rating;
+
     }
 }

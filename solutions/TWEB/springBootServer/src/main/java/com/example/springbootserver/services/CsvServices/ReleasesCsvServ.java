@@ -1,7 +1,8 @@
 package com.example.springbootserver.services.CsvServices;
-
 import com.example.springbootserver.models.ActorAppearance;
+import com.example.springbootserver.models.Release;
 import com.example.springbootserver.repositories.ActorAppearanceRepo;
+import com.example.springbootserver.repositories.ReleaseRepo;
 import jakarta.persistence.EntityManager;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,25 +14,26 @@ import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.time.LocalDate;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
 import java.util.List;
-
 @Service
-public class ActorCsvServ {
-    private static final Logger logger = LoggerFactory.getLogger(ActorCsvServ.class);
+public class ReleasesCsvServ {
+    private static final Logger logger = LoggerFactory.getLogger(ReleasesCsvServ.class);
+    private static final int BATCH_SIZE = 1000;
 
-    private final ActorAppearanceRepo actorAppearanceRepo;
+    private final ReleaseRepo releaseRepo;
     private final Resource csvFile;
     private final EntityManager entityManager;
     private final JdbcTemplate jdbcTemplate;
 
-    public ActorCsvServ(
-            ActorAppearanceRepo actorAppearanceRepo,
-            @Value("classpath:csv/actors.csv") Resource csvFile,
+    public ReleasesCsvServ(
+            ReleaseRepo releaseRepo,
+            @Value("classpath:csv/releases.csv") Resource csvFile,
             EntityManager entityManager,
             JdbcTemplate jdbcTemplate) {
-        this.actorAppearanceRepo = actorAppearanceRepo;
+        this.releaseRepo = releaseRepo;
         this.csvFile = csvFile;
         this.entityManager = entityManager;
         this.jdbcTemplate = jdbcTemplate;
@@ -40,10 +42,10 @@ public class ActorCsvServ {
     @Transactional(readOnly = true)
     public boolean isAlreadyLoaded() {
         try {
-            if (!tableExists("actor_appearances")) {
+            if (!tableExists("release")) {
                 return false;
             }
-            return actorAppearanceRepo.count() > 0;
+            return releaseRepo.count() > 0;
         } catch (Exception e) {
             logger.warn("Errore nel verificare lo stato del caricamento", e);
             return false;
@@ -64,15 +66,15 @@ public class ActorCsvServ {
     }
 
     @Transactional
-    public void loadActorAppearances() {
+    public void loadReleases() {
         if (isAlreadyLoaded()) {
-            logger.info("SKIP - Tabella ActorAppearances già popolata");
+            logger.info("SKIP - Tabella Release già popolata");
             return;
         }
 
         createTableIfNotExists();
 
-        List<ActorAppearance> validAppearances = new ArrayList<>();
+        List<Release> validReleases = new ArrayList<>();
         AtomicInteger processedRows = new AtomicInteger(0);
         AtomicInteger skippedRows = new AtomicInteger(0);
 
@@ -90,37 +92,56 @@ public class ActorCsvServ {
                 try {
                     String[] values = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
 
-                    if (values.length < 2 || values[0].isEmpty() || values[1].isEmpty()) {
+                    // Verifica campi obbligatori: movieId e country
+                    if (values.length < 3 || values[0].isEmpty() || values[1].isEmpty()) {
                         skippedRows.incrementAndGet();
-                        logger.warn("SKIP - Riga {}: Formato non valido", lineNumber);
+                        logger.warn("SKIP - Riga {}: Formato non valido (campi mancanti)", lineNumber);
                         continue;
                     }
 
-                    ActorAppearance appearance = new ActorAppearance();
+                    Release release = new Release();
                     try {
-                        appearance.setMovieId(Long.parseLong(values[0].trim()));
+                        release.setMovieId(Long.parseLong(values[0].trim()));
                     } catch (NumberFormatException e) {
                         skippedRows.incrementAndGet();
-                        logger.warn("SKIP - Riga {}: movie_id non numerico", lineNumber);
+                        logger.warn("SKIP - Riga {}: movie_id non numerico - {}", lineNumber, values[0]);
                         continue;
                     }
 
-                    appearance.setActorName(values[1].trim().replaceAll("^\"|\"$", ""));
-                    appearance.setCharacterName(values.length > 2 ? values[2].trim().replaceAll("^\"|\"$", "") : null);
+                    release.setCountry(values[1].trim().replaceAll("^\"|\"$", ""));
 
-                    validAppearances.add(appearance);
+                    // Data di uscita (opzionale)
+                    if (values.length > 2 && !values[2].isEmpty()) {
+                        try {
+                            release.setDate(LocalDate.parse(values[2].trim()));
+                        } catch (Exception e) {
+                            logger.warn("WARN - Riga {}: Formato data non valido - {}", lineNumber, values[2]);
+                        }
+                    }
+
+                    // Tipo di uscita (opzionale)
+                    if (values.length > 3 && !values[3].isEmpty()) {
+                        release.setType(values[3].trim().replaceAll("^\"|\"$", ""));
+                    }
+
+                    // Rating (opzionale)
+                    if (values.length > 4 && !values[4].isEmpty()) {
+                        release.setRating(values[4].trim().replaceAll("^\"|\"$", ""));
+                    }
+
+                    validReleases.add(release);
 
                 } catch (Exception e) {
                     skippedRows.incrementAndGet();
-                    logger.error("ERR - Riga {}: {}", lineNumber, e.getMessage());
+                    logger.error("ERR - Riga {}: {} - Linea: {}", lineNumber, e.getMessage(), line);
                 }
             }
 
-            if (!validAppearances.isEmpty()) {
+            if (!validReleases.isEmpty()) {
                 // Batch processing ottimizzato per JPA
                 int batchSize = 1000;
-                for (int i = 0; i < validAppearances.size(); i++) {
-                    entityManager.persist(validAppearances.get(i));
+                for (int i = 0; i < validReleases.size(); i++) {
+                    entityManager.persist(validReleases.get(i));
 
                     if (i % batchSize == 0 && i > 0) {
                         entityManager.flush();
@@ -128,10 +149,10 @@ public class ActorCsvServ {
                     }
                 }
 
-                logger.info("SUCCESS - Caricati {} record ({} righe processate, {} saltate)",
-                        validAppearances.size(), processedRows.get(), skippedRows.get());
+                logger.info("SUCCESS - Caricati {} release ({} righe processate, {} saltate)",
+                        validReleases.size(), processedRows.get(), skippedRows.get());
             } else {
-                logger.warn("WARN - Nessun record valido trovato");
+                logger.warn("WARN - Nessuna release valida trovata");
             }
 
         } catch (IOException e) {
@@ -142,14 +163,17 @@ public class ActorCsvServ {
 
     private void createTableIfNotExists() {
         try {
-            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS actor_appearances (" +
+            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS release (" +
                     "id BIGSERIAL PRIMARY KEY, " +
                     "movie_id BIGINT NOT NULL, " +
-                    "actor_name VARCHAR(1000) NOT NULL, " +  // Aumentato a 1000
-                    "character_name VARCHAR(1000))");        // Aumentato a 1000
+                    "country VARCHAR(255) NOT NULL, " +
+                    "date DATE, " +
+                    "type VARCHAR(255), " +
+                    "rating VARCHAR(50))");
+            logger.info("Tabella release verificata/creata con successo");
         } catch (Exception e) {
-            logger.error("Errore nella creazione della tabella", e);
-            throw new RuntimeException("Errore creazione tabella", e);
+            logger.error("Errore nella creazione della tabella release", e);
+            throw new RuntimeException("Impossibile creare la tabella release", e);
         }
     }
 }

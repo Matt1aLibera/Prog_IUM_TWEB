@@ -6,10 +6,12 @@ import com.opencsv.bean.ColumnPositionMappingStrategy;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.bean.HeaderColumnNameMappingStrategy;
+import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,15 +28,45 @@ public class MovieCsvServ {
 
     private final MovieRepo movieRepository;
     private final Resource csvFile;
-    @Transactional(readOnly = true)
-    public boolean isAlreadyLoaded() {
-        return movieRepository.count() > 0;
-    }
+    private final EntityManager entityManager;
+    private final JdbcTemplate jdbcTemplate; // Aggiunto questo campo
 
+    // Unico costruttore con tutti i parametri necessari
     public MovieCsvServ(MovieRepo movieRepository,
-                        @Value("classpath:csv/movies.csv") Resource csvFile) {
+                        @Value("classpath:csv/movies.csv") Resource csvFile,
+                        EntityManager entityManager,
+                        JdbcTemplate jdbcTemplate) {
         this.movieRepository = movieRepository;
         this.csvFile = csvFile;
+        this.entityManager = entityManager;
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isAlreadyLoaded() {
+        try {
+            // Verifica prima se la tabella esiste
+            if (!tableExists("movie")) {
+                return false;
+            }
+            return movieRepository.count() > 0;
+        } catch (Exception e) {
+            logger.warn("Errore nel verificare lo stato del caricamento, assumendo tabella vuota", e);
+            return false;
+        }
+    }
+
+    private boolean tableExists(String tableName) {
+        try {
+            Long count = (Long) entityManager.createNativeQuery(
+                            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?1")
+                    .setParameter(1, tableName.toLowerCase())
+                    .getSingleResult();
+            return count > 0;
+        } catch (Exception e) {
+            logger.warn("Errore nel verificare l'esistenza della tabella", e);
+            return false;
+        }
     }
 
     @Transactional
@@ -43,6 +75,10 @@ public class MovieCsvServ {
             logger.info("SKIP - Tabella Movie già popolata");
             return;
         }
+
+        // Crea la tabella se non esiste
+        createMovieTableIfNotExists();
+
         List<Movie> validMovies = new ArrayList<>();
         AtomicInteger processedRows = new AtomicInteger(0);
         AtomicInteger skippedRows = new AtomicInteger(0);
@@ -60,17 +96,14 @@ public class MovieCsvServ {
                 processedRows.incrementAndGet();
 
                 try {
-                    // Parsing manuale più tollerante
                     String[] values = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
 
-                    // Validazione base
                     if (values.length < 2 || values[0].isEmpty() || values[1].isEmpty()) {
                         skippedRows.incrementAndGet();
                         logger.warn("SKIP - Riga {}: Formato non valido - {}", lineNumber, line);
                         continue;
                     }
 
-                    // Costruzione oggetto Movie
                     Movie movie = new Movie();
                     try {
                         movie.setId(Long.parseLong(values[0].trim()));
@@ -82,7 +115,6 @@ public class MovieCsvServ {
 
                     movie.setName(values[1].trim().replaceAll("^\"|\"$", ""));
 
-                    // Campi opzionali con gestione errori
                     if (values.length > 2 && !values[2].isEmpty()) {
                         try {
                             movie.setDate(Integer.parseInt(values[2].trim()));
@@ -128,6 +160,21 @@ public class MovieCsvServ {
         } catch (IOException e) {
             logger.error("CRITICAL - Errore accesso file CSV: {}", e.getMessage());
             throw new RuntimeException("Errore di lettura file CSV", e);
+        }
+    }
+
+    private void createMovieTableIfNotExists() {
+        try {
+            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS movie (" +  // Nota: qui usiamo "movie" non "movies"
+                    "id BIGINT PRIMARY KEY, " +
+                    "name VARCHAR(255), " +
+                    "date INTEGER, " +
+                    "tagline TEXT, " +
+                    "description TEXT, " +
+                    "minute INTEGER)");
+        } catch (Exception e) {
+            logger.error("Errore nella creazione della tabella movie", e);
+            throw new RuntimeException("Errore nella creazione della tabella movie", e);
         }
     }
 }

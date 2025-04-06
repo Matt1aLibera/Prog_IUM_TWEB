@@ -18,8 +18,8 @@ public interface ActorAppearanceRepo extends JpaRepository<ActorAppearance, Long
     List<ActorAppearance> findByActorNameContainingIgnoreCase(String actorName);
 
     // Trova apparizioni per ruolo e film
-    @Query("SELECT a FROM ActorAppearance a WHERE a.characterRole = :role AND a.movieId = :movieId")
-    List<ActorAppearance> findByCharacterRoleAndMovieId(@Param("role") String role, @Param("movieId") Long movieId);
+    @Query("SELECT a FROM ActorAppearance a WHERE a.characterName = :role AND a.movieId = :movieId")
+    List<ActorAppearance> findByCharacterNameAndMovieId(@Param("role") String role, @Param("movieId") Long movieId);
 
     // Trova apparizioni per lista di film (ordinato per nome attore)
     @Query(value = "SELECT * FROM actor_appearances WHERE movie_id IN :movieIds ORDER BY actor_name", nativeQuery = true)
@@ -27,9 +27,4 @@ public interface ActorAppearanceRepo extends JpaRepository<ActorAppearance, Long
 
     // Conta le apparizioni per film
     long countByMovieId(Long movieId);
-
-    // Elimina apparizioni orfane (senza film corrispondente)
-    @Modifying
-    @Query("DELETE FROM ActorAppearance a WHERE a.movieId NOT IN (SELECT m.id FROM Movie m)")
-    int deleteOrphanAppearances();
 }

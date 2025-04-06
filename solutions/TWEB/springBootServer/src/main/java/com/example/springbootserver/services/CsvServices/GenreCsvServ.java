@@ -1,7 +1,8 @@
 package com.example.springbootserver.services.CsvServices;
-
 import com.example.springbootserver.models.ActorAppearance;
+import com.example.springbootserver.models.Genre;
 import com.example.springbootserver.repositories.ActorAppearanceRepo;
+import com.example.springbootserver.repositories.GenreRepo;
 import jakarta.persistence.EntityManager;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,22 +17,22 @@ import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
 import java.util.List;
-
 @Service
-public class ActorCsvServ {
-    private static final Logger logger = LoggerFactory.getLogger(ActorCsvServ.class);
+public class GenreCsvServ {
+    private static final Logger logger = LoggerFactory.getLogger(GenreCsvServ.class);
+    private static final int BATCH_SIZE = 1000;
 
-    private final ActorAppearanceRepo actorAppearanceRepo;
+    private final GenreRepo genreRepo;
     private final Resource csvFile;
     private final EntityManager entityManager;
     private final JdbcTemplate jdbcTemplate;
 
-    public ActorCsvServ(
-            ActorAppearanceRepo actorAppearanceRepo,
-            @Value("classpath:csv/actors.csv") Resource csvFile,
+    public GenreCsvServ(
+            GenreRepo genreRepo,
+            @Value("classpath:csv/genres.csv") Resource csvFile,
             EntityManager entityManager,
             JdbcTemplate jdbcTemplate) {
-        this.actorAppearanceRepo = actorAppearanceRepo;
+        this.genreRepo = genreRepo;
         this.csvFile = csvFile;
         this.entityManager = entityManager;
         this.jdbcTemplate = jdbcTemplate;
@@ -40,10 +41,10 @@ public class ActorCsvServ {
     @Transactional(readOnly = true)
     public boolean isAlreadyLoaded() {
         try {
-            if (!tableExists("actor_appearances")) {
+            if (!tableExists("genre")) {
                 return false;
             }
-            return actorAppearanceRepo.count() > 0;
+            return genreRepo.count() > 0;
         } catch (Exception e) {
             logger.warn("Errore nel verificare lo stato del caricamento", e);
             return false;
@@ -64,15 +65,15 @@ public class ActorCsvServ {
     }
 
     @Transactional
-    public void loadActorAppearances() {
+    public void loadGenres() {
         if (isAlreadyLoaded()) {
-            logger.info("SKIP - Tabella ActorAppearances già popolata");
+            logger.info("SKIP - Tabella Genre già popolata");
             return;
         }
 
         createTableIfNotExists();
 
-        List<ActorAppearance> validAppearances = new ArrayList<>();
+        List<Genre> validGenres = new ArrayList<>();
         AtomicInteger processedRows = new AtomicInteger(0);
         AtomicInteger skippedRows = new AtomicInteger(0);
 
@@ -92,35 +93,34 @@ public class ActorCsvServ {
 
                     if (values.length < 2 || values[0].isEmpty() || values[1].isEmpty()) {
                         skippedRows.incrementAndGet();
-                        logger.warn("SKIP - Riga {}: Formato non valido", lineNumber);
+                        logger.warn("SKIP - Riga {}: Formato non valido (campi mancanti)", lineNumber);
                         continue;
                     }
 
-                    ActorAppearance appearance = new ActorAppearance();
+                    Genre genre = new Genre();
                     try {
-                        appearance.setMovieId(Long.parseLong(values[0].trim()));
+                        genre.setMovieId(Long.parseLong(values[0].trim()));
                     } catch (NumberFormatException e) {
                         skippedRows.incrementAndGet();
-                        logger.warn("SKIP - Riga {}: movie_id non numerico", lineNumber);
+                        logger.warn("SKIP - Riga {}: movie_id non numerico - {}", lineNumber, values[0]);
                         continue;
                     }
 
-                    appearance.setActorName(values[1].trim().replaceAll("^\"|\"$", ""));
-                    appearance.setCharacterName(values.length > 2 ? values[2].trim().replaceAll("^\"|\"$", "") : null);
+                    genre.setGenre(values[1].trim().replaceAll("^\"|\"$", ""));
 
-                    validAppearances.add(appearance);
+                    validGenres.add(genre);
 
                 } catch (Exception e) {
                     skippedRows.incrementAndGet();
-                    logger.error("ERR - Riga {}: {}", lineNumber, e.getMessage());
+                    logger.error("ERR - Riga {}: {} - Linea: {}", lineNumber, e.getMessage(), line);
                 }
             }
 
-            if (!validAppearances.isEmpty()) {
+            if (!validGenres.isEmpty()) {
                 // Batch processing ottimizzato per JPA
                 int batchSize = 1000;
-                for (int i = 0; i < validAppearances.size(); i++) {
-                    entityManager.persist(validAppearances.get(i));
+                for (int i = 0; i < validGenres.size(); i++) {
+                    entityManager.persist(validGenres.get(i));
 
                     if (i % batchSize == 0 && i > 0) {
                         entityManager.flush();
@@ -128,10 +128,10 @@ public class ActorCsvServ {
                     }
                 }
 
-                logger.info("SUCCESS - Caricati {} record ({} righe processate, {} saltate)",
-                        validAppearances.size(), processedRows.get(), skippedRows.get());
+                logger.info("SUCCESS - Caricati {} generi ({} righe processate, {} saltate)",
+                        validGenres.size(), processedRows.get(), skippedRows.get());
             } else {
-                logger.warn("WARN - Nessun record valido trovato");
+                logger.warn("WARN - Nessun genere valido trovato");
             }
 
         } catch (IOException e) {
@@ -142,14 +142,14 @@ public class ActorCsvServ {
 
     private void createTableIfNotExists() {
         try {
-            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS actor_appearances (" +
+            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS genre (" +
                     "id BIGSERIAL PRIMARY KEY, " +
                     "movie_id BIGINT NOT NULL, " +
-                    "actor_name VARCHAR(1000) NOT NULL, " +  // Aumentato a 1000
-                    "character_name VARCHAR(1000))");        // Aumentato a 1000
+                    "genre TEXT NOT NULL)");
+            logger.info("Tabella genre verificata/creata con successo");
         } catch (Exception e) {
-            logger.error("Errore nella creazione della tabella", e);
-            throw new RuntimeException("Errore creazione tabella", e);
+            logger.error("Errore nella creazione della tabella genre", e);
+            throw new RuntimeException("Impossibile creare la tabella genre", e);
         }
     }
 }

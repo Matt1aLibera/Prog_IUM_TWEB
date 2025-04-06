@@ -2,25 +2,19 @@ package com.example.springbootserver.models;
 import jakarta.persistence.*;
 
 @Entity
-@Table
+@Table(name = "country")
 public class Country {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // ID interno
+    private Long id;
 
-    @Column(nullable = false)
-    private Long movieId; // Riferimento a Movie
+    @Column(name = "movie_id", nullable = false)
+    private Long movieId;
 
-    @Column(nullable = false)
-    private String country;
+    @Column(name = "country_name", nullable = false, length = 1000)
+    private String countryName;
 
-    // Costruttori
-    public Country() {}
-    public Country(Long movieId, String country) {
-        this.movieId = movieId;
-        this.country = country;
-    }
-
+    // Getter e Setter
     public Long getId() {
         return id;
     }
@@ -37,11 +31,11 @@ public class Country {
         this.movieId = movieId;
     }
 
-    public String getCountry() {
-        return country;
+    public String getCountryName() {
+        return countryName;
     }
 
-    public void setCountry(String country) {
-        this.country = country;
+    public void setCountryName(String countryName) {
+        this.countryName = countryName;
     }
 }

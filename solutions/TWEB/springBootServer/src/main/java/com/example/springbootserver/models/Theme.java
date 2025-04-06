@@ -3,25 +3,27 @@ package com.example.springbootserver.models;
 import jakarta.persistence.*;
 
 @Entity
-@Table
+@Table(name = "theme")
 public class Theme {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // ID interno
+    private Long id;
 
-    @Column(nullable = false)
-    private Long movieId; // Riferimento a Movie (id CSV)
+    @Column(name = "movie_id", nullable = false)
+    private Long movieId;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String theme;
 
     // Costruttori
     public Theme() {}
+
     public Theme(Long movieId, String theme) {
         this.movieId = movieId;
         this.theme = theme;
     }
 
+    // Getter e Setter
     public Long getId() {
         return id;
     }
@@ -44,5 +46,14 @@ public class Theme {
 
     public void setTheme(String theme) {
         this.theme = theme;
+    }
+
+    @Override
+    public String toString() {
+        return "Theme{" +
+                "id=" + id +
+                ", movieId=" + movieId +
+                ", theme='" + theme + '\'' +
+                '}';
     }
 }

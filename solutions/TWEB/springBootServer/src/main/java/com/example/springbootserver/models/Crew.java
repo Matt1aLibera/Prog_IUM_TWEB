@@ -2,14 +2,14 @@ package com.example.springbootserver.models;
 import jakarta.persistence.*;
 
 @Entity
-@Table
+@Table(name = "crew")
 public class Crew {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // ID interno
+    private Long id;
 
-    @Column(nullable = false)
-    private Long movieId; // Riferimento a Movie
+    @Column(name = "movie_id", nullable = false)
+    private Long movieId;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String role;
@@ -19,12 +19,14 @@ public class Crew {
 
     // Costruttori
     public Crew() {}
+
     public Crew(Long movieId, String role, String name) {
         this.movieId = movieId;
         this.role = role;
         this.name = name;
     }
 
+    // Getter e Setter
     public Long getId() {
         return id;
     }

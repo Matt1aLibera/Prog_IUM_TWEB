@@ -26,29 +26,93 @@ router.get('/', requireAdmin, (req, res) => {
 
 // Avvia il caricamento dati sui database
 router.post('/upload-db', requireAdmin, async (req, res) => {
-    try {
-        // 1. Invia prima a PostgreSQL (Spring Boot)
-        const pgResponse = await axios.post('http://localhost:8080/api/upload-db');
+    // Configurazione comune per axios
+    const axiosConfig = {
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        timeout: 10000, // 10 secondi timeout
+        validateStatus: function (status) {
+            // Considera come successo qualsiasi status code < 500
+            return status < 500;
+        }
+    };
 
-        // 2. Poi a MongoDB
-        const mongoResponse = await axios.post('http://localhost:3002/api/upload-db');
+    try {
+        console.log('Inizio caricamento database...');
+
+        // 1. Invia a PostgreSQL (Spring Boot)
+        console.log('Invio richiesta a Spring Boot...');
+        const pgResponse = await axios.post(
+            'http://localhost:8082/api/upload-db',
+            {}, // corpo vuoto (o req.body se necessario)
+            axiosConfig
+        );
+
+        console.log('Risposta da Spring Boot:', {
+            status: pgResponse.status,
+            data: pgResponse.data
+        });
+
+        // 2. Invia a MongoDB
+        console.log('Invio richiesta a MongoDB...');
+        const mongoResponse = await axios.post(
+            'http://localhost:3002/api/upload-db',
+            {}, // corpo vuoto (o req.body se necessario)
+            axiosConfig
+        );
+
+        console.log('Risposta da MongoDB:', {
+            status: mongoResponse.status,
+            data: mongoResponse.data
+        });
 
         // Costruisci messaggio combinato
         const messages = [
-            pgResponse.data.message,
-            mongoResponse.data.message
+            pgResponse.data?.message || `PostgreSQL: ${pgResponse.statusText || 'OK'}`,
+            mongoResponse.data?.message || `MongoDB: ${mongoResponse.statusText || 'OK'}`
         ].filter(Boolean).join(" | ");
 
         req.flash('success', `Database aggiornato! ${messages}`);
-    } catch (error) {
-        console.error('Errore durante il caricamento:', {
-            pgError: error.response?.data || error.message,
-            mongoError: error.response?.data || error.message
-        });
 
-        const errorMsg = error.response?.data?.message || 'Errore durante il caricamento dei dati';
+    } catch (error) {
+        // Gestione errori dettagliata
+        const errorDetails = {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            config: error.config,
+            response: error.response ? {
+                status: error.response.status,
+                data: error.response.data,
+                headers: error.response.headers
+            } : null
+        };
+
+        console.error('Errore dettagliato durante il caricamento:', errorDetails);
+
+        // Determina quale chiamata ha fallito
+        const isPgError = error.config?.url?.includes('8082');
+        const serviceName = isPgError ? 'PostgreSQL (Spring Boot)' : 'MongoDB';
+
+        // Messaggio d'errore più informativo
+        const errorMsg = error.response?.data?.message
+            || (error.response?.status ? `${serviceName} risposta con status ${error.response.status}` : null)
+            || (error.code === 'ECONNABORTED' ? `Timeout connessione a ${serviceName}`: null)
+            || `Errore durante il caricamento a ${serviceName}: ${error.message}`;
+
         req.flash('error', errorMsg);
+
+        // Se fallisce il primo, non proseguire con il secondo
+        if (isPgError) {
+            console.log('Salto chiamata a MongoDB per errore PostgreSQL');
+            res.redirect('/admin');
+            return;
+        }
     }
+
     res.redirect('/admin');
 });
 

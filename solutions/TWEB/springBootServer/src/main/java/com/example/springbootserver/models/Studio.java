@@ -2,25 +2,28 @@ package com.example.springbootserver.models;
 import jakarta.persistence.*;
 
 @Entity
-@Table
+@Table(name = "studio")
 public class Studio {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // ID interno
+    private Long id;
 
-    @Column(nullable = false)
-    private Long movieId; // Riferimento a Movie (id CSV)
+    @Column(name = "movie_id", nullable = false)
+    private Long movieId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1000)
     private String studio;
 
     // Costruttori
-    public Studio() {}
+    public Studio() {
+    }
+
     public Studio(Long movieId, String studio) {
         this.movieId = movieId;
         this.studio = studio;
     }
 
+    // Getter e Setter
     public Long getId() {
         return id;
     }

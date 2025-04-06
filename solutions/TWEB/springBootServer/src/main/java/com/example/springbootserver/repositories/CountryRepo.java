@@ -9,5 +9,5 @@ import java.util.List;
 @Repository
 public interface CountryRepo extends JpaRepository<Country, Long> {
     List<Country> findByMovieId(Long movieId);
-    List<Country> findByCountryContainingIgnoreCase(String country);
+    List<Country> findByCountryNameContainingIgnoreCase(String country);
 }

@@ -2,7 +2,7 @@ package com.example.springbootserver.models;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "actor_appearances")
+@Table(name = "actor_appearances", schema = "public")
 public class ActorAppearance {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -11,31 +11,20 @@ public class ActorAppearance {
     @Column(name = "movie_id", nullable = false)
     private Long movieId;
 
-    @Column(nullable = false)
+    @Column(name = "actor_name", nullable = false, length = 1000)
     private String actorName;
 
-    @Column(name = "character_role")
-    private String characterRole;
+    @Column(name = "character_name", length = 1000)
+    private String characterName;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "movie_id",
-            referencedColumnName = "id",
-            insertable = false,
-            updatable = false
-    )
-    private Movie movie;
+    public ActorAppearance() {}
 
-    // Costruttore vuoto richiesto da JPA
-    public ActorAppearance() {
-    }
-
-    // Costruttore con parametri per comodità
-    public ActorAppearance(Long movieId, String actorName, String characterRole) {
+    public ActorAppearance(Long movieId, String actorName, String characterName) {
         this.movieId = movieId;
         this.actorName = actorName;
-        this.characterRole = characterRole;
+        this.characterName = characterName;
     }
+
 
     // Getters e setters...
     public Long getId() {
@@ -62,19 +51,11 @@ public class ActorAppearance {
         this.actorName = actorName;
     }
 
-    public String getCharacterRole() {
-        return characterRole;
+    public String getCharacterName() {
+        return characterName;
     }
 
-    public void setCharacterRole(String characterRole) {
-        this.characterRole = characterRole;
-    }
-
-    public Movie getMovie() {
-        return movie;
-    }
-
-    public void setMovie(Movie movie) {
-        this.movie = movie;
+    public void setCharacterName(String characterName) {
+        this.characterName = characterName;
     }
 }

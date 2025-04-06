@@ -3,25 +3,27 @@ package com.example.springbootserver.models;
 import jakarta.persistence.*;
 
 @Entity
-@Table
+@Table(name = "poster")
 public class Poster {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // ID interno
+    private Long id;
 
-    @Column(nullable = false)
-    private Long movieId; // Riferimento a Movie
+    @Column(name = "movie_id", nullable = false)
+    private Long movieId;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String link;
 
     // Costruttori
     public Poster() {}
+
     public Poster(Long movieId, String link) {
         this.movieId = movieId;
         this.link = link;
     }
 
+    // Getter e Setter
     public Long getId() {
         return id;
     }

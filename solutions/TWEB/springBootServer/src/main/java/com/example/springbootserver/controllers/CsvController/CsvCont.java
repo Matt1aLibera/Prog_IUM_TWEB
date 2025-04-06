@@ -1,10 +1,9 @@
 package com.example.springbootserver.controllers.CsvController;
 
-import com.example.springbootserver.services.CsvServices.ActorCsvServ;
-import com.example.springbootserver.services.CsvServices.MovieCsvServ;
+import com.example.springbootserver.services.CsvServices.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,22 +11,48 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
+@CrossOrigin(origins = "*")
 @RequestMapping("/api")
 public class CsvCont {
 
     private final MovieCsvServ movieCsvServ;
     private final ActorCsvServ actorCsvServ;
+    private final CountryCsvServ countryCsvServ;
+    private final CrewCsvServ crewCsvServ;
+    private final GenreCsvServ genreCsvServ;
+    private final LanguagesCsvServ languagesCsvServ;
+    private final PosterCsvServ posterCsvServ;
+    private final ReleasesCsvServ releasesCsvServ;
+    private final StudiosCsvServ studiosCsvServ;
+
+    private final ThemeCsvServ themeCsvServ;
 
     @Autowired
-    public CsvCont(MovieCsvServ movieCsvServ, ActorCsvServ actorCsvServ) {
+    public CsvCont(MovieCsvServ movieCsvServ, ActorCsvServ actorCsvServ, CountryCsvServ countryCsvServ, CrewCsvServ crewCsvServ, GenreCsvServ genreCsvServ, LanguagesCsvServ languagesCsvServ,PosterCsvServ posterCsvServ, ReleasesCsvServ releasesCsvServ, StudiosCsvServ studiosCsvServ, ThemeCsvServ themeCsvServ) {
         this.movieCsvServ = movieCsvServ;
         this.actorCsvServ = actorCsvServ;
+        this.countryCsvServ = countryCsvServ;
+        this.crewCsvServ = crewCsvServ;
+        this.genreCsvServ = genreCsvServ;
+        this.languagesCsvServ = languagesCsvServ;
+        this.posterCsvServ = posterCsvServ;
+        this.releasesCsvServ = releasesCsvServ;
+        this.studiosCsvServ = studiosCsvServ;
+        this.themeCsvServ = themeCsvServ;
     }
     @PostMapping("/upload-db")
     public ResponseEntity<?> uploadDatabase() {
         try {
             movieCsvServ.loadMovies();
             actorCsvServ.loadActorAppearances();
+            countryCsvServ.loadCountries();
+            crewCsvServ.loadCrewData();
+            genreCsvServ.loadGenres();
+            languagesCsvServ.loadLanguages();
+            posterCsvServ.loadPosters();
+            releasesCsvServ.loadReleases();
+            studiosCsvServ.loadStudios();
+            themeCsvServ.loadThemes();
 
             return ResponseEntity.ok().body(
                     Map.of(
