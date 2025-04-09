@@ -1,0 +1,67 @@
+<div class="auth-forms-container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <!-- Form Login -->
+            <div id="loginFormContainer" class="{{#unless showRegister}}d-block{{else}}d-none{{/unless}}">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">Accedi</h3>
+                    </div>
+                    <div class="card-body">
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" name="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-3">
+                            Accedi
+                        </button>
+                        <div class="text-center">
+                            <button type="button" id="switchToRegister" class="btn btn-link">
+                                Non hai un account? Registrati
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Registrazione -->
+            <div id="registerFormContainer" class="{{#if showRegister}}d-block{{else}}d-none{{/if}}">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h3 class="mb-0">Registrati</h3>
+                    </div>
+                    <div class="card-body">
+                    <form id="registerForm">
+                        <div class="mb-3">
+                            <label for="regUsername" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="regUsername" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="regPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="regPassword" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="regConfirmPassword" class="form-label">Conferma Password</label>
+                            <input type="password" class="form-control" id="regConfirmPassword" name="confirmPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 mb-3">
+                            Registrati
+                        </button>
+                        <div class="text-center">
+                            <button type="button" id="switchToLogin" class="btn btn-link">
+                                Hai già un account? Accedi
+                            </button>
+                        </div>
+                    </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

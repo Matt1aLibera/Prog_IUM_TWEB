@@ -3,10 +3,17 @@ var router = express.Router();
 
 /* GET home page. */
 router.get('/', (req, res) => {
+  // Se l'utente è loggato ma non dovrebbe esserlo (cookie residuo)
+  if (req.session.user && !req.session.user.isAuthenticated) {
+    req.session.destroy();
+    return res.redirect('/');
+  }
+
   res.render('pages/index', {
-    error: req.query.login_failed ? req.flash('error') : null,
-    formData: req.body // Mantiene i valori inseriti
+    title: 'Il mio Sito',
+    user: req.session.user || null
   });
 });
+
 
 module.exports = router;

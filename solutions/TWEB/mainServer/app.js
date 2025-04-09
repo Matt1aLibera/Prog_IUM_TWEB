@@ -4,12 +4,11 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var session = require('express-session');
-var passport = require('passport');
+require('passport');
 const flash = require('connect-flash');
 const MongoStore = require('connect-mongo');
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
 var loginRouter = require('./routes/auth');
 var adminRouter =require ('./routes/admin')
 
@@ -30,29 +29,36 @@ app.engine('hbs', engine({
 app.set('views', path.join(__dirname, 'views')); // Punta alla cartella padre
 app.set('view engine', 'hbs');
 
+// Aggiungi questo middleware prima delle route
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
 // Middleware base
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-// Configurazione sessione
 app.use(session({
   secret: process.env.SESSION_SECRET || 'university-project-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false,
+    secure: false, // Metti a true se usi HTTPS
     httpOnly: true,
-    maxAge: 86400000
+    maxAge: 86400000,
+    sameSite: 'strict' // Aggiungi questa linea
   },
   store: MongoStore.create({
     mongoUrl: 'mongodb://localhost:27017/session_store',
-    ttl: 86400
-  }),
-  genid: (req) => {
-    return require('crypto').randomUUID(); // Debug
-  }
+    ttl: 86400,
+    autoRemove: 'interval',
+    autoRemoveInterval: 60 // Minuti
+  })
 }));
 app.use((req, res, next) => {
   // Middleware vuoto che bypassa Passport per le sessioni
@@ -66,7 +72,6 @@ app.use(flash());
 // Route
 app.use('/admin', adminRouter);
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/auth', loginRouter);  // invece di '/login'
 
 
@@ -76,7 +81,7 @@ app.use(function(req, res, next) {
 });
 
 // Gestione errori
-app.use(function(err, req, res, next) {
+app.use(function(err, req, res) {
   // Imposta le variabili locali
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};

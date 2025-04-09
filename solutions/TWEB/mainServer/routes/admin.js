@@ -1,14 +1,9 @@
 const express = require('express');
-const axios = require('axios');
 const router = express.Router();
+const axios = require('axios');
 
 // Middleware per proteggere la rotta admin
-function requireAuth(req, res, next) {
-    if (req.session.user?.isAuthenticated) {
-        return next();
-    }
-    res.redirect('/login');
-}
+
 
 function requireAdmin(req, res, next) {
     if (req.session.user?.isAuthenticated && req.session.user.role === 'admin') {
@@ -17,12 +12,7 @@ function requireAdmin(req, res, next) {
     res.status(403).redirect('/');
 }
 
-// Pagina admin con pulsante upload
-router.get('/', requireAdmin, (req, res) => {
-    res.render('pages/admin', {
-        user: req.session.user // Modificato da req.user a req.session.user
-    });
-});
+
 
 // Avvia il caricamento dati sui database
 router.post('/upload-db', requireAdmin, async (req, res) => {
@@ -33,7 +23,7 @@ router.post('/upload-db', requireAdmin, async (req, res) => {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
         },
-        timeout: 10000, // 10 secondi timeout
+        timeout: 30000, // 10 secondi timeout
         validateStatus: function (status) {
             // Considera come successo qualsiasi status code < 500
             return status < 500;
@@ -51,10 +41,6 @@ router.post('/upload-db', requireAdmin, async (req, res) => {
             axiosConfig
         );
 
-        console.log('Risposta da Spring Boot:', {
-            status: pgResponse.status,
-            data: pgResponse.data
-        });
 
         // 2. Invia a MongoDB
         console.log('Invio richiesta a MongoDB...');
@@ -64,56 +50,29 @@ router.post('/upload-db', requireAdmin, async (req, res) => {
             axiosConfig
         );
 
-        console.log('Risposta da MongoDB:', {
-            status: mongoResponse.status,
-            data: mongoResponse.data
+
+        // Risposta JSON invece di redirect
+        res.json({
+            success: true,
+            message: 'Caricamento completato con successo!',
+            details: {
+                postgres: pgResponse.data,
+                mongo: mongoResponse.data
+            }
         });
 
-        // Costruisci messaggio combinato
-        const messages = [
-            pgResponse.data?.message || `PostgreSQL: ${pgResponse.statusText || 'OK'}`,
-            mongoResponse.data?.message || `MongoDB: ${mongoResponse.statusText || 'OK'}`
-        ].filter(Boolean).join(" | ");
-
-        req.flash('success', `Database aggiornato! ${messages}`);
-
     } catch (error) {
-        // Gestione errori dettagliata
-        const errorDetails = {
-            name: error.name,
-            message: error.message,
-            stack: error.stack,
-            config: error.config,
-            response: error.response ? {
-                status: error.response.status,
-                data: error.response.data,
-                headers: error.response.headers
-            } : null
-        };
+        console.error('Errore durante il caricamento:', error);
 
-        console.error('Errore dettagliato durante il caricamento:', errorDetails);
-
-        // Determina quale chiamata ha fallito
-        const isPgError = error.config?.url?.includes('8082');
-        const serviceName = isPgError ? 'PostgreSQL (Spring Boot)' : 'MongoDB';
-
-        // Messaggio d'errore più informativo
-        const errorMsg = error.response?.data?.message
-            || (error.response?.status ? `${serviceName} risposta con status ${error.response.status}` : null)
-            || (error.code === 'ECONNABORTED' ? `Timeout connessione a ${serviceName}`: null)
-            || `Errore durante il caricamento a ${serviceName}: ${error.message}`;
-
-        req.flash('error', errorMsg);
-
-        // Se fallisce il primo, non proseguire con il secondo
-        if (isPgError) {
-            console.log('Salto chiamata a MongoDB per errore PostgreSQL');
-            res.redirect('/admin');
-            return;
-        }
+        res.status(500).json({
+            success: false,
+            message: error.response?.data?.message ||
+                'Errore durante il caricamento del database',
+            error: {
+                code: error.code,
+                status: error.response?.status
+            }
+        });
     }
-
-    res.redirect('/admin');
 });
-
 module.exports = router;

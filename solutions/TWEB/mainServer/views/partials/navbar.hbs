@@ -1,0 +1,32 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">{{title}}</a>
+
+        <!-- Hamburger Button -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Navbar Content -->
+        <div class="collapse navbar-collapse" id="navbarContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <!-- Pulsante Carica DB (sempre presente nel DOM ma visibile solo via JS) -->
+                <li class="nav-item d-none" id="adminBtnContainer">
+                    <button class="btn btn-outline-success nav-link" id="loadDbBtn">
+                        <i class="bi bi-database"></i> Carica DB
+                    </button>
+                </li>
+            </ul>
+
+            <div id="authSection" class="d-flex">
+                {{#if user}}
+                    <span class="navbar-text me-3">Ciao, {{user.username}}</span>
+                    <button class="btn btn-outline-light" id="logoutBtn">Logout</button>
+                {{else}}
+                    <button class="btn btn-outline-light me-2" id="loginBtn">Login</button>
+                    <button class="btn btn-primary" id="registerBtn">Registrati</button>
+                {{/if}}
+            </div>
+        </div>
+    </div>
+</nav>

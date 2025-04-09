@@ -24,11 +24,11 @@ public class CsvCont {
     private final PosterCsvServ posterCsvServ;
     private final ReleasesCsvServ releasesCsvServ;
     private final StudiosCsvServ studiosCsvServ;
-
     private final ThemeCsvServ themeCsvServ;
+    private final OscarCsvServ oscarCsvServ;
 
     @Autowired
-    public CsvCont(MovieCsvServ movieCsvServ, ActorCsvServ actorCsvServ, CountryCsvServ countryCsvServ, CrewCsvServ crewCsvServ, GenreCsvServ genreCsvServ, LanguagesCsvServ languagesCsvServ,PosterCsvServ posterCsvServ, ReleasesCsvServ releasesCsvServ, StudiosCsvServ studiosCsvServ, ThemeCsvServ themeCsvServ) {
+    public CsvCont(MovieCsvServ movieCsvServ, ActorCsvServ actorCsvServ, CountryCsvServ countryCsvServ, CrewCsvServ crewCsvServ, GenreCsvServ genreCsvServ, LanguagesCsvServ languagesCsvServ,PosterCsvServ posterCsvServ, ReleasesCsvServ releasesCsvServ, StudiosCsvServ studiosCsvServ, ThemeCsvServ themeCsvServ, OscarCsvServ oscarCsvServ) {
         this.movieCsvServ = movieCsvServ;
         this.actorCsvServ = actorCsvServ;
         this.countryCsvServ = countryCsvServ;
@@ -39,6 +39,7 @@ public class CsvCont {
         this.releasesCsvServ = releasesCsvServ;
         this.studiosCsvServ = studiosCsvServ;
         this.themeCsvServ = themeCsvServ;
+        this.oscarCsvServ = oscarCsvServ;
     }
     @PostMapping("/upload-db")
     public ResponseEntity<?> uploadDatabase() {
@@ -53,6 +54,7 @@ public class CsvCont {
             releasesCsvServ.loadReleases();
             studiosCsvServ.loadStudios();
             themeCsvServ.loadThemes();
+            oscarCsvServ.loadOscarAwards();
 
             return ResponseEntity.ok().body(
                     Map.of(

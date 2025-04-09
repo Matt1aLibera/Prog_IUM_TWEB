@@ -3,28 +3,114 @@ const User = require('../models/User');
 //registrazione e logut
 exports.register = async (req, res) => {
     try {
-        const { username, password } = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const { username, password, confirmPassword } = req.body;
 
-        const user = await User.create({
-            username,
-            password: hashedPassword
+        // 1. Validazione avanzata
+        if (!username?.trim() || !password || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                error: 'Compila tutti i campi',
+                field: !username?.trim() ? 'username' :
+                    (!password ? 'password' : 'confirmPassword')
+            });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                error: 'Le password non coincidono',
+                field: 'confirmPassword'
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                error: 'La password deve contenere almeno 6 caratteri',
+                field: 'password'
+            });
+        }
+
+        // 2. Verifica esistenza utente (case insensitive)
+        const existingUser = await User.findOne({
+            username: { $regex: new RegExp(`^${username}$`, 'i') }
         });
 
+        if (existingUser) {
+            return res.status(400).json({
+                success: false,
+                error: 'Username già in uso',
+                field: 'username'
+            });
+        }
+
+        // 3. Creazione utente
+        const newUser = await User.create({ username, password });
+
+        // 4. Risposta
         res.status(201).json({
+            success: true,
             user: {
-                _id: user._id,
-                username: user.username
+                id: newUser._id,
+                username: newUser.username,
+                role: newUser.role
             }
         });
+
     } catch (error) {
-        res.status(400).json({ error: 'Registrazione fallita' });
+        console.error('Errore registrazione:', error);
+
+        // Gestione errori migliorata
+        const errorResponse = {
+            success: false,
+            error: 'Errore durante la registrazione'
+        };
+
+        if (error.name === 'ValidationError') {
+            errorResponse.error = error.message;
+            errorResponse.field = Object.keys(error.errors)[0];
+            return res.status(400).json(errorResponse);
+        }
+
+        if (error.code === 11000) {
+            errorResponse.error = 'Username già registrato';
+            errorResponse.field = 'username';
+            return res.status(400).json(errorResponse);
+        }
+
+        res.status(500).json(errorResponse);
     }
 };
 
 exports.logout = (req, res) => {
-    res.json({ message: 'Logout effettuato' });
+    try {
+        // Distruggi la sessione
+        req.session.destroy(err => {
+            if (err) {
+                console.error('Errore durante il logout:', err);
+                return res.status(500).json({
+                    success: false,
+                    error: 'Errore durante il logout'
+                });
+            }
+
+            // Pulisci il cookie (se usi express-session)
+            res.clearCookie('connect.sid');
+
+            res.json({
+                success: true,
+                message: 'Logout effettuato con successo'
+            });
+        });
+    } catch (error) {
+        console.error('Errore durante il logout:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Errore interno del server'
+        });
+    }
 };
+
 
 exports.id = async (req, res) => {
     console.log('Fetching user with ID:', req.params.id); // Debug
