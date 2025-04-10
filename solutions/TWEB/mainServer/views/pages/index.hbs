@@ -1,10 +1,12 @@
-<div id="dynamicContent">
-    {{#unless user}}
-        <!-- I form di login verranno caricati via JS -->
-        <div class="text-center mt-5">
-            <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
+<div id="mainContent">
+    {{#if user}}
+        <div class="welcome-message">
+            <h2>Benvenuto {{user.username}}!</h2>
         </div>
-    {{/unless}}
+    {{else}}
+        <div class="text-center mt-5">
+            <div class="spinner-border" role="status"></div>
+            <p class="mt-2">Caricamento in corso...</p>
+        </div>
+    {{/if}}
 </div>

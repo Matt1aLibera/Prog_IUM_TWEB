@@ -13,21 +13,13 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="/javascripts/auth.js"></script>
 
-<!-- Fallback per errori JS -->
 <script>
-    window.addEventListener('error', function(e) {
-        console.error('JavaScript error:', e.error);
-        const mainContent = document.getElementById('mainContent');
-        if (mainContent) {
-            mainContent.innerHTML = `
-                <div class="alert alert-danger">
-                    Si è verificato un errore. <a href="/" class="alert-link">Ricarica la pagina</a>.
-                </div>
-            `;
-        }
-    });
+    // Configurazione globale di Axios
+    axios.defaults.withCredentials = true;
+    axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 </script>
 </body>
 </html>

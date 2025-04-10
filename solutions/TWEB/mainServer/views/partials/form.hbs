@@ -1,14 +1,14 @@
 <div class="auth-forms-container">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <!-- Form Login -->
-            <div id="loginFormContainer" class="{{#unless showRegister}}d-block{{else}}d-none{{/unless}}">
+            <!-- Form Login - Sempre presente -->
+            <div id="loginFormContainer" class="d-none">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
                         <h3 class="mb-0">Accedi</h3>
                     </div>
                     <div class="card-body">
-                    <form id="loginForm">
+                        <form id="loginForm">
                         <div class="mb-3">
                             <label for="username" class="form-label">Username</label>
                             <input type="text" class="form-control" name="username" required>
@@ -31,13 +31,13 @@
         </div>
 
         <!-- Form Registrazione -->
-            <div id="registerFormContainer" class="{{#if showRegister}}d-block{{else}}d-none{{/if}}">
+            <div id="registerFormContainer" class="d-none">
                 <div class="card">
                     <div class="card-header bg-success text-white">
                         <h3 class="mb-0">Registrati</h3>
                     </div>
                     <div class="card-body">
-                    <form id="registerForm">
+                        <form id="registerForm">
                         <div class="mb-3">
                             <label for="regUsername" class="form-label">Username</label>
                             <input type="text" class="form-control" id="regUsername" name="username" required>

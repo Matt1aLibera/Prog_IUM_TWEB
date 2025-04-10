@@ -1,137 +1,138 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    // Mostra subito un loader per migliorare l'esperienza utente
-    const mainContent = document.getElementById('mainContent');
-    const initialLoader = '<div class="text-center mt-5"><div class="spinner-border text-primary"></div><p class="mt-2">Caricamento in corso...</p></div>';
+// Configurazione iniziale (in testa al file)
+const API_BASE_URL = window.location.origin;
+axios.defaults.withCredentials = true; // Abilita i cookie
+axios.defaults.baseURL = API_BASE_URL; // Imposta l'URL base
 
-    if (mainContent) {
-        mainContent.innerHTML = initialLoader;
-    }
+document.addEventListener('DOMContentLoaded', async () => {
+    const mainContent = document.getElementById('mainContent');
+    const initialLoader = '<div class="text-center mt-5"><div class="spinner-border text-primary"></div><p>Caricamento in corso...</p></div>';
+
+    if (mainContent) mainContent.innerHTML = initialLoader;
 
     try {
-        // 1. Verifica lo stato di autenticazione
+        // 1. Setup event listener PRIMA di qualsiasi operazione
+        setupNavbarEvents();
+
+        // 2. Verifica stato autenticazione
         const isAuthenticated = await checkAuthState();
 
-        // 2. Se non autenticato, mostra i form di login
         if (!isAuthenticated) {
             await showAuthForms();
-        }
-
-        // 3. Configura gli eventi della navbar in ogni caso
-        await setupNavbarEvents();
-
-    } catch (error) {
-        console.error('Initialization error:', error);
-
-        // Mostra un messaggio di errore più descrittivo
-        if (mainContent) {
-            mainContent.innerHTML = `
-                <div class="alert alert-danger mt-5">
-                    <h4 class="alert-heading">Errore di inizializzazione</h4>
-                    <p>Si è verificato un errore durante il caricamento dell'applicazione.</p>
-                    <hr>
-                    <p class="mb-0">${error.message || 'Errore sconosciuto'}</p>
-                    <button onclick="window.location.reload()" class="btn btn-sm btn-outline-danger mt-2">
-                        Ricarica la pagina
-                    </button>
-                </div>
-            `;
-        }
-
-        // Fallback: prova comunque a mostrare i form di login
-        try {
-            await showAuthForms();
-        } catch (secondaryError) {
-            console.error('Failed to show auth forms:', secondaryError);
-        }
-    } finally {
-        // Rimuovi il loader se è ancora presente (non sovrascritto da altre funzioni)
-        if (mainContent && mainContent.innerHTML === initialLoader) {
+        } else if (mainContent.innerHTML === initialLoader) {
             mainContent.innerHTML = '';
         }
+    } catch (error) {
+        console.error('Init error:', error);
+        showAlert(`Errore iniziale: ${error.message}`, 'danger');
+        await showAuthForms();
     }
 });
 
-async function setupNavbarEvents() {
+
+// Nuova versione di setupNavbarEvents con delegation robusta
+function setupNavbarEvents() {
     document.addEventListener('click', async (e) => {
-        // Gestione Logout
-        if (e.target.id === 'logoutBtn') {
-            try {
-                await logout();
-            } catch (error) {
-                showAlert('Errore durante il logout', 'danger');
+        const target = e.target.closest('#loginBtn, #registerBtn, #logoutBtn, #loadDbBtn');
+        if (!target) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        try {
+            switch(target.id) {
+                case 'loginBtn':
+                    await handleLoginClick();
+                    break;
+
+                case 'registerBtn':
+                    await handleRegisterClick();
+                    break;
+
+                case 'logoutBtn':
+                    await handleLogoutClick(target);
+                    break;
+
+                case 'loadDbBtn':
+                    if (target.dataset.role !== 'admin') {
+                        showAlert('Accesso negato', 'warning');
+                        return;
+                    }
+                    await handleDbLoad(target);
+                    break;
             }
-            return;
-        }
-
-
-        // Gestione Login
-        if (e.target.id === 'loginBtn') {
-            try {
-                toggleForms(true);
-                closeMobileMenu();
-            } catch (error) {
-                console.error('Errore durante il login:', error);
-                showAlert('Errore durante il login', 'danger');
-            }
-            return;
-        }
-
-        // Gestione Registrati
-        if (e.target.id === 'registerBtn') {
-            try {
-                toggleForms(false);
-                closeMobileMenu();
-            } catch (error) {
-                console.error('Errore durante la registrazione:', error);
-                showAlert('Errore durante la registrazione', 'danger');
-            }
-        }
-
-        // Gestione Caricamento Database
-        if (e.target.id === 'loadDbBtn') {
-            if (e.target.dataset.role !== 'admin') {
-                showAlert('Area riservata agli amministratori', 'warning');
-                return;
-            }
-
-            // Mostra spinner e messaggio
-            const originalText = e.target.innerHTML;
-            e.target.innerHTML = `
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-                Caricamento in corso...
-            `;
-            e.target.disabled = true;
-
-            showAlert('Questa operazione potrebbe richiedere alcuni minuti', 'info', 10000);
-
-            try {
-                const response = await fetch('/admin/upload-db', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include'
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showAlert(result.message, 'success');
-                } else {
-                    showAlert(result.message || 'Caricamento fallito', 'danger');
-                }
-
-            } catch (error) {
-                console.error('Errore:', error);
-                showAlert('Errore di connessione durante il caricamento', 'danger');
-            } finally {
-                // Ripristina il bottone
-                e.target.innerHTML = originalText;
-                e.target.disabled = false;
-            }
+        } catch (error) {
+            console.error(`${target.id} error:`, error);
+            showAlert(`Errore in ${target.id}`, 'danger');
         }
     });
 }
+// Handler specifici per migliorare la modularità
+async function handleLoginClick() {
+    // Mostra solo se necessario (evita ricaricamenti inutili)
+    if (document.getElementById('loginFormContainer').classList.contains('d-none')) {
+        await showAuthForms();
+    }
+    toggleForms(true);  // Mostra login, nascondi registrazione
+    closeMobileMenu();
+}
+
+async function handleRegisterClick() {
+    // Mostra solo se necessario (evita ricaricamenti inutili)
+    if (document.getElementById('registerFormContainer').classList.contains('d-none')) {
+        await showAuthForms();
+    }
+    toggleForms(false);  // Mostra registrazione, nascondi login
+    closeMobileMenu();
+}
+
+async function handleLogoutClick(button) {
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logout...';
+    button.disabled = true;
+
+    try {
+        await logout();
+    } finally {
+        button.innerHTML = 'Logout';
+        button.disabled = false;
+    }
+}
+
+async function handleDbLoad(button) {
+    if (button.dataset.role !== 'admin') {
+        showAlert('Area riservata agli amministratori', 'warning');
+        return;
+    }
+
+    const originalText = button.innerHTML;
+    button.innerHTML = `
+        <span class="spinner-border spinner-border-sm"></span>
+        Caricamento in corso...
+    `;
+    button.disabled = true;
+
+    showAlert('Operazione in corso...', 'info', 10000);
+
+    try {
+        const response = await fetch('/admin/upload-db', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) throw new Error(result.message || 'Errore sconosciuto');
+
+        showAlert(result.message || 'Database caricato!', 'success');
+    } catch (error) {
+        console.error('DB load error:', error);
+        showAlert(error.message || 'Errore durante il caricamento', 'danger');
+    } finally {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
+
 // Funzione per chiudere il menu hamburger
 // Versione semplificata di closeMobileMenu che funziona senza type checking
 function closeMobileMenu() {
@@ -147,69 +148,60 @@ function closeMobileMenu() {
     }
 }
 
+// Versione modificata di checkAuthState (ancora con fetch)
 async function checkAuthState() {
-    const response = await fetch(`/auth/check?t=${new Date().getTime()}`, {
-        credentials: 'include',
-        cache: 'no-store'
-    }).catch(() => null);
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/check?t=${Date.now()}`, {
+            credentials: 'include',
+            cache: 'no-store'
+        });
 
-    if (!response || !response.ok) {
-        await showAuthForms();
+        if (!response.ok) return false;
+
+        const data = await response.json();
+        if (data.authenticated) {
+            updateUIForAuthenticatedUser(data.user);
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Auth check failed:', error);
         return false;
     }
-
-    const data = await response.json().catch(() => null);
-    if (!data) {
-        await showAuthForms();
-        return false;
-    }
-
-    if (data.authenticated) {
-        updateUIForAuthenticatedUser(data.user);
-        loadMainContent(data.user.role);
-        return true;
-    }
-
-    await showAuthForms();
-    document.getElementById('authSection')?.remove();
-    return false;
 }
 
 function updateUIForAuthenticatedUser(user) {
-    // Aggiorna la navbar
+    // Gestione elementi authSection
     const authSection = document.getElementById('authSection');
     if (authSection) {
-        authSection.innerHTML = `
-            <div class="navbar-text me-3">Ciao, ${user.username}</div>
-            <button class="btn btn-outline-light" id="logoutBtn">Logout</button>
-        `;
-    }
+        const greeting = authSection.querySelector('#userGreeting');
+        const logoutBtn = authSection.querySelector('#logoutBtn');
+        const loginBtn = authSection.querySelector('#loginBtn');
+        const registerBtn = authSection.querySelector('#registerBtn');
 
-    // Gestione pulsante admin
-    const navbarNav = document.querySelector('.navbar-nav');
-    if (navbarNav) {
-        let adminBtnContainer = document.getElementById('loadDbBtnContainer');
-
-        if (!adminBtnContainer) {
-            adminBtnContainer = document.createElement('li');
-            adminBtnContainer.id = 'loadDbBtnContainer';
-            adminBtnContainer.className = 'nav-item';
-
-            const adminBtn = document.createElement('button');
-            adminBtn.id = 'loadDbBtn';
-            adminBtn.className = 'btn btn-outline-success';
-            adminBtn.dataset.role = 'admin';
-            adminBtn.innerHTML = '<i class="bi bi-database"></i> Carica DB';
-
-            adminBtnContainer.appendChild(adminBtn);
-            navbarNav.appendChild(adminBtnContainer);
+        if (greeting) {
+            greeting.textContent = `Ciao, ${user.username}`;
+            greeting.classList.remove('d-none');
         }
 
-        // Aggiorna visibilità
-        adminBtnContainer.style.display = user.role === 'admin' ? 'block' : 'none';
+        if (logoutBtn) logoutBtn.classList.remove('d-none');
+        if (loginBtn) loginBtn.classList.add('d-none');
+        if (registerBtn) registerBtn.classList.add('d-none');
+    }
 
-        // Aggiorna lo stato del dataset per coerenza
-        document.getElementById('loadDbBtn').dataset.role = user.role;
+// Gestione admin button
+    const adminBtnContainer = document.getElementById('adminBtnContainer');
+    if (adminBtnContainer) {
+        adminBtnContainer.classList.toggle('d-none', user.role !== 'admin');
+        adminBtnContainer.style.display = user.role === 'admin' ? 'block' : 'none'; // Doppio controllo
+
+        const adminBtn = document.getElementById('loadDbBtn');
+        if (adminBtn) {
+            adminBtn.dataset.role = user.role;
+            // Resetta lo stato del bottone
+            adminBtn.disabled = false;
+            adminBtn.innerHTML = '<i class="bi bi-database"></i> Carica DB';
+        }
     }
 }
 
@@ -227,62 +219,47 @@ function loadMainContent(role) {
 }
 
 
-
-async function uploadDatabase() {
-    try {
-        const response = await fetch('/admin/upload-db', {
-            method: 'POST'
-        });
-        const result = await response.json();
-        showAlert(result.message, result.success ? 'success' : 'danger');
-    } catch (error) {
-        showAlert('Errore durante il caricamento del database', 'danger');
-    }
-}
-
-function showAuthForms() {
+async function showAuthForms() {
     const mainContent = document.getElementById('mainContent');
     if (!mainContent) {
         console.error('Elemento mainContent non trovato');
         return;
     }
 
-    // Mostra subito un loader durante il caricamento
+    // Mostra loader
     mainContent.innerHTML = `
         <div class="text-center mt-5">
             <div class="spinner-border text-primary"></div>
-            <p class="mt-2">Caricamento form di login...</p>
+            <p class="mt-2">Caricamento form...</p>
         </div>
     `;
 
-    fetch('/auth/forms', {
-        headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-        }
-    })
-        .then(response => {
-            if (!response.ok) {
-                // Se la risposta non è ok, crea un oggetto errore
-                const error = new Error(`Errore HTTP: ${response.status}`);
-                error.response = response;
-                return Promise.reject(error);
+    try {
+        const response = await fetch('/auth/forms', {
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             }
-            return response.text();
-        })
-        .then(html => {
-            mainContent.innerHTML = html;
-            return setupAuthForms(); // Chiamata diretta senza then (non è async)
-        })
-        .catch(error => {
-            console.error('Error loading auth forms:', error);
+        });
 
-            // Messaggio diverso per errore 500 vs altri errori
-            const errorMessage = error.response?.status === 500
-                ? 'Errore interno del server'
-                : 'Errore nel caricamento del form';
+        if (!response.ok) {
+            // Invece di throw, gestiamo direttamente l'errore
+            const error = new Error(`Errore HTTP: ${response.status}`);
+            error.response = response;
+            throw error;
+        }
 
-            mainContent.innerHTML = `
+        mainContent.innerHTML = await response.text();
+        await setupAuthForms();
+
+    } catch (error) {
+        console.error('Error loading auth forms:', error);
+
+        const errorMessage = error.response?.status === 500 ?
+            'Errore interno del server' :
+            'Errore nel caricamento del form';
+
+        mainContent.innerHTML = `
             <div class="alert alert-danger mt-5">
                 <h5 class="alert-heading">${errorMessage}</h5>
                 <p>Si è verificato un problema tecnico.</p>
@@ -297,7 +274,7 @@ function showAuthForms() {
                 </div>
             </div>
         `;
-        });
+    }
 }
 
 async function setupAuthForms() {
@@ -446,18 +423,33 @@ async function logout() {
         });
 
         if (!response.ok) {
-            // Invece di throw, gestiamo l'errore direttamente
             console.error('Logout failed with status:', response.status);
             showAlert('Errore durante il logout', 'danger');
             return;
         }
 
-        // Forza il reload per pulire completamente lo stato
+        resetAuthUI(); // Aggiunto questa linea per pulire l'UI
         window.location.href = '/';
 
     } catch (error) {
         console.error('Errore durante il logout:', error);
         showAlert('Errore di connessione durante il logout', 'danger');
+    }
+}
+
+// Reset UI dopo logout
+function resetAuthUI() {
+    const authSection = document.getElementById('authSection');
+    if (authSection) {
+        const greeting = authSection.querySelector('#userGreeting');
+        const logoutBtn = authSection.querySelector('#logoutBtn');
+        const loginBtn = authSection.querySelector('#loginBtn');
+        const registerBtn = authSection.querySelector('#registerBtn');
+
+        if (greeting) greeting.classList.add('d-none');
+        if (logoutBtn) logoutBtn.classList.add('d-none');
+        if (loginBtn) loginBtn.classList.remove('d-none');
+        if (registerBtn) registerBtn.classList.remove('d-none');
     }
 }
 
