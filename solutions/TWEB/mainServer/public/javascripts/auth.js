@@ -1,8 +1,11 @@
 // Configurazione iniziale (in testa al file)
+
 const API_BASE_URL = window.location.origin;
 axios.defaults.withCredentials = true; // Abilita i cookie
 axios.defaults.baseURL = API_BASE_URL; // Imposta l'URL base
-
+// ==============================================
+// AUTHENTICATION FUNCTIONS
+// ==============================================
 document.addEventListener('DOMContentLoaded', async () => {
     const mainContent = document.getElementById('mainContent');
     const initialLoader = '<div class="text-center mt-5"><div class="spinner-border text-primary"></div><p>Caricamento in corso...</p></div>';
@@ -113,20 +116,14 @@ async function handleDbLoad(button) {
     showAlert('Operazione in corso...', 'info', 10000);
 
     try {
-        const response = await fetch('/admin/upload-db', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' }
+        const { data } = await axios.post('/admin/upload-db', {}, {
+            withCredentials: true
         });
 
-        const result = await response.json();
-
-        if (!response.ok) throw new Error(result.message || 'Errore sconosciuto');
-
-        showAlert(result.message || 'Database caricato!', 'success');
+        showAlert(data.message || 'Database caricato!', 'success');
     } catch (error) {
         console.error('DB load error:', error);
-        showAlert(error.message || 'Errore durante il caricamento', 'danger');
+        showAlert(error.response?.data?.message || 'Errore durante il caricamento', 'danger');
     } finally {
         button.innerHTML = originalText;
         button.disabled = false;
@@ -151,14 +148,11 @@ function closeMobileMenu() {
 // Versione modificata di checkAuthState (ancora con fetch)
 async function checkAuthState() {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/check?t=${Date.now()}`, {
-            credentials: 'include',
-            cache: 'no-store'
+        const { data } = await axios.get('/auth/check', {
+            params: { t: Date.now() },
+            headers: { 'Cache-Control': 'no-cache' }
         });
 
-        if (!response.ok) return false;
-
-        const data = await response.json();
         if (data.authenticated) {
             updateUIForAuthenticatedUser(data.user);
             return true;
@@ -203,6 +197,23 @@ function updateUIForAuthenticatedUser(user) {
             adminBtn.innerHTML = '<i class="bi bi-database"></i> Carica DB';
         }
     }
+    const carouselElement = document.getElementById('filmsCarousel');
+    if (carouselElement) {
+        console.log('Elemento carosello trovato, inizializzo...');
+
+        // Piccolo delay per assicurarsi che il DOM sia pronto
+        setTimeout(() => {
+            const carousel = new FilmCarousel();
+            carousel.init().then(() => {
+                console.log('Carosello inizializzato con successo');
+            }).catch(error => {
+                console.error('Errore inizializzazione carosello:', error);
+            });
+        }, 100);
+    } else {
+        console.error('ERRORE: Elemento #filmsCarousel non trovato nel DOM');
+        console.log('Contenuto di mainContent:', document.getElementById('mainContent')?.innerHTML);
+    }
 }
 
 function loadMainContent(role) {
@@ -226,7 +237,6 @@ async function showAuthForms() {
         return;
     }
 
-    // Mostra loader
     mainContent.innerHTML = `
         <div class="text-center mt-5">
             <div class="spinner-border text-primary"></div>
@@ -235,23 +245,15 @@ async function showAuthForms() {
     `;
 
     try {
-        const response = await fetch('/auth/forms', {
+        const { data } = await axios.get('/auth/forms', {
             headers: {
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
             }
         });
 
-        if (!response.ok) {
-            // Invece di throw, gestiamo direttamente l'errore
-            const error = new Error(`Errore HTTP: ${response.status}`);
-            error.response = response;
-            throw error;
-        }
-
-        mainContent.innerHTML = await response.text();
+        mainContent.innerHTML = data;
         await setupAuthForms();
-
     } catch (error) {
         console.error('Error loading auth forms:', error);
 
@@ -391,46 +393,35 @@ async function handleAuthRequest(form, endpoint, data, buttonText, onSuccess) {
     `;
     submitBtn.disabled = true;
 
-    const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(data)
-    }).catch(() => null);
+    try {
+        const { data: result } = await axios.post(endpoint, data, {
+            withCredentials: true
+        });
 
-    const result = await response?.json().catch(() => null);
-
-    if (response?.ok && result?.success) {
-        if (typeof onSuccess === 'function') {
-            onSuccess(result.user || result);
+        if (result.success) {
+            if (typeof onSuccess === 'function') {
+                onSuccess(result.user || result);
+            }
+        } else {
+            showAlert(result.error || `${buttonText} fallito`, 'danger');
         }
-    } else {
-        showAlert(result?.error || `${buttonText} fallito`, 'danger');
+    } catch (error) {
+        console.error(`${buttonText} error:`, error);
+        showAlert(error.response?.data?.error || `${buttonText} fallito`, 'danger');
+    } finally {
+        submitBtn.innerHTML = originalBtnText;
+        submitBtn.disabled = false;
     }
-
-    submitBtn.innerHTML = originalBtnText;
-    submitBtn.disabled = false;
 }
 
 async function logout() {
     try {
-        const response = await fetch('/auth/logout', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-                'Cache-Control': 'no-cache'
-            }
+        await axios.post('/auth/logout', {}, {
+            headers: { 'Cache-Control': 'no-cache' }
         });
 
-        if (!response.ok) {
-            console.error('Logout failed with status:', response.status);
-            showAlert('Errore durante il logout', 'danger');
-            return;
-        }
-
-        resetAuthUI(); // Aggiunto questa linea per pulire l'UI
+        resetAuthUI();
         window.location.href = '/';
-
     } catch (error) {
         console.error('Errore durante il logout:', error);
         showAlert('Errore di connessione durante il logout', 'danger');

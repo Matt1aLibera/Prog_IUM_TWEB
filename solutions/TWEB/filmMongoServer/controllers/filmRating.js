@@ -64,10 +64,32 @@ const uploadRatings = async (csvPath) => {
     }
 };
 
+const getFilmsByRatingRange = async (minRating, maxRating, limit) => {
+    const connection = await connectDB();
+    const FilmRating = connection.model('FilmRating'); // Ottieni il modello dalla connessione
 
+    try {
+        const films = await FilmRating.find({
+            rating: { $gte: minRating, $lte: maxRating }
+        })
+            .select('movie_id rating -_id')
+            .sort({ rating: -1 })
+            .limit(limit)
+            .lean();
+
+        return films.map(film => ({
+            id: film.movie_id,
+            rating: film.rating
+        }));
+    } catch (error) {
+        console.error('Errore in getFilmsByRatingRange:', error);
+        throw error;
+    }
+};
 
 module.exports = {
     upsertRating,
     getRating,
     uploadRatings, // Aggiungi la nuova funzione
+    getFilmsByRatingRange,
 };

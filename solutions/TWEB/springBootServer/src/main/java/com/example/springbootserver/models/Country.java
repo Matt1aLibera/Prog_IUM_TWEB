@@ -14,6 +14,12 @@ public class Country {
     @Column(name = "country_name", nullable = false, length = 1000)
     private String countryName;
 
+    public Country(){}
+
+    public Country(Long movieId, String countryName) {
+        this.movieId = movieId;
+        this.countryName = countryName;
+    }
     // Getter e Setter
     public Long getId() {
         return id;

@@ -3,6 +3,22 @@
         <div class="welcome-message">
             <h2>Benvenuto {{user.username}}!</h2>
         </div>
+        <!-- carosello -->
+        <div class="row">
+            <div class="col-12">
+                <div id="filmsCarousel" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner" id="carousel-inner">
+                        <!-- Dinamico -->
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#filmsCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#filmsCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
     {{else}}
         <div class="text-center mt-5">
             <div class="spinner-border" role="status"></div>
