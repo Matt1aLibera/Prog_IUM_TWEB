@@ -1,38 +1,52 @@
-// Configurazione iniziale (in testa al file)
-
 const API_BASE_URL = window.location.origin;
-axios.defaults.withCredentials = true; // Abilita i cookie
-axios.defaults.baseURL = API_BASE_URL; // Imposta l'URL base
-// ==============================================
-// AUTHENTICATION FUNCTIONS
-// ==============================================
+axios.defaults.withCredentials = true;
+axios.defaults.baseURL = API_BASE_URL;
+
 document.addEventListener('DOMContentLoaded', async () => {
-    const mainContent = document.getElementById('mainContent');
-    const initialLoader = '<div class="text-center mt-5"><div class="spinner-border text-primary"></div><p>Caricamento in corso...</p></div>';
-
-    if (mainContent) mainContent.innerHTML = initialLoader;
-
     try {
-        // 1. Setup event listener PRIMA di qualsiasi operazione
-        setupNavbarEvents();
+        hideAllSections();
+        document.getElementById('loaderSection').classList.remove('hidden-section');
 
-        // 2. Verifica stato autenticazione
+        setupNavbarEvents();
         const isAuthenticated = await checkAuthState();
 
-        if (!isAuthenticated) {
+        if (isAuthenticated) {
+            showDashboard();
+        } else {
             await showAuthForms();
-        } else if (mainContent.innerHTML === initialLoader) {
-            mainContent.innerHTML = '';
         }
     } catch (error) {
         console.error('Init error:', error);
         showAlert(`Errore iniziale: ${error.message}`, 'danger');
         await showAuthForms();
+    } finally {
+        document.getElementById('loaderSection').classList.add('hidden-section');
     }
 });
 
+// Helper functions
+function hideAllSections() {
+    document.getElementById('authFormsSection')?.classList.add('hidden-section');
+    document.getElementById('dashboardSection')?.classList.add('hidden-section');
+    document.getElementById('loaderSection')?.classList.add('hidden-section');
+}
 
-// Nuova versione di setupNavbarEvents con delegation robusta
+function showDashboard() {
+    hideAllSections();
+    document.getElementById('dashboardSection').classList.remove('hidden-section');
+    updateWelcomeMessage();
+}
+
+function updateWelcomeMessage(username) {
+    const welcomeMsg = document.getElementById('welcomeMessage');
+    if (welcomeMsg) {
+        welcomeMsg.textContent = username
+            ? `Benvenuto, ${username}!`
+            : 'Benvenuto nella tua Dashboard';
+    }
+}
+
+// Navbar functions
 function setupNavbarEvents() {
     document.addEventListener('click', async (e) => {
         const target = e.target.closest('#loginBtn, #registerBtn, #logoutBtn, #loadDbBtn');
@@ -43,48 +57,32 @@ function setupNavbarEvents() {
 
         try {
             switch(target.id) {
-                case 'loginBtn':
-                    await handleLoginClick();
-                    break;
-
-                case 'registerBtn':
-                    await handleRegisterClick();
-                    break;
-
-                case 'logoutBtn':
-                    await handleLogoutClick(target);
-                    break;
-
-                case 'loadDbBtn':
-                    if (target.dataset.role !== 'admin') {
-                        showAlert('Accesso negato', 'warning');
-                        return;
-                    }
-                    await handleDbLoad(target);
-                    break;
+                case 'loginBtn': await handleLoginClick(); break;
+                case 'registerBtn': await handleRegisterClick(); break;
+                case 'logoutBtn': await handleLogoutClick(target); break;
+                case 'loadDbBtn': await handleDbLoad(target); break;
             }
         } catch (error) {
             console.error(`${target.id} error:`, error);
             showAlert(`Errore in ${target.id}`, 'danger');
+            await checkAuthState();
         }
     });
 }
-// Handler specifici per migliorare la modularità
+
 async function handleLoginClick() {
-    // Mostra solo se necessario (evita ricaricamenti inutili)
     if (document.getElementById('loginFormContainer').classList.contains('d-none')) {
         await showAuthForms();
     }
-    toggleForms(true);  // Mostra login, nascondi registrazione
+    toggleForms(true);
     closeMobileMenu();
 }
 
 async function handleRegisterClick() {
-    // Mostra solo se necessario (evita ricaricamenti inutili)
     if (document.getElementById('registerFormContainer').classList.contains('d-none')) {
         await showAuthForms();
     }
-    toggleForms(false);  // Mostra registrazione, nascondi login
+    toggleForms(false);
     closeMobileMenu();
 }
 
@@ -101,16 +99,13 @@ async function handleLogoutClick(button) {
 }
 
 async function handleDbLoad(button) {
-    if (button.dataset.role !== 'admin') {
-        showAlert('Area riservata agli amministratori', 'warning');
+    if (button.disabled) {
+        showAlert('Accesso negato', 'warning');
         return;
     }
 
     const originalText = button.innerHTML;
-    button.innerHTML = `
-        <span class="spinner-border spinner-border-sm"></span>
-        Caricamento in corso...
-    `;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Caricamento...';
     button.disabled = true;
 
     showAlert('Operazione in corso...', 'info', 10000);
@@ -119,7 +114,6 @@ async function handleDbLoad(button) {
         const { data } = await axios.post('/admin/upload-db', {}, {
             withCredentials: true
         });
-
         showAlert(data.message || 'Database caricato!', 'success');
     } catch (error) {
         console.error('DB load error:', error);
@@ -130,22 +124,14 @@ async function handleDbLoad(button) {
     }
 }
 
-// Funzione per chiudere il menu hamburger
-// Versione semplificata di closeMobileMenu che funziona senza type checking
 function closeMobileMenu() {
     const navbarCollapse = document.querySelector('.navbar-collapse');
-    if (navbarCollapse && navbarCollapse.classList.contains('show')) {
-        // Soluzione alternativa che non richiede bootstrap.Collapse
+    if (navbarCollapse?.classList.contains('show')) {
         navbarCollapse.classList.remove('show');
-
-        // Oppure, se vuoi mantenere l'animazione:
-        // navbarCollapse.style.transition = 'height 0.3s ease';
-        // navbarCollapse.style.height = '0';
-        // setTimeout(() => navbarCollapse.classList.remove('show'), 300);
     }
 }
 
-// Versione modificata di checkAuthState (ancora con fetch)
+// Auth state management
 async function checkAuthState() {
     try {
         const { data } = await axios.get('/auth/check', {
@@ -156,163 +142,83 @@ async function checkAuthState() {
         if (data.authenticated) {
             updateUIForAuthenticatedUser(data.user);
             return true;
+        } else {
+            await updateUIForUnauthenticated();
+            return false;
         }
-        return false;
     } catch (error) {
         console.error('Auth check failed:', error);
+        await updateUIForUnauthenticated();
         return false;
     }
 }
 
 function updateUIForAuthenticatedUser(user) {
-    // Gestione elementi authSection
-    const authSection = document.getElementById('authSection');
-    if (authSection) {
-        const greeting = authSection.querySelector('#userGreeting');
-        const logoutBtn = authSection.querySelector('#logoutBtn');
-        const loginBtn = authSection.querySelector('#loginBtn');
-        const registerBtn = authSection.querySelector('#registerBtn');
-
-        if (greeting) {
-            greeting.textContent = `Ciao, ${user.username}`;
-            greeting.classList.remove('d-none');
-        }
-
-        if (logoutBtn) logoutBtn.classList.remove('d-none');
-        if (loginBtn) loginBtn.classList.add('d-none');
-        if (registerBtn) registerBtn.classList.add('d-none');
+    // Update navbar
+    const greeting = document.querySelector('#userGreeting');
+    if (greeting) {
+        greeting.textContent = `Ciao, ${user.username}`;
+        greeting.classList.remove('d-none');
     }
 
-// Gestione admin button
-    const adminBtnContainer = document.getElementById('adminBtnContainer');
-    if (adminBtnContainer) {
-        adminBtnContainer.classList.toggle('d-none', user.role !== 'admin');
-        adminBtnContainer.style.display = user.role === 'admin' ? 'block' : 'none'; // Doppio controllo
+    document.querySelector('#logoutBtn').classList.remove('d-none');
+    document.querySelector('#loginBtn').classList.add('d-none');
+    document.querySelector('#registerBtn').classList.add('d-none');
 
-        const adminBtn = document.getElementById('loadDbBtn');
-        if (adminBtn) {
-            adminBtn.dataset.role = user.role;
-            // Resetta lo stato del bottone
-            adminBtn.disabled = false;
-            adminBtn.innerHTML = '<i class="bi bi-database"></i> Carica DB';
-        }
-    }
-    const carouselElement = document.getElementById('filmsCarousel');
-    if (carouselElement) {
-        console.log('Elemento carosello trovato, inizializzo...');
+    // Update admin button
+    updateAdminButton(user.role === 'admin');
 
-        // Piccolo delay per assicurarsi che il DOM sia pronto
-        setTimeout(() => {
-            const carousel = new FilmCarousel();
-            carousel.init().then(() => {
-                console.log('Carosello inizializzato con successo');
-            }).catch(error => {
-                console.error('Errore inizializzazione carosello:', error);
-            });
-        }, 100);
+    // Update welcome message and show dashboard
+    updateWelcomeMessage(user.username);
+    showDashboard();
+}
+
+function updateUIForUnauthenticated() {
+    document.querySelector('#userGreeting').classList.add('d-none');
+    document.querySelector('#logoutBtn').classList.add('d-none');
+    document.querySelector('#loginBtn').classList.remove('d-none');
+    document.querySelector('#registerBtn').classList.remove('d-none');
+    updateAdminButton(false);
+    return showAuthForms();
+}
+
+function updateAdminButton(isAdmin) {
+    const adminBtn = document.getElementById('loadDbBtn');
+    if (!adminBtn) return;
+
+    if (isAdmin) {
+        adminBtn.classList.remove('d-none');
+        adminBtn.disabled = false;
     } else {
-        console.error('ERRORE: Elemento #filmsCarousel non trovato nel DOM');
-        console.log('Contenuto di mainContent:', document.getElementById('mainContent')?.innerHTML);
+        adminBtn.classList.add('d-none');
+        adminBtn.disabled = true;
     }
 }
 
-function loadMainContent(role) {
-    const mainContent = document.getElementById('mainContent');
-    if (!mainContent) return;
-
-    mainContent.innerHTML = `
-        <div class="welcome-message text-center mt-5">
-            <h2>Benvenuto nella tua Dashboard</h2>
-            <p class="lead">Accesso effettuato con successo</p>
-            ${role === 'admin' ? '<p class="text-muted">Sei loggato come amministratore</p>' : ''}
-        </div>
-    `;
-}
-
-
+// Auth forms management
 async function showAuthForms() {
-    const mainContent = document.getElementById('mainContent');
-    if (!mainContent) {
-        console.error('Elemento mainContent non trovato');
-        return;
-    }
-
-    mainContent.innerHTML = `
-        <div class="text-center mt-5">
-            <div class="spinner-border text-primary"></div>
-            <p class="mt-2">Caricamento form...</p>
-        </div>
-    `;
-
-    try {
-        const { data } = await axios.get('/auth/forms', {
-            headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            }
-        });
-
-        mainContent.innerHTML = data;
-        await setupAuthForms();
-    } catch (error) {
-        console.error('Error loading auth forms:', error);
-
-        const errorMessage = error.response?.status === 500 ?
-            'Errore interno del server' :
-            'Errore nel caricamento del form';
-
-        mainContent.innerHTML = `
-            <div class="alert alert-danger mt-5">
-                <h5 class="alert-heading">${errorMessage}</h5>
-                <p>Si è verificato un problema tecnico.</p>
-                <hr>
-                <div class="d-flex justify-content-between">
-                    <button onclick="location.reload()" class="btn btn-sm btn-outline-danger">
-                        <i class="bi bi-arrow-clockwise"></i> Ricarica
-                    </button>
-                    <button onclick="showAuthForms()" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-arrow-repeat"></i> Riprova
-                    </button>
-                </div>
-            </div>
-        `;
-    }
+    hideAllSections();
+    document.getElementById('authFormsSection').classList.remove('hidden-section');
+    toggleForms(true);
+    await setupAuthForms();
 }
 
 async function setupAuthForms() {
-    // Inizializza i form
-    toggleForms(true); // Mostra login, nascondi registrazione
+    toggleForms(true);
 
-    // Elementi UI
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const switchToRegister = document.getElementById('switchToRegister');
     const switchToLogin = document.getElementById('switchToLogin');
 
-    // Switch tra form con gestione errori
     if (switchToRegister && switchToLogin) {
-        switchToRegister.addEventListener('click', () => {
-            try {
-                toggleForms(false);
-            } catch (error) {
-                console.error('Error switching to register form:', error);
-            }
-        });
-
-        switchToLogin.addEventListener('click', () => {
-            try {
-                toggleForms(true);
-            } catch (error) {
-                console.error('Error switching to login form:', error);
-            }
-        });
+        switchToRegister.addEventListener('click', () => toggleForms(false));
+        switchToLogin.addEventListener('click', () => toggleForms(true));
     }
 
-    // Gestione Login con validazione migliorata
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const username = loginForm.username.value.trim();
             const password = loginForm.password.value.trim();
 
@@ -321,33 +227,23 @@ async function setupAuthForms() {
                 return;
             }
 
-            try {
-                await handleAuthRequest(
-                    loginForm,
-                    '/auth/login',
-                    { username, password },
-                    'Accedi',
-                    (userData) => {
-                        updateUIForAuthenticatedUser(userData);
-                        loadMainContent(userData.role);
-                    }
-                );
-            } catch (error) {
-                console.error('Login error:', error);
-            }
+            await handleAuthRequest(
+                loginForm,
+                '/auth/login',
+                { username, password },
+                'Accedi',
+                (userData) => updateUIForAuthenticatedUser(userData)
+            );
         });
     }
 
-    // Gestione Registrazione con validazione migliorata
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const username = registerForm.username.value.trim();
             const password = registerForm.password.value.trim();
             const confirmPassword = registerForm.confirmPassword.value.trim();
 
-            // Validazione avanzata
             if (!username || !password || !confirmPassword) {
                 showAlert('Compila tutti i campi', 'warning');
                 return;
@@ -363,45 +259,36 @@ async function setupAuthForms() {
                 return;
             }
 
-            try {
-                await handleAuthRequest(
-                    registerForm,
-                    '/auth/register',
-                    { username, password, confirmPassword },
-                    'Registrati',
-                    () => {
-                        showAlert('Registrazione completata! Ora puoi accedere', 'success');
-                        registerForm.reset();
-                        toggleForms(true);
-                    }
-                );
-            } catch (error) {
-                console.error('Registration error:', error);
-            }
+            await handleAuthRequest(
+                registerForm,
+                '/auth/register',
+                { username, password, confirmPassword },
+                'Registrati',
+                () => {
+                    showAlert('Registrazione completata! Ora puoi accedere', 'success');
+                    registerForm.reset();
+                    toggleForms(true);
+                }
+            );
         });
     }
 }
 
-// Funzione per gestire richieste di autenticazione
 async function handleAuthRequest(form, endpoint, data, buttonText, onSuccess) {
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalBtnText = submitBtn.innerHTML;
 
-    submitBtn.innerHTML = `
-        <span class="spinner-border spinner-border-sm" role="status"></span>
-        ${buttonText} in corso...
-    `;
+    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> ${buttonText} in corso...`;
     submitBtn.disabled = true;
 
     try {
-        const { data: result } = await axios.post(endpoint, data, {
-            withCredentials: true
-        });
-
+        const { data: result } = await axios.post(endpoint, data);
         if (result.success) {
-            if (typeof onSuccess === 'function') {
-                onSuccess(result.user || result);
+            if (endpoint === '/auth/login') {
+                // Forza il refresh della pagina per vedere i nuovi film
+                window.location.reload();
             }
+            if (typeof onSuccess === 'function') onSuccess(result.user || result);
         } else {
             showAlert(result.error || `${buttonText} fallito`, 'danger');
         }
@@ -415,111 +302,63 @@ async function handleAuthRequest(form, endpoint, data, buttonText, onSuccess) {
 }
 
 async function logout() {
-    try {
-        await axios.post('/auth/logout', {}, {
-            headers: { 'Cache-Control': 'no-cache' }
-        });
+    const logoutBtn = document.querySelector('#logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logout...';
+        logoutBtn.disabled = true;
+    }
 
-        resetAuthUI();
-        window.location.href = '/';
+    try {
+        await axios.post('/auth/logout');
+        await updateUIForUnauthenticated();
     } catch (error) {
         console.error('Errore durante il logout:', error);
         showAlert('Errore di connessione durante il logout', 'danger');
+    } finally {
+        if (logoutBtn) {
+            logoutBtn.innerHTML = 'Logout';
+            logoutBtn.disabled = false;
+        }
     }
 }
 
-// Reset UI dopo logout
-function resetAuthUI() {
-    const authSection = document.getElementById('authSection');
-    if (authSection) {
-        const greeting = authSection.querySelector('#userGreeting');
-        const logoutBtn = authSection.querySelector('#logoutBtn');
-        const loginBtn = authSection.querySelector('#loginBtn');
-        const registerBtn = authSection.querySelector('#registerBtn');
-
-        if (greeting) greeting.classList.add('d-none');
-        if (logoutBtn) logoutBtn.classList.add('d-none');
-        if (loginBtn) loginBtn.classList.remove('d-none');
-        if (registerBtn) registerBtn.classList.remove('d-none');
-    }
-}
-
-// Funzioni di utilità
 function toggleForms(showLogin) {
     const loginFormContainer = document.getElementById('loginFormContainer');
     const registerFormContainer = document.getElementById('registerFormContainer');
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
 
     if (loginFormContainer && registerFormContainer) {
         if (showLogin) {
             loginFormContainer.classList.remove('d-none');
-            loginFormContainer.classList.add('d-block');
-            registerFormContainer.classList.remove('d-block');
             registerFormContainer.classList.add('d-none');
-
-            if (loginForm) loginForm.style.display = 'block';
-            if (registerForm) registerForm.style.display = 'none';
         } else {
-            loginFormContainer.classList.remove('d-block');
             loginFormContainer.classList.add('d-none');
             registerFormContainer.classList.remove('d-none');
-            registerFormContainer.classList.add('d-block');
-
-            if (loginForm) loginForm.style.display = 'none';
-            if (registerForm) registerForm.style.display = 'block';
         }
 
-        // Pulisci gli alert
         const existingAlert = document.querySelector('.alert');
         if (existingAlert) existingAlert.remove();
     }
 }
 
 function showAlert(message, type = 'info', duration = 5000) {
-    // Rimuovi alert esistenti sia globali che locali
     document.querySelectorAll('.global-alert, .alert').forEach(alert => alert.remove());
 
-    // Crea nuovo alert
     const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show ${type === 'info' || duration > 7000 ? 'global-alert' : 'local-alert'}`;
 
-    // Aggiungi classe in base alla posizione desiderata
-    if (type === 'info' || duration > 7000) {
-        // Alert globale/lungo durata (posizione fissa)
-        alertDiv.classList.add('global-alert');
-        alertDiv.style.position = 'fixed';
-        alertDiv.style.top = '20px';
-        alertDiv.style.right = '20px';
-        alertDiv.style.zIndex = '9999';
-        alertDiv.style.minWidth = '300px';
-        alertDiv.style.maxWidth = '80vw';
-    } else {
-        // Alert normale (nel contesto della card)
-        alertDiv.classList.add('local-alert');
-    }
+    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
 
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-
-    // Posizionamento intelligente
     const cardBody = document.querySelector('.card-body');
     if (cardBody && !alertDiv.classList.contains('global-alert')) {
         cardBody.prepend(alertDiv);
     } else {
-        // Default: aggiungi in fondo al body
         document.body.appendChild(alertDiv);
     }
 
-    // Auto-dismiss
     if (duration) {
         setTimeout(() => {
             alertDiv.classList.remove('show');
             setTimeout(() => alertDiv.remove(), 150);
         }, duration);
     }
-
-    return alertDiv; // Restituisce l'elemento per eventuali controlli aggiuntivi
 }

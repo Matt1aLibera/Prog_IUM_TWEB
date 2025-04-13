@@ -1,28 +1,24 @@
-<div id="mainContent">
-    {{#if user}}
-        <div class="welcome-message">
-            <h2>Benvenuto {{user.username}}!</h2>
-        </div>
-        <!-- carosello -->
-        <div class="row">
-            <div class="col-12">
-                <div id="filmsCarousel" class="carousel slide" data-bs-ride="carousel">
-                    <div class="carousel-inner" id="carousel-inner">
-                        <!-- Dinamico -->
-                    </div>
-                    <button class="carousel-control-prev" type="button" data-bs-target="#filmsCarousel" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon"></span>
-                    </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#filmsCarousel" data-bs-slide="next">
-                        <span class="carousel-control-next-icon"></span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    {{else}}
-        <div class="text-center mt-5">
-            <div class="spinner-border" role="status"></div>
-            <p class="mt-2">Caricamento in corso...</p>
-        </div>
-    {{/if}}
+<div class="welcome-message">
+    <h2 id="welcomeMessage"></h2>
 </div>
+
+{{#if films.length}}
+    <div id="filmCarousel" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            {{#each films}}
+                <div class="carousel-item {{#if @first}}active{{/if}}">
+                    <img src="{{this.posterUrl}}" class="d-block w-100" alt="{{this.title}}">
+                </div>
+            {{/each}}
+        </div>
+        <!-- Controlli carosello -->
+        <button class="carousel-control-prev" type="button" data-bs-target="#filmCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#filmCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+    </div>
+{{else}}
+    <div class="alert alert-warning">Nessun film disponibile al momento</div>
+{{/if}}

@@ -34,7 +34,7 @@ router.get('/carousel', async (req, res, next) => {
     const { data: filmDetails } = await axios.post(
         `${SERVICES.postgres}/api/films/batch`,
         { ids: filmIds },
-        { timeout: 5000 }
+        { timeout: 10000 }
     );
 
     // 3. Combine and format data

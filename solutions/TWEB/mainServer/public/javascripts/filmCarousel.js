@@ -1,69 +1,63 @@
 // ==============================================
-// CAROUSEL CLASS
+// CAROUSEL CLASS (FilmCarousel.js)
 // ==============================================
 class FilmCarousel {
     constructor() {
-        console.log('Costruttore FilmCarousel chiamato');
-        console.log('Ricerca elemento #filmsCarousel...');
-        this.carousel = document.getElementById('filmsCarousel');
-        if (!this.carousel) {
-            console.warn('Elemento carosello non trovato nel DOM');
-            return;
-        }
+        // 1. Inizializza axios
+        this.axios = window.axios;
+        if (!this.axios) throw new Error('Axios non caricato');
 
-        console.log('Elemento carosello trovato:', this.carousel);
+        // 2. Recupera elementi DOM
+        this.carousel = document.getElementById('staticCarousel');
+        if (!this.carousel) throw new Error('Carosello non trovato');
+
         this.carouselInner = this.carousel.querySelector('.carousel-inner');
-        if (!this.carouselInner) {
-            console.error('Elemento carousel-inner non trovato');
-            return;
-        }
+        if (!this.carouselInner) throw new Error('Elemento interno non trovato');
 
+        // 3. Inizializza stato
         this.films = [];
         this.carouselInstance = null;
-        this.initialized = false;
     }
 
     async init() {
-        if (!this.carousel || !this.carouselInner) return;
-
         try {
             this.showLoader();
-            console.log('Inizio caricamento dati carosello...');
 
-            const response = await axios.get('/api/films/carousel', {
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+            // 4. Carica dati film
+            const { data } = await this.axios.get('/films/carousel', {
+                params: { t: Date.now() },
+                headers: { 'Cache-Control': 'no-cache' }
             });
 
-            this.films = response.data;
-            console.log(`Ricevuti ${this.films.length} film`);
+            this.films = data;
 
-            if (this.films.length) {
-                this.render();
-                this.initCarousel();
-                this.initialized = true;
-                console.log('Carosello inizializzato con successo');
-            } else {
+            // 5. Gestisci casi vuoti/errori
+            if (!this.films.length) {
                 this.showEmptyState();
+                return;
             }
+
+            // 6. Render e inizializzazione
+            this.render();
+            this.initCarousel();
+
         } catch (error) {
-            console.error('Errore nel caricamento del carosello:', error);
+            console.error('Errore carosello:', error);
             this.showError(error);
+            throw error;
         }
     }
 
+
     render() {
+        // 7. Genera HTML per ogni film
         this.carouselInner.innerHTML = this.films.map((film, index) => `
             <div class="carousel-item ${index === 0 ? 'active' : ''}">
-                <div class="carousel-poster-container">
-                    <img src="${this.validatePosterUrl(film.poster)}" 
-                         class="d-block w-100 carousel-poster" 
-                         alt="${film.title}"
-                         loading="lazy"
-                         onerror="this.onerror=null;this.src='/images/placeholder-poster.jpg'">
-                </div>
+                <img src="${this.validatePosterUrl(film.poster)}" 
+                     class="d-block w-100 h-100" 
+                     style="object-fit: cover;"
+                     alt="${film.title}"
+                     onerror="this.src='/images/img.png'">
                 <div class="carousel-caption d-none d-md-block">
                     <div class="caption-content bg-dark bg-opacity-75 p-3 rounded">
                         <h5>${film.title} (${film.year})</h5>
@@ -81,7 +75,6 @@ class FilmCarousel {
             </div>
         `).join('');
 
-        // Aggiungi event listener ai pulsanti
         this.addEventListeners();
     }
 
@@ -100,42 +93,32 @@ class FilmCarousel {
 
     showLoader() {
         this.carouselInner.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center" style="height: 400px;">
-                <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
+            <div class="d-flex justify-content-center align-items-center h-100">
+                <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
             </div>
         `;
     }
 
     showEmptyState() {
         this.carouselInner.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center" style="height: 400px;">
-                <div class="alert alert-info">
-                    Nessun film disponibile al momento.
-                </div>
+            <div class="d-flex justify-content-center align-items-center h-100">
+                <div class="alert alert-info">Nessun film disponibile</div>
             </div>
         `;
     }
 
     showError(error) {
-        const errorMessage = error.response?.data?.message || error.message;
+        const errorMsg = error.response?.data?.message || error.message;
         this.carouselInner.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center" style="height: 400px;">
+            <div class="d-flex justify-content-center align-items-center h-100">
                 <div class="alert alert-danger">
-                    Errore nel caricamento: ${errorMessage}
-                    <button class="btn btn-sm btn-outline-danger ms-2 retry-btn">
-                        Riprova
-                    </button>
+                    ${errorMsg}
+                    <button class="btn btn-sm btn-outline-danger mt-2 retry-btn">Riprova</button>
                 </div>
             </div>
         `;
 
-        // Aggiungi event listener al pulsante riprova
-        const retryBtn = this.carouselInner.querySelector('.retry-btn');
-        if (retryBtn) {
-            retryBtn.addEventListener('click', () => this.init());
-        }
+        this.carouselInner.querySelector('.retry-btn')?.addEventListener('click', () => this.init());
     }
 
     validatePosterUrl(url) {
@@ -144,11 +127,9 @@ class FilmCarousel {
     }
 
     addEventListeners() {
-        // Gestione click sui pulsanti dettagli
-        const detailBtns = this.carouselInner.querySelectorAll('.film-detail-btn');
-        detailBtns.forEach(btn => {
+        this.carouselInner.querySelectorAll('.film-detail-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const filmId = e.currentTarget.getAttribute('data-film-id');
+                const filmId = e.target.dataset.filmId;
                 window.location.href = `/film/${filmId}`;
             });
         });
@@ -157,13 +138,6 @@ class FilmCarousel {
     destroy() {
         if (this.carouselInstance) {
             this.carouselInstance.dispose();
-            this.carouselInstance = null;
         }
-        this.initialized = false;
     }
-}
-
-// Esposizione globale con controllo
-if (typeof window !== 'undefined') {
-    window.FilmCarousel = FilmCarousel;
 }

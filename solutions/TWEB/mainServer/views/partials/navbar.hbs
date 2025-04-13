@@ -7,19 +7,15 @@
         </button>
 
         <div class="collapse navbar-collapse" id="navbarContent">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item d-none" id="adminBtnContainer">
-                    <button class="btn btn-outline-success nav-link" id="loadDbBtn"  data-role="">
-                        <i class="bi bi-database"></i> Carica DB
-                    </button>
-                </li>
-            </ul>
+            <!-- Pulsante SEMPRE presente ma inizialmente nascosto e disabilitato -->
+            <button id="loadDbBtn" class="btn btn-outline-success me-2 d-none" disabled>
+                <i class="bi bi-database"></i> Carica DB
+            </button>
 
-            <div id="authSection" class="d-flex">
-                <!-- Elementi sempre presenti ma nascosti -->
+            <div id="authSection" class="d-flex ms-auto">
+                <!-- Elementi autenticazione -->
                 <span id="userGreeting" class="navbar-text me-3 d-none"></span>
                 <button id="logoutBtn" class="btn btn-outline-light d-none">Logout</button>
-
                 <button id="loginBtn" class="btn btn-outline-light me-2">Login</button>
                 <button id="registerBtn" class="btn btn-primary">Registrati</button>
             </div>
