@@ -9,13 +9,12 @@ const SERVICES = {
   mongo: process.env.MONGO_SERVICE || 'http://localhost:3002'
 };
 
-// Route per il carosello
+//usa curl "http://localhost:3003/api/carousel?limit=15"
 router.get('/carousel', async (req, res, next) => {
   try {
-    // Validate limit parameter
-    const limit = Math.min(parseInt(req.query.limit) || 10, 20);
+    const limit = Math.min(parseInt(req.query.limit) || 15, 20); // Aumentato a 15 di default
 
-    // 1. Get rated films from MongoDB
+    // 1. Recupera film valutati da MongoDB
     const { data: ratedFilms } = await axios.get(`${SERVICES.mongo}/api/films/ratings`, {
       params: {
         minRating: 3.5,
@@ -25,54 +24,70 @@ router.get('/carousel', async (req, res, next) => {
       timeout: 3000
     });
 
-    if (!ratedFilms?.length) {
-      return res.json([]);
-    }
+    if (!ratedFilms?.length) return res.json([]);
 
-    // 2. Get film details from PostgreSQL
+    // 2. Recupera solo poster e titoli da PostgreSQL
     const filmIds = ratedFilms.map(film => film.id);
-    const { data: filmDetails } = await axios.post(
-        `${SERVICES.postgres}/api/films/batch`,
+    const { data: filmPosters } = await axios.post(
+        `${SERVICES.postgres}/api/films/posters`,
         { ids: filmIds },
         { timeout: 10000 }
     );
 
-    // 3. Combine and format data
-    const combinedData = ratedFilms.map(ratedFilm => {
-      const detail = filmDetails.find(d => d.id === ratedFilm.id) || {};
+    // 3. Combina e formatta i dati
+    const carouselData = ratedFilms.map(ratedFilm => {
+      const posterData = filmPosters.find(p => p.id === ratedFilm.id) || {};
       return {
         id: ratedFilm.id,
-        title: detail.name || 'Titolo non disponibile',
-        poster: detail.posterLink || '/default-poster.jpg',
-        year: detail.date,
-        description: detail.description,
-        tagline: detail.tagline,
-        rating: ratedFilm.rating,
-        actors: detail.actors || [],
-        countries: detail.countries || [],
-        duration: detail.minute ? `${Math.floor(detail.minute / 60)}h ${detail.minute % 60}m` : null
+        title: posterData.name || 'Titolo non disponibile',
+        posterUrl: posterData.posterLink || '/default-poster.jpg',
+        rating: ratedFilm.rating
       };
     });
 
-    // 4. Sort by rating (descending)
-    combinedData.sort((a, b) => b.rating - a.rating);
+    // 4. Ordina per rating
+    carouselData.sort((a, b) => b.rating - a.rating);
 
-    // Cache control headers
     res.set('Cache-Control', 'public, max-age=3600');
-
-    res.json(combinedData);
+    res.json(carouselData);
   } catch (error) {
-    console.error('Aggregation error:', {
-      message: error.message,
-      service: error.config?.url,
-      response: error.response?.data
-    });
+    console.error('Aggregation error:', error);
+    next(createError(502, 'Service temporarily unavailable'));
+  }
+});
 
-    const statusCode = error.response?.status || 502;
-    next(createError(statusCode, 'Errore durante l\'aggregazione dei dati', {
-      service: error.config?.url,
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    }));
+// Route per i dettagli completi del film
+router.get('/films/:id', async (req, res, next) => {
+  try {
+    const filmId = parseInt(req.params.id);
+    if (isNaN(filmId)) {
+      return res.status(400).json({ error: "ID film non valido" });
+    }
+
+    // Chiamate parallele ai due servizi
+    const [postgresResponse, mongoResponse] = await Promise.all([
+      axios.get(`${SERVICES.postgres}/api/films/${filmId}`, { timeout: 5000 })
+          .catch(err => ({ data: null })),
+      axios.get(`${SERVICES.mongo}/api/films/${filmId}`, { timeout: 3000 })
+          .catch(err => ({ data: { rating: null } }))
+    ]);
+
+    // Verifica disponibilità servizi
+    if (!postgresResponse.data) {
+      return res.status(502).json({ error: "Servizio PostgreSQL non disponibile" });
+    }
+
+    // Combina i risultati
+    const response = {
+      ...postgresResponse.data,
+      rating: mongoResponse.data?.rating
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error('Film details aggregation error:', error);
+    next(createError(500, 'Internal server error'));
   }
 });
 

@@ -13,7 +13,6 @@ var loginRouter = require('./routes/auth');
 var adminRouter =require ('./routes/admin')
 
 var app = express();
-
 // Configurazione Handlebars
 const { engine } = require('express-handlebars');
 app.engine('hbs', engine({
@@ -24,6 +23,11 @@ app.engine('hbs', engine({
   runtimeOptions: {
     allowProtoPropertiesByDefault: true,
     allowProtoMethodsByDefault: true
+  },
+  helpers: {
+    json: function(context) {
+      return JSON.stringify(context).replace(/"/g, '&quot;');
+    }
   }
 }));
 app.set('views', path.join(__dirname, 'views')); // Punta alla cartella padre

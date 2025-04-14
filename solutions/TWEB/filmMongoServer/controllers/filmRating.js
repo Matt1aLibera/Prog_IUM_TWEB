@@ -87,9 +87,31 @@ const getFilmsByRatingRange = async (minRating, maxRating, limit) => {
     }
 };
 
+const getFilmRating = async (movie_id) => {
+    const connection = await connectDB();
+    const FilmRating = connection.model('FilmRating');
+    try {
+        const doc = await FilmRating.findOne({ movie_id });
+        if (!doc) {
+            return {
+                success: false,
+                message: "Film non trovato"
+            };
+        }
+        return {
+            success: true,
+            rating: doc.rating
+        };
+    } catch (error) {
+        console.error('Errore recupero rating:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     upsertRating,
     getRating,
     uploadRatings, // Aggiungi la nuova funzione
     getFilmsByRatingRange,
+    getFilmRating,
 };

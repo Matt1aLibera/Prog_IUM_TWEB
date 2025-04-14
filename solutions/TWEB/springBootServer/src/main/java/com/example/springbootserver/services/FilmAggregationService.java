@@ -1,75 +1,96 @@
 package com.example.springbootserver.services;
 
 import com.example.springbootserver.dtos.FilmDetailsResponse;
-import com.example.springbootserver.models.ActorAppearance;
-import com.example.springbootserver.models.Country;
-import com.example.springbootserver.models.Movie;
-import com.example.springbootserver.models.Poster;
-import com.example.springbootserver.repositories.ActorAppearanceRepo;
-import com.example.springbootserver.repositories.CountryRepo;
-import com.example.springbootserver.repositories.MovieRepo;
-import com.example.springbootserver.repositories.PosterRepo;
+import com.example.springbootserver.dtos.FilmPosterResponse;
+import com.example.springbootserver.models.*;
+import com.example.springbootserver.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class FilmAggregationService {
     private final MovieRepo movieRepo;
+    private final PosterRepo posterRepo;
     private final ActorAppearanceRepo actorAppearanceRepo;
     private final CountryRepo countryRepo;
-    private final PosterRepo posterRepo;
+    private final CrewRepo crewRepo;
+    private final GenreRepo genreRepo;
+    private final LanguageRepo languageRepo;
+    private final ReleaseRepo releaseRepo;
+    private final StudioRepo studioRepo;
+    private final ThemeRepo themeRepo;
 
     @Autowired
     public FilmAggregationService(
             MovieRepo movieRepo,
+            PosterRepo posterRepo,
             ActorAppearanceRepo actorAppearanceRepo,
             CountryRepo countryRepo,
-            PosterRepo posterRepo) {
+            CrewRepo crewRepo,
+            GenreRepo genreRepo,
+            LanguageRepo languageRepo,
+            ReleaseRepo releaseRepo,
+            StudioRepo studioRepo,
+            ThemeRepo themeRepo) {
         this.movieRepo = movieRepo;
-        this.actorAppearanceRepo = actorAppearanceRepo;
-        this.countryRepo = countryRepo;
         this.posterRepo = posterRepo;
+        this.actorAppearanceRepo= actorAppearanceRepo;
+        this.countryRepo = countryRepo;
+        this.crewRepo = crewRepo;
+        this.genreRepo = genreRepo;
+        this.languageRepo = languageRepo;
+        this.releaseRepo = releaseRepo;
+        this.studioRepo = studioRepo;
+        this.themeRepo = themeRepo;
     }
 
-    public List<FilmDetailsResponse> getFilmsDetails(List<Long> movieIds) {
-        List<FilmDetailsResponse> responses = new ArrayList<>();
+    public List<FilmPosterResponse> getFilmsPosters(List<Long> movieIds) {
+        return movieRepo.findByIdIn(movieIds).stream()
+                .map(movie -> {
+                    FilmPosterResponse response = new FilmPosterResponse();
+                    response.setId(movie.getId());
+                    response.setName(movie.getName());
 
-        // Recupera i film base
-        List<Movie> movies = movieRepo.findByIdIn(movieIds);
+                    posterRepo.findFirstByMovieId(movie.getId())
+                            .ifPresent(poster -> response.setPosterLink(poster.getLink()));
 
-        for (Movie movie : movies) {
-            FilmDetailsResponse response = new FilmDetailsResponse();
-            response.setId(movie.getId());
-            response.setName(movie.getName());
-            response.setDate(movie.getDate());
-            response.setTagline(movie.getTagline());
-            response.setDescription(movie.getDescription());
-            response.setMinute(movie.getMinute());
+                    return response;
+                })
+                .collect(Collectors.toList());
+    }
 
-            // Recupera attori
-            List<ActorAppearance> actors = actorAppearanceRepo.findByMovieId(movie.getId());
-            response.setActors(actors.stream()
-                    .map(a -> a.getActorName() + " as " + a.getCharacterName())
-                    .collect(Collectors.toList()));
+    public FilmDetailsResponse getFilmDetails(Long movieId) {
+        // Recupera il film principale
+        Movie movie = movieRepo.findById(movieId)
+                .orElseThrow(() -> new RuntimeException("Film non trovato"));
 
-            // Recupera paesi
-            List<Country> countries = countryRepo.findByMovieId(movie.getId());
-            response.setCountries(countries.stream()
-                    .map(Country::getCountryName)
-                    .collect(Collectors.toList()));
+        // Recupera il poster
+        Poster poster = posterRepo.findFirstByMovieId(movieId).orElse(null);
 
-            // Recupera poster
-            Optional<Poster> poster = posterRepo.findFirstByMovieId(movie.getId());
-            response.setPosterLink(poster.map(Poster::getLink).orElse(""));
+        // Recupera tutte le entità correlate
+        List<ActorAppearance> actors = actorAppearanceRepo.findByMovieId(movieId);
+        List<Country> countries = countryRepo.findByMovieId(movieId);
+        List<Genre> genres = genreRepo.findByMovieId(movieId);
+        List<Language> languages = languageRepo.findByMovieId(movieId);
+        List<Studio> studios = studioRepo.findByMovieId(movieId);
+        List<Theme> themes = themeRepo.findByMovieId(movieId);
+        List<Crew> crew = crewRepo.findByMovieId(movieId);
+        List<Release> releases = releaseRepo.findByMovieId(movieId);
 
-            responses.add(response);
-        }
-
-        return responses;
+        // Costruisci e restituisci la risposta
+        return new FilmDetailsResponse(
+                movie,
+                poster,
+                actors,
+                countries,
+                genres,
+                languages,
+                studios,
+                themes,
+                crew,
+                releases
+        );
     }
 }

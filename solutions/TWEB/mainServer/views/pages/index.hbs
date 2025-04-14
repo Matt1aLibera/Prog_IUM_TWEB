@@ -2,23 +2,134 @@
     <h2 id="welcomeMessage"></h2>
 </div>
 
-{{#if films.length}}
-    <div id="filmCarousel" class="carousel slide" data-bs-ride="carousel">
-        <div class="carousel-inner">
-            {{#each films}}
-                <div class="carousel-item {{#if @first}}active{{/if}}">
-                    <img src="{{this.posterUrl}}" class="d-block w-100" alt="{{this.title}}">
-                </div>
-            {{/each}}
+<!-- Carosello - sezione visibile inizialmente -->
+<div id="carouselSection" class="carousel-section">
+    {{#if films.length}}
+        <div id="filmCarousel" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+                {{#each films}}
+                    <div class="carousel-item {{#if @first}}active{{/if}}">
+                        <div class="film-poster-container" data-film-id="{{this.id}}">
+                            <img src="{{this.posterUrl}}" class="d-block w-100" alt="{{this.title}}">
+                            <div class="film-info-overlay">
+                                <h5>{{this.title}}</h5>
+                                <div class="rating">
+                                    <span class="star">★</span>
+                                    <span>{{this.rating}}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {{/each}}
+            </div>
+            <!-- Controlli carosello -->
+            <button class="carousel-control-prev" type="button" data-bs-target="#filmCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#filmCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </button>
         </div>
-        <!-- Controlli carosello -->
-        <button class="carousel-control-prev" type="button" data-bs-target="#filmCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon"></span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#filmCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon"></span>
-        </button>
+    {{else}}
+        <div class="alert alert-warning">Nessun film disponibile al momento</div>
+    {{/if}}
+</div>
+
+<!-- Sezione dettaglio film - inizialmente nascosta -->
+<div id="filmDetailSection" class="film-detail-section" style="display: none;">
+    <!-- Spinner di caricamento -->
+    <div id="filmLoadingSpinner" class="text-center py-5">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">Caricamento film...</p>
     </div>
-{{else}}
-    <div class="alert alert-warning">Nessun film disponibile al momento</div>
-{{/if}}
+
+    <!-- Contenuto film (template vuoto che verrà popolato) -->
+    <div id="filmContent" style="display: none;">
+        <button id="backToCarousel" class="btn btn-outline-secondary mb-4">
+            <i class="bi bi-arrow-left"></i> Torna al carosello
+        </button>
+
+        <div class="film-container">
+            <!-- Testata con poster e info base -->
+            <div class="film-header">
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <img id="filmPoster" src="" class="img-fluid rounded-3 shadow" alt="">
+                    </div>
+                    <div class="col-md-8">
+                        <div class="film-meta">
+                            <h1 id="filmTitle" class="display-5 fw-bold"></h1>
+                            <p id="filmTagline" class="lead text-muted"></p>
+
+                            <div class="d-flex flex-wrap gap-2 mb-4">
+                            <span class="badge bg-primary py-2 px-3">
+                                <i class="bi bi-star-fill me-1"></i> <span id="filmRating">N/D</span>/5
+                            </span>
+                                <span class="badge bg-secondary py-2 px-3">
+                                <i class="bi bi-clock me-1"></i> <span id="filmDuration">N/D</span>
+                            </span>
+                                <div id="filmCountries"></div>
+                            </div>
+
+                            <div class="action-buttons mb-4">
+                                <button class="btn btn-primary me-2">
+                                    <i class="bi bi-play-fill"></i> Guarda trailer
+                                </button>
+                                <button class="btn btn-outline-secondary">
+                                    <i class="bi bi-bookmark"></i> Salva
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenuto principale -->
+            <div class="film-body mt-5">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <!-- Trama -->
+                        <section class="mb-5">
+                            <h2 class="mb-3"><i class="bi bi-card-text me-2"></i>Trama</h2>
+                            <p id="filmDescription" class="fs-5">Nessuna descrizione disponibile</p>
+                        </section>
+
+                        <!-- Cast -->
+                        <section class="mb-5">
+                            <h2 class="mb-3"><i class="bi bi-people-fill me-2"></i>Cast</h2>
+                            <ul id="filmActors" class="list-group">
+                                <!-- Popolato dinamicamente -->
+                            </ul>
+                        </section>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <!-- Dettagli tecnici -->
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <h3 class="h5 mb-3"><i class="bi bi-info-circle me-2"></i>Dettagli</h3>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span>Durata</span>
+                                        <span id="filmDuration2">N/D</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span>Generi</span>
+                                        <span id="filmGenres">N/D</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span>Valutazione</span>
+                                        <span id="filmRating2">N/D</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>

@@ -362,3 +362,103 @@ function showAlert(message, type = 'info', duration = 5000) {
         }, duration);
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Gestione click sui poster
+    document.querySelectorAll('.film-poster-container').forEach(poster => {
+        poster.addEventListener('click', async (e) => {
+            const filmId = poster.getAttribute('data-film-id');
+            await showFilmDetails(filmId);
+        });
+    });
+
+    // Bottone per tornare indietro
+    document.getElementById('backToCarousel')?.addEventListener('click', () => {
+        document.getElementById('carouselSection').style.display = 'block';
+        document.getElementById('filmDetailSection').style.display = 'none';
+    });
+});
+
+async function showFilmDetails(filmId) {
+    try {
+        // Nascondi carosello e mostra sezione dettaglio con spinner
+        document.getElementById('carouselSection').style.display = 'none';
+        document.getElementById('filmDetailSection').style.display = 'block';
+        document.getElementById('filmLoadingSpinner').style.display = 'flex';
+        document.getElementById('filmContent').style.display = 'none';
+
+        // Fetch dati film
+        const response = await fetch(`/films/${filmId}`);
+        if (!response.ok) throw new Error('Film non trovato');
+        const film = await response.json();
+
+        // Popola il template
+        populateFilmData(film);
+
+        // Nascondi spinner e mostra contenuto
+        document.getElementById('filmLoadingSpinner').style.display = 'none';
+        document.getElementById('filmContent').style.display = 'block';
+
+    } catch (error) {
+        console.error('Errore caricamento film:', error);
+        document.getElementById('filmLoadingSpinner').innerHTML = `
+            <div class="alert alert-danger">
+                Errore nel caricamento del film: ${error.message}
+                <button onclick="location.reload()" class="btn btn-sm btn-outline-danger ms-3">Ricarica</button>
+            </div>
+        `;
+    }
+}
+
+function populateFilmData(film) {
+    // Dati base
+    document.getElementById('filmPoster').src = film.poster?.link || film.posterUrl || '/default-poster.jpg';
+    document.getElementById('filmPoster').alt = film.movie?.name || film.title;
+    document.getElementById('filmTitle').innerHTML =
+        `${film.movie?.name || film.title} <small class="text-muted">(${film.movie?.date || film.movie?.year || film.year || 'N/D'})</small>`;
+    document.getElementById('filmTagline').textContent = film.movie?.tagline || film.tagline || '';
+
+    // Descrizione
+    const descriptionElement = document.getElementById('filmDescription');
+    if (descriptionElement) {
+        descriptionElement.textContent = film.movie?.description || film.description || 'Nessuna descrizione disponibile';
+    }
+
+    // Rating
+    const ratingElement = document.getElementById('filmRating');
+    if (ratingElement) {
+        ratingElement.textContent = film.rating ? film.rating.toFixed(1) : 'N/D';
+    }
+
+    // Durata
+    const durationElement = document.getElementById('filmDuration');
+    if (durationElement) {
+        durationElement.textContent = film.duration ||
+            (film.movie?.minute ? `${Math.floor(film.movie.minute/60)}h ${film.movie.minute%60}m` : 'N/D');
+    }
+
+    // Generi
+    const genresElement = document.getElementById('filmGenres');
+    if (genresElement) {
+        genresElement.innerHTML = film.genres?.map(g =>
+            `<span class="badge bg-secondary me-1">${g.genre}</span>`
+        ).join('') || 'N/D';
+    }
+
+    // Attori (lista)
+    const actorsElement = document.getElementById('filmActors');
+    if (actorsElement) {
+        actorsElement.innerHTML = film.actors?.slice(0, 10).map(actor =>
+            `<li class="list-group-item">${actor.actorName} <small class="text-muted">(${actor.characterName})</small></li>`
+        ).join('') || '<li class="list-group-item">Nessun attore disponibile</li>';
+    }
+
+    const countriesElement = document.getElementById('filmCountries');
+    if (countriesElement && film.countries?.length) {
+        countriesElement.innerHTML = film.countries.map(c =>
+            `<span class="badge bg-info py-2 px-3">
+            <i class="bi bi-globe me-1"></i> ${c.countryName}
+        </span>`
+        ).join('');
+    }
+}

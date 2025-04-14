@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { connectDB } = require('../databases/filmDB');
-const { uploadRatings, getFilmsByRatingRange } = require('../controllers/filmRating');
+const { uploadRatings, getFilmsByRatingRange, getFilmRating } = require('../controllers/filmRating');
 const path = require('path');
 const fs = require('fs');
 const uploadRTReviews = require('../controllers/RTReview');
+//usa curl "http://localhost:3002/api/films/ratings"
 router.get('/films/ratings', async (req, res) => {
     try {
         const minRating = parseFloat(req.query.minRating) || 0;
@@ -29,6 +30,35 @@ router.get('/films/ratings', async (req, res) => {
         });
     }
 });
+//usa curl -X GET "http://localhost:3002/api/films/1001003"
+router.get('/films/:id', async (req, res) => {
+    try {
+        const movieId = parseInt(req.params.id);
+        if (isNaN(movieId)) {
+            return res.status(400).json({
+                error: "ID film non valido"
+            });
+        }
+
+        const result = await getFilmRating(movieId);
+        if (!result.success) {
+            return res.status(404).json({
+                error: result.message
+            });
+        }
+
+        res.json({
+            id: movieId,
+            rating: result.rating
+        });
+    } catch (error) {
+        console.error('Errore route /films/:id:', error);
+        res.status(500).json({
+            error: "Errore interno del server",
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+})
 
 router.post('/upload-db', async (req, res) => {
     try {
@@ -55,8 +85,6 @@ router.post('/upload-db', async (req, res) => {
         });
     }
 });
-
-module.exports = router;
 
 
 router.post('/upload-reviews', async (req, res) => {

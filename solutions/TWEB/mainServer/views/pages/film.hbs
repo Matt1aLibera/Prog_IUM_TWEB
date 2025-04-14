@@ -1,0 +1,102 @@
+<div class="film-container">
+    <!-- Testata con poster e info base -->
+    <div class="film-header">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <img src="{{film.posterUrl}}" class="img-fluid rounded-3 shadow" alt="{{film.title}}">
+            </div>
+            <div class="col-md-8">
+                <div class="film-meta">
+                    <h1 class="display-5 fw-bold">{{film.title}} <small class="text-muted">({{film.year}})</small></h1>
+                    <p class="lead text-muted">{{film.tagline}}</p>
+
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+            <span class="badge bg-primary py-2 px-3">
+              <i class="bi bi-star-fill me-1"></i> {{film.rating}}/5
+            </span>
+                        <span class="badge bg-secondary py-2 px-3">
+              <i class="bi bi-clock me-1"></i> {{film.duration}} min
+            </span>
+                        {{#each film.countries}}
+                            <span class="badge bg-info py-2 px-3">
+                <i class="bi bi-globe me-1"></i> {{this}}
+              </span>
+                        {{/each}}
+                    </div>
+
+                    <div class="action-buttons mb-4">
+                        <button class="btn btn-primary me-2">
+                            <i class="bi bi-play-fill"></i> Guarda trailer
+                        </button>
+                        <button class="btn btn-outline-secondary">
+                            <i class="bi bi-bookmark"></i> Salva
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenuto principale -->
+    <div class="film-body mt-5">
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Trama -->
+                <section class="mb-5">
+                    <h2 class="mb-3"><i class="bi bi-card-text me-2"></i>Trama</h2>
+                    <p class="fs-5">{{film.description}}</p>
+                </section>
+
+                <!-- Cast -->
+                <section class="mb-5">
+                    <h2 class="mb-3"><i class="bi bi-people-fill me-2"></i>Cast</h2>
+                    <div class="row row-cols-2 row-cols-md-3 g-3">
+                        {{#each film.actors}}
+                            <div class="col">
+                                <div class="card h-100 border-0 bg-light">
+                                    <div class="card-body text-center">
+                                        <div class="actor-avatar mb-2">
+                                            <i class="bi bi-person-circle fs-1 text-muted"></i>
+                                        </div>
+                                        <h5 class="card-title">{{this}}</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        {{/each}}
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-lg-4">
+                <!-- Dettagli tecnici -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h3 class="h5 mb-3"><i class="bi bi-info-circle me-2"></i>Dettagli</h3>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Durata</span>
+                                <span>{{film.duration}} minuti</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Paese</span>
+                                <span>{{film.countries}}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Valutazione</span>
+                                <span>{{film.rating}}/5</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Simili -->
+                <div class="mt-4">
+                    <h3 class="h5 mb-3"><i class="bi bi-collection me-2"></i>Potrebbero piacerti</h3>
+                    <div class="row g-2">
+                        <!-- Qui puoi aggiungere film correlati -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
