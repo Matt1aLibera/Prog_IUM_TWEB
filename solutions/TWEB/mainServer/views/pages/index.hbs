@@ -59,24 +59,21 @@
                         <img id="filmPoster" src="" class="img-fluid rounded-3 shadow" alt="">
                     </div>
                     <div class="col-md-8">
-                        <div class="film-meta">
+                        <div class="film-meta p-4 rounded">
                             <h1 id="filmTitle" class="display-5 fw-bold"></h1>
                             <p id="filmTagline" class="lead text-muted"></p>
 
                             <div class="d-flex flex-wrap gap-2 mb-4">
-                            <span class="badge bg-primary py-2 px-3">
+                            <span class="badge rating-badge py-2 px-3">
                                 <i class="bi bi-star-fill me-1"></i> <span id="filmRating">N/D</span>/5
                             </span>
-                                <span class="badge bg-secondary py-2 px-3">
+                                <span class="badge duration-badge py-2 px-3">
                                 <i class="bi bi-clock me-1"></i> <span id="filmDuration">N/D</span>
                             </span>
-                                <div id="filmCountries"></div>
+                                <div id="filmCountries" class="d-flex flex-wrap gap-2"></div>
                             </div>
 
                             <div class="action-buttons mb-4">
-                                <button class="btn btn-primary me-2">
-                                    <i class="bi bi-play-fill"></i> Guarda trailer
-                                </button>
                                 <button class="btn btn-outline-secondary">
                                     <i class="bi bi-bookmark"></i> Salva
                                 </button>
@@ -88,48 +85,78 @@
 
             <!-- Contenuto principale -->
             <div class="film-body mt-5">
-                <div class="row">
-                    <div class="col-lg-8">
-                        <!-- Trama -->
+                <!-- Prima riga: Trama vs Dettagli+Release -->
+                <div class="row mb-5">
+                    <!-- Trama (sinistra) -->
+                    <div class="col-lg-6">
                         <section class="mb-5">
                             <h2 class="mb-3"><i class="bi bi-card-text me-2"></i>Trama</h2>
                             <p id="filmDescription" class="fs-5">Nessuna descrizione disponibile</p>
                         </section>
-
-                        <!-- Cast -->
-                        <section class="mb-5">
-                            <h2 class="mb-3"><i class="bi bi-people-fill me-2"></i>Cast</h2>
-                            <ul id="filmActors" class="list-group">
-                                <!-- Popolato dinamicamente -->
-                            </ul>
-                        </section>
                     </div>
 
-                    <div class="col-lg-4">
+                    <!-- Dettagli + Release (destra) -->
+                    <div class="col-lg-6">
                         <!-- Dettagli tecnici -->
-                        <div class="card border-0 shadow-sm">
+                        <div class="card border-0 shadow-sm mb-5">
                             <div class="card-body">
                                 <h3 class="h5 mb-3"><i class="bi bi-info-circle me-2"></i>Dettagli</h3>
                                 <ul class="list-group list-group-flush">
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Durata</span>
-                                        <span id="filmDuration2">N/D</span>
-                                    </li>
                                     <li class="list-group-item d-flex justify-content-between">
                                         <span>Generi</span>
                                         <span id="filmGenres">N/D</span>
                                     </li>
                                     <li class="list-group-item d-flex justify-content-between">
-                                        <span>Valutazione</span>
-                                        <span id="filmRating2">N/D</span>
+                                        <span>Studio</span>
+                                        <div id="filmStudios">N/D</div>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span>Prima uscita</span>
+                                        <span id="filmFirstRelease">N/D</span>
                                     </li>
                                 </ul>
                             </div>
                         </div>
+
+                        <!-- Release -->
+                        <section class="mb-5">
+                            <h2 class="mb-3"><i class="bi bi-calendar-event me-2"></i>Date di uscita</h2>
+                            <div class="scrollable-container">
+                                <ul id="filmReleases" class="list-group">
+                                    <!-- Popolato dinamicamente -->
+                                </ul>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Seconda riga: Cast vs Crew -->
+                <div class="row">
+                    <!-- Cast (sinistra) -->
+                    <div class="col-lg-6">
+                        <section class="mb-5">
+                            <h2 class="mb-3"><i class="bi bi-people-fill me-2"></i>Cast</h2>
+                            <div class="scrollable-container">
+                                <ul id="filmActors" class="list-group">
+                                    <!-- Popolato dinamicamente -->
+                                </ul>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Crew (destra) -->
+                    <div class="col-lg-6">
+                        <section class="mb-5">
+                            <h2 class="mb-3"><i class="bi bi-person-gear me-2"></i>Crew</h2>
+                            <div class="scrollable-container">
+                                <ul id="filmCrew" class="list-group">
+                                    <!-- Popolato dinamicamente -->
+                                </ul>
+                            </div>
+                        </section>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
     </div>
 </div>

@@ -92,17 +92,21 @@
 
 /*pagina film*/
 .film-container {
+  background-color: rgba(248, 249, 250, 0.9) !important;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1rem;
 }
 
 .film-meta {
-  background-color: rgba(0,0,0,0.7);
+  background-color: rgba(13, 110, 253, 0.1) !important;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 2rem;
   border-radius: 0.5rem;
 }
-
 .action-buttons .btn {
   min-width: 150px;
 }
@@ -186,6 +190,9 @@
 /* Miglioramenti alla visualizzazione */
 .film-meta .badge {
   font-size: 0.9rem;
+  background-color: rgba(13, 110, 253, 0.1) !important; /* Sfondo blu chiaro */
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .film-body {
@@ -196,4 +203,120 @@
 
 .list-group-item {
   padding: 0.75rem 1.25rem;
+  transition: background-color 0.2s;
+}
+/* Container scorrevoli */
+.scrollable-container {
+  max-height: 300px;
+  overflow-y: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #dee2e6;
+}
+
+.scrollable-container .list-group-item {
+  border-left: none;
+  border-right: none;
+}
+
+.list-group-item:hover {
+  background-color: #f8f9fa;
+}
+
+/* Stile per i badge */
+.badge {
+  font-size: 0.9rem;
+  font-weight: normal;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .film-header .row {
+    flex-direction: column;
+  }
+
+  .film-header .col-md-4 {
+    margin-bottom: 1.5rem;
+  }
+
+  .film-body .row {
+    flex-direction: column-reverse;
+  }
+
+  .scrollable-container {
+    max-height: 200px;
+  }
+}
+/* Stile per la sezione dettaglio film */
+.film-detail-section {
+  animation: fadeIn 0.5s ease;
+}
+
+.film-body {
+  background-color: #f8f9fa;
+  padding: 2rem;
+  border-radius: 0.5rem;
+}
+
+/* Pulsante Salva */
+.btn-outline-secondary {
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #6c757d;
+  color: white;
+}
+
+/* Icone */
+.bi {
+  vertical-align: middle;
+}
+
+/* Badge personalizzati */
+.rating-badge {
+  background-color: rgba(255, 193, 7, 0.2) !important;
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.duration-badge {
+  background-color: rgba(13, 110, 253, 0.1) !important;
+  color: #0d6efd;
+  border: 1px solid rgba(13, 110, 253, 0.2);
+}
+
+/* Stile per le release */
+.release-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.release-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.release-country {
+  font-weight: 500;
+}
+
+.release-details {
+  font-size: 0.85rem;
+  color: #6c757d;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.release-type {
+  background-color: #f8f9fa;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.release-rating {
+  font-weight: 500;
+  color: #0d6efd;
 }

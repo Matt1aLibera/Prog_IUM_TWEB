@@ -419,46 +419,83 @@ function populateFilmData(film) {
     document.getElementById('filmTagline').textContent = film.movie?.tagline || film.tagline || '';
 
     // Descrizione
-    const descriptionElement = document.getElementById('filmDescription');
-    if (descriptionElement) {
-        descriptionElement.textContent = film.movie?.description || film.description || 'Nessuna descrizione disponibile';
+    document.getElementById('filmDescription').textContent = film.movie?.description || film.description || 'Nessuna descrizione disponibile';
+
+    // Rating e durata
+    document.getElementById('filmRating').textContent = film.rating ? film.rating.toFixed(1) : 'N/D';
+    document.getElementById('filmDuration').textContent = film.duration ||
+        (film.movie?.minute ? `${Math.floor(film.movie.minute/60)}h ${film.movie.minute%60}m` : 'N/D');
+
+    // Paesi
+    const countriesElement = document.getElementById('filmCountries');
+    if (countriesElement && film.countries?.length) {
+        countriesElement.innerHTML = film.countries.map(c =>
+            `<span class="badge bg-info me-1 mb-1">${c.countryName}</span>`
+        ).join('');
     }
 
-    // Rating
-    const ratingElement = document.getElementById('filmRating');
-    if (ratingElement) {
-        ratingElement.textContent = film.rating ? film.rating.toFixed(1) : 'N/D';
+    // Cast (lista scorrevole)
+    const actorsElement = document.getElementById('filmActors');
+    if (actorsElement) {
+        actorsElement.innerHTML = film.actors?.map(actor =>
+            `<li class="list-group-item">
+                <strong>${actor.actorName}</strong>
+                <div class="text-muted small">${actor.characterName || 'Ruolo non specificato'}</div>
+            </li>`
+        ).join('') || '<li class="list-group-item">Nessun attore disponibile</li>';
     }
 
-    // Durata
-    const durationElement = document.getElementById('filmDuration');
-    if (durationElement) {
-        durationElement.textContent = film.duration ||
-            (film.movie?.minute ? `${Math.floor(film.movie.minute/60)}h ${film.movie.minute%60}m` : 'N/D');
+    // Crew (lista scorrevole)
+    const crewElement = document.getElementById('filmCrew');
+    if (crewElement) {
+        crewElement.innerHTML = film.crew?.map(c =>
+            `<li class="list-group-item">
+                <strong>${c.name}</strong>
+                <div class="text-muted small">${c.role}</div>
+            </li>`
+        ).join('') || '<li class="list-group-item">Nessun membro della crew disponibile</li>';
     }
 
     // Generi
     const genresElement = document.getElementById('filmGenres');
-    if (genresElement) {
-        genresElement.innerHTML = film.genres?.map(g =>
-            `<span class="badge bg-secondary me-1">${g.genre}</span>`
-        ).join('') || 'N/D';
+    if (genresElement && film.genres?.length) {
+        genresElement.innerHTML = film.genres.map(g =>
+            `<span class="badge bg-secondary">${g.genre}</span>`
+        ).join(' ');
     }
 
-    // Attori (lista)
-    const actorsElement = document.getElementById('filmActors');
-    if (actorsElement) {
-        actorsElement.innerHTML = film.actors?.slice(0, 10).map(actor =>
-            `<li class="list-group-item">${actor.actorName} <small class="text-muted">(${actor.characterName})</small></li>`
-        ).join('') || '<li class="list-group-item">Nessun attore disponibile</li>';
-    }
-
-    const countriesElement = document.getElementById('filmCountries');
-    if (countriesElement && film.countries?.length) {
-        countriesElement.innerHTML = film.countries.map(c =>
-            `<span class="badge bg-info py-2 px-3">
-            <i class="bi bi-globe me-1"></i> ${c.countryName}
-        </span>`
+    // Studios
+    const studiosElement = document.getElementById('filmStudios');
+    if (studiosElement && film.studios?.length) {
+        studiosElement.innerHTML = film.studios.map(s =>
+            `<span class="d-block">${s.studio}</span>`
         ).join('');
+    }
+
+    // Prima uscita
+    const firstRelease = film.release?.length ? film.release.reduce((a, b) =>
+        new Date(a.date) < new Date(b.date) ? a : b
+    ) : null;
+
+    if (firstRelease) {
+        document.getElementById('filmFirstRelease').textContent =
+            `${firstRelease.country} (${new Date(firstRelease.date).toLocaleDateString()})`;
+    }
+
+    // Releases (lista scorrevole)
+    const releasesElement = document.getElementById('filmReleases');
+    if (releasesElement) {
+        releasesElement.innerHTML = film.release?.map(r => `
+            <li class="list-group-item release-item">
+                <div class="release-info">
+                    <span class="release-country">${r.country}</span>
+                    <div class="release-details">
+                        <span>${new Date(r.date).toLocaleDateString()}</span>
+                        ${r.type ? `<span class="release-type">${r.type}</span>` : ''}
+                        ${r.rating ? `<span class="release-rating">${r.rating}</span>` : ''}
+                    </div>
+                </div>
+            </li>
+        `).join('') || '<li class="list-group-item">Nessuna data di uscita disponibile</li>';
     }
 }
