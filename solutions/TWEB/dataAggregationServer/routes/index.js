@@ -6,7 +6,8 @@ const { createError } = require('http-errors');
 // Configurazione servizi esterni
 const SERVICES = {
   postgres: process.env.POSTGRES_SERVICE || 'http://localhost:8082',
-  mongo: process.env.MONGO_SERVICE || 'http://localhost:3002'
+  mongo: process.env.MONGO_SERVICE || 'http://localhost:3002',
+  aggregation: process.env.AGGREGATION_SERVICE || 'http://localhost:3003' // Aggiunto
 };
 
 //usa curl "http://localhost:3003/api/carousel?limit=15"
@@ -88,6 +89,68 @@ router.get('/films/:id', async (req, res, next) => {
   } catch (error) {
     console.error('Film details aggregation error:', error);
     next(createError(500, 'Internal server error'));
+  }
+});
+
+///usa powershell:$query = [System.Uri]::EscapeDataString("Twin Peaks")
+// Invoke-RestMethod -Uri "http://localhost:3003/api/films/search/full?q=$query"
+// Nuova route per la ricerca completa
+router.get('/films/search/full', async (req, res, next) => {
+  try {
+    const { q, page = 0, size = 15 } = req.query;
+
+    if (!q || q.length < 2) {
+      return res.json({
+        content: [],
+        pageable: { pageNumber: parseInt(page), pageSize: parseInt(size) },
+        totalElements: 0
+      });
+    }
+
+    const { data } = await axios.get(
+        `${SERVICES.postgres}/api/films/search/full?q=${encodeURIComponent(q)}&page=${page}&size=${size}`,
+        { timeout: 15000 }
+    );
+
+    res.json({
+      content: data.content,
+      pageable: {
+        pageNumber: data.pageable.pageNumber,
+        pageSize: data.pageable.pageSize
+      },
+      totalElements: data.totalElements
+    });
+
+  } catch (error) {
+    console.error('Full search error:', error.message);
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.response?.data || error.message
+    });
+  }
+});
+
+router.get('/films/search/autocomplete', async (req, res, next) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.length < 2) {
+      return res.json([]);
+    }
+
+    const { data } = await axios.get(
+        `${SERVICES.postgres}/api/films/search/autocomplete?q=${encodeURIComponent(q)}`,
+        { timeout: 10000 }
+    );
+
+    res.json(data || []);
+
+  } catch (error) {
+    console.error('Autocomplete error:', error.message);
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.response?.data || error.message
+    });
   }
 });
 

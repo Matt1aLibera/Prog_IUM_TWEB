@@ -499,3 +499,43 @@ function populateFilmData(film) {
         `).join('') || '<li class="list-group-item">Nessuna data di uscita disponibile</li>';
     }
 }
+
+//SEARCHBAR
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestione del dropdown per selezione tipo ricerca
+    const searchTypeDropdown = document.getElementById('searchTypeDropdown');
+    const searchOptions = document.querySelectorAll('.search-option');
+    let currentSearchType = 'film'; // Default: ricerca film
+
+    searchOptions.forEach(option => {
+        option.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentSearchType = this.getAttribute('data-type');
+            searchTypeDropdown.textContent = this.textContent;
+        });
+    });
+
+    // Gestione della ricerca (click sul bottone o invio)
+    const searchInput = document.getElementById('searchInput');
+    const searchButton = document.getElementById('searchButton');
+
+    function performSearch() {
+        const query = searchInput.value.trim();
+        if (query.length === 0) return;
+
+        if (currentSearchType === 'film') {
+            // Reindirizza alla pagina di ricerca film
+            window.location.href = `/search/films?q=${encodeURIComponent(query)}`;
+        } else {
+            // Reindirizza alla pagina di ricerca attori
+            window.location.href = `/search/actors?q=${encodeURIComponent(query)}`;
+        }
+    }
+
+    searchButton.addEventListener('click', performSearch);
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+});

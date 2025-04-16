@@ -7,6 +7,26 @@
         </button>
 
         <div class="collapse navbar-collapse" id="navbarContent">
+            <!-- Barra di ricerca -->
+            <div class="d-flex align-items-center me-3" style="width: 300px;">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                                data-bs-toggle="dropdown" aria-expanded="false" id="searchTypeDropdown">
+                            Film
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item search-option" href="#" data-type="film">Film</a></li>
+                            <li><a class="dropdown-item search-option" href="#" data-type="actor">Attori</a></li>
+                        </ul>
+                    </div>
+                    <input type="text" class="form-control" placeholder="Cerca..." id="searchInput">
+                    <button class="btn btn-outline-success" type="button" id="searchButton">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+
             <!-- Pulsante SEMPRE presente ma inizialmente nascosto e disabilitato -->
             <button id="loadDbBtn" class="btn btn-outline-success me-2 d-none" disabled>
                 <i class="bi bi-database"></i> Carica DB

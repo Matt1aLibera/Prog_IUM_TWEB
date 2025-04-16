@@ -3,8 +3,14 @@ package com.example.springbootserver.controllers;
 import com.example.springbootserver.dtos.FilmDetailsResponse;
 import com.example.springbootserver.dtos.FilmIdsRequest;
 import com.example.springbootserver.dtos.FilmPosterResponse;
+import com.example.springbootserver.dtos.FilmSearchResponse;
 import com.example.springbootserver.services.FilmAggregationService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +19,7 @@ import java.util.List;
 // Route per il carosello usa curl -X POST http://localhost:8082/api/films/posters ^
 //  -H "Content-Type: application/json" ^
 //  -d "{\"ids\": [1000001,1000002,1000003]}"
+
 @RestController
 @RequestMapping("/api/films")
 public class FilmAggregationController {
@@ -41,5 +48,18 @@ public class FilmAggregationController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    @GetMapping("/search/autocomplete")
+    public ResponseEntity<List<FilmSearchResponse>> autocomplete(
+            @RequestParam String q) {
+        return ResponseEntity.ok(filmAggregationService.searchFilmsAutocomplete(q));
+    }
+
+    @GetMapping("/search/full")
+    public ResponseEntity<Page<FilmSearchResponse>> fullSearch(
+            @RequestParam String q,
+            @PageableDefault(size = 15) Pageable pageable) {
+        return ResponseEntity.ok(filmAggregationService.searchFilmsFull(q, pageable));
     }
 }

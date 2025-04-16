@@ -2,10 +2,18 @@ package com.example.springbootserver.services;
 
 import com.example.springbootserver.dtos.FilmDetailsResponse;
 import com.example.springbootserver.dtos.FilmPosterResponse;
+import com.example.springbootserver.dtos.FilmSearchResponse;
 import com.example.springbootserver.models.*;
 import com.example.springbootserver.repositories.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -91,6 +99,55 @@ public class FilmAggregationService {
                 themes,
                 crew,
                 releases
+        );
+    }
+
+    // Metodo unico per entrambe le ricerche
+    private List<FilmSearchResponse> searchFilms(String query, int limit) {
+        String searchTerm = query.toLowerCase().trim(); // Trim per rimuovere spazi extra
+        List<Movie> results = new ArrayList<>();
+
+        // 1. Cerca film che iniziano esattamente con la query
+        Page<Movie> exactMatches = movieRepo.findByNameStartingWith(
+                searchTerm,
+                PageRequest.of(0, limit)
+        );
+        results.addAll(exactMatches.getContent());
+
+        // 2. Se necessario, cerca film che contengono la query
+        if (results.size() < limit) {
+            int remaining = limit - results.size();
+            Page<Movie> containingMatches = movieRepo.findByNameContaining(
+                    searchTerm,
+                    PageRequest.of(0, remaining)
+            );
+            results.addAll(containingMatches.getContent());
+        }
+
+        // 3. Mappa a DTO con poster
+        return results.stream()
+                .map(movie -> {
+                    FilmSearchResponse response = new FilmSearchResponse();
+                    response.setId(movie.getId());
+                    response.setName(movie.getName());
+                    response.setYear(movie.getDate());
+                    posterRepo.findFirstByMovieId(movie.getId())
+                            .ifPresent(poster -> response.setPosterLink(poster.getLink()));
+                    return response;
+                })
+                .collect(Collectors.toList());
+    }
+
+    public List<FilmSearchResponse> searchFilmsAutocomplete(String query) {
+        return searchFilms(query, 5);
+    }
+
+    public Page<FilmSearchResponse> searchFilmsFull(String query, Pageable pageable) {
+        List<FilmSearchResponse> results = searchFilms(query, 15);
+        return new PageImpl<>(
+                results,
+                PageRequest.of(0, results.size()), // Paginazione custom
+                movieRepo.countByNameContaining(query.toLowerCase().trim())
         );
     }
 }
