@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
         const films = req.session.user
             ? (await axios.get(`${DATA_AGGREGATION_SERVER}/api/carousel`, {
                 params: {limit: 15}, // Aumentato a 15
-                timeout: 5000
+                timeout: 16000
             })).data
             : [];
 
@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
 router.get('/films/:id', async (req, res) => {
     try {
         const {data: film} = await axios.get(`${DATA_AGGREGATION_SERVER}/api/films/${req.params.id}`, {
-            timeout: 5000 // Timeout di 5 secondi
+            timeout: 11000 // Timeout di 5 secondi
         });
 
         // Formatta la durata e aggiungi campo year se non presente
@@ -75,7 +75,7 @@ router.get('/films/search/autocomplete', async (req, res) => {
         // MODIFICA CHIAVE: usa l'endpoint corretto del DAS
         const response = await axios.get('http://localhost:3003/api/films/search/autocomplete', {
             params: { q },
-            timeout: 5000
+            timeout: 16000
         });
 
         res.json(response.data || []);
@@ -87,7 +87,7 @@ router.get('/films/search/autocomplete', async (req, res) => {
 });
 
 // Route per la ricerca completa
-router.get('/search/films', async (req, res) => {
+router.get('/films/search/full', async (req, res) => {
     try {
         const {q, page = 0, size = 15} = req.query;
 

@@ -22,7 +22,7 @@ router.get('/carousel', async (req, res, next) => {
         maxRating: 5,
         limit: limit
       },
-      timeout: 3000
+      timeout: 6000
     });
 
     if (!ratedFilms?.length) return res.json([]);
@@ -67,9 +67,9 @@ router.get('/films/:id', async (req, res, next) => {
 
     // Chiamate parallele ai due servizi
     const [postgresResponse, mongoResponse] = await Promise.all([
-      axios.get(`${SERVICES.postgres}/api/films/${filmId}`, { timeout: 5000 })
+      axios.get(`${SERVICES.postgres}/api/films/${filmId}`, { timeout: 10000 })
           .catch(err => ({ data: null })),
-      axios.get(`${SERVICES.mongo}/api/films/${filmId}`, { timeout: 3000 })
+      axios.get(`${SERVICES.mongo}/api/films/${filmId}`, { timeout: 6000 })
           .catch(err => ({ data: { rating: null } }))
     ]);
 
@@ -140,7 +140,7 @@ router.get('/films/search/autocomplete', async (req, res, next) => {
 
     const { data } = await axios.get(
         `${SERVICES.postgres}/api/films/search/autocomplete?q=${encodeURIComponent(q)}`,
-        { timeout: 10000 }
+        { timeout: 15000 }
     );
 
     res.json(data || []);

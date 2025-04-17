@@ -1,30 +1,18 @@
+// =============================================
+// CONFIGURAZIONE INIZIALE E VARIABILI GLOBALI
+// =============================================
 const API_BASE_URL = window.location.origin;
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = API_BASE_URL;
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        hideAllSections();
-        document.getElementById('loaderSection').classList.remove('hidden-section');
+// Variabili globali per la ricerca
+let currentSearchType = 'film';
+let autocompleteTimeout;
 
-        setupNavbarEvents();
-        const isAuthenticated = await checkAuthState();
-
-        if (isAuthenticated) {
-            showDashboard();
-        } else {
-            await showAuthForms();
-        }
-    } catch (error) {
-        console.error('Init error:', error);
-        showAlert(`Errore iniziale: ${error.message}`, 'danger');
-        await showAuthForms();
-    } finally {
-        document.getElementById('loaderSection').classList.add('hidden-section');
-    }
-});
-
-// Helper functions
+// =============================================
+// FUNZIONI DI UTILITÀ GENERALI
+// =============================================
 function hideAllSections() {
     document.getElementById('authFormsSection')?.classList.add('hidden-section');
     document.getElementById('dashboardSection')?.classList.add('hidden-section');
@@ -46,81 +34,26 @@ function updateWelcomeMessage(username) {
     }
 }
 
-// Navbar functions
-function setupNavbarEvents() {
-    document.addEventListener('click', async (e) => {
-        const target = e.target.closest('#loginBtn, #registerBtn, #logoutBtn, #loadDbBtn');
-        if (!target) return;
+function showAlert(message, type = 'info', duration = 5000) {
+    document.querySelectorAll('.global-alert, .alert').forEach(alert => alert.remove());
 
-        e.preventDefault();
-        e.stopPropagation();
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show ${type === 'info' || duration > 7000 ? 'global-alert' : 'local-alert'}`;
 
-        try {
-            switch(target.id) {
-                case 'loginBtn': await handleLoginClick(); break;
-                case 'registerBtn': await handleRegisterClick(); break;
-                case 'logoutBtn': await handleLogoutClick(target); break;
-                case 'loadDbBtn': await handleDbLoad(target); break;
-            }
-        } catch (error) {
-            console.error(`${target.id} error:`, error);
-            showAlert(`Errore in ${target.id}`, 'danger');
-            await checkAuthState();
-        }
-    });
-}
+    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
 
-async function handleLoginClick() {
-    if (document.getElementById('loginFormContainer').classList.contains('d-none')) {
-        await showAuthForms();
-    }
-    toggleForms(true);
-    closeMobileMenu();
-}
-
-async function handleRegisterClick() {
-    if (document.getElementById('registerFormContainer').classList.contains('d-none')) {
-        await showAuthForms();
-    }
-    toggleForms(false);
-    closeMobileMenu();
-}
-
-async function handleLogoutClick(button) {
-    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logout...';
-    button.disabled = true;
-
-    try {
-        await logout();
-    } finally {
-        button.innerHTML = 'Logout';
-        button.disabled = false;
-    }
-}
-
-async function handleDbLoad(button) {
-    if (button.disabled) {
-        showAlert('Accesso negato', 'warning');
-        return;
+    const cardBody = document.querySelector('.card-body');
+    if (cardBody && !alertDiv.classList.contains('global-alert')) {
+        cardBody.prepend(alertDiv);
+    } else {
+        document.body.appendChild(alertDiv);
     }
 
-    const originalText = button.innerHTML;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Caricamento...';
-    button.disabled = true;
-
-    showAlert('Operazione in corso...', 'info', 10000);
-
-    try {
-        const { data } = await axios.post('/admin/upload-db', {}, {
-            withCredentials: true
-        });
-        showAlert(data.message || 'Database caricato!', 'success');
-    } catch (error) {
-        console.error('DB load error:', error);
-        showAlert(error.response?.data?.message || 'Errore durante il caricamento', 'danger');
-    } finally {
-        button.innerHTML = originalText;
-        button.disabled = false;
+    if (duration) {
+        setTimeout(() => {
+            alertDiv.classList.remove('show');
+            setTimeout(() => alertDiv.remove(), 150);
+        }, duration);
     }
 }
 
@@ -131,7 +64,9 @@ function closeMobileMenu() {
     }
 }
 
-// Auth state management
+// =============================================
+// GESTIONE AUTENTICAZIONE E UTENTE
+// =============================================
 async function checkAuthState() {
     try {
         const { data } = await axios.get('/auth/check', {
@@ -195,7 +130,9 @@ function updateAdminButton(isAdmin) {
     }
 }
 
-// Auth forms management
+// =============================================
+// GESTIONE FORM DI AUTENTICAZIONE
+// =============================================
 async function showAuthForms() {
     hideAllSections();
     document.getElementById('authFormsSection').classList.remove('hidden-section');
@@ -285,7 +222,6 @@ async function handleAuthRequest(form, endpoint, data, buttonText, onSuccess) {
         const { data: result } = await axios.post(endpoint, data);
         if (result.success) {
             if (endpoint === '/auth/login') {
-                // Forza il refresh della pagina per vedere i nuovi film
                 window.location.reload();
             }
             if (typeof onSuccess === 'function') onSuccess(result.user || result);
@@ -298,6 +234,24 @@ async function handleAuthRequest(form, endpoint, data, buttonText, onSuccess) {
     } finally {
         submitBtn.innerHTML = originalBtnText;
         submitBtn.disabled = false;
+    }
+}
+
+function toggleForms(showLogin) {
+    const loginFormContainer = document.getElementById('loginFormContainer');
+    const registerFormContainer = document.getElementById('registerFormContainer');
+
+    if (loginFormContainer && registerFormContainer) {
+        if (showLogin) {
+            loginFormContainer.classList.remove('d-none');
+            registerFormContainer.classList.add('d-none');
+        } else {
+            loginFormContainer.classList.add('d-none');
+            registerFormContainer.classList.remove('d-none');
+        }
+
+        const existingAlert = document.querySelector('.alert');
+        if (existingAlert) existingAlert.remove();
     }
 }
 
@@ -322,63 +276,89 @@ async function logout() {
     }
 }
 
-function toggleForms(showLogin) {
-    const loginFormContainer = document.getElementById('loginFormContainer');
-    const registerFormContainer = document.getElementById('registerFormContainer');
+// =============================================
+// GESTIONE NAVBAR E PULSANTI
+// =============================================
+function setupNavbarEvents() {
+    document.addEventListener('click', async (e) => {
+        const target = e.target.closest('#loginBtn, #registerBtn, #logoutBtn, #loadDbBtn');
+        if (!target) return;
 
-    if (loginFormContainer && registerFormContainer) {
-        if (showLogin) {
-            loginFormContainer.classList.remove('d-none');
-            registerFormContainer.classList.add('d-none');
-        } else {
-            loginFormContainer.classList.add('d-none');
-            registerFormContainer.classList.remove('d-none');
+        e.preventDefault();
+        e.stopPropagation();
+
+        try {
+            switch(target.id) {
+                case 'loginBtn': await handleLoginClick(); break;
+                case 'registerBtn': await handleRegisterClick(); break;
+                case 'logoutBtn': await handleLogoutClick(target); break;
+                case 'loadDbBtn': await handleDbLoad(target); break;
+            }
+        } catch (error) {
+            console.error(`${target.id} error:`, error);
+            showAlert(`Errore in ${target.id}`, 'danger');
+            await checkAuthState();
         }
+    });
+}
 
-        const existingAlert = document.querySelector('.alert');
-        if (existingAlert) existingAlert.remove();
+async function handleLoginClick() {
+    if (document.getElementById('loginFormContainer').classList.contains('d-none')) {
+        await showAuthForms();
+    }
+    toggleForms(true);
+    closeMobileMenu();
+}
+
+async function handleRegisterClick() {
+    if (document.getElementById('registerFormContainer').classList.contains('d-none')) {
+        await showAuthForms();
+    }
+    toggleForms(false);
+    closeMobileMenu();
+}
+
+async function handleLogoutClick(button) {
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logout...';
+    button.disabled = true;
+
+    try {
+        await logout();
+    } finally {
+        button.innerHTML = 'Logout';
+        button.disabled = false;
     }
 }
 
-function showAlert(message, type = 'info', duration = 5000) {
-    document.querySelectorAll('.global-alert, .alert').forEach(alert => alert.remove());
-
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show ${type === 'info' || duration > 7000 ? 'global-alert' : 'local-alert'}`;
-
-    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-
-    const cardBody = document.querySelector('.card-body');
-    if (cardBody && !alertDiv.classList.contains('global-alert')) {
-        cardBody.prepend(alertDiv);
-    } else {
-        document.body.appendChild(alertDiv);
+async function handleDbLoad(button) {
+    if (button.disabled) {
+        showAlert('Accesso negato', 'warning');
+        return;
     }
 
-    if (duration) {
-        setTimeout(() => {
-            alertDiv.classList.remove('show');
-            setTimeout(() => alertDiv.remove(), 150);
-        }, duration);
-    }
-}
+    const originalText = button.innerHTML;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Caricamento...';
+    button.disabled = true;
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Gestione click sui poster
-    document.querySelectorAll('.film-poster-container').forEach(poster => {
-        poster.addEventListener('click', async (e) => {
-            const filmId = poster.getAttribute('data-film-id');
-            await showFilmDetails(filmId);
+    showAlert('Operazione in corso...', 'info', 10000);
+
+    try {
+        const { data } = await axios.post('/admin/upload-db', {}, {
+            withCredentials: true
         });
-    });
+        showAlert(data.message || 'Database caricato!', 'success');
+    } catch (error) {
+        console.error('DB load error:', error);
+        showAlert(error.response?.data?.message || 'Errore durante il caricamento', 'danger');
+    } finally {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
 
-    // Bottone per tornare indietro
-    document.getElementById('backToCarousel')?.addEventListener('click', () => {
-        document.getElementById('carouselSection').style.display = 'block';
-        document.getElementById('filmDetailSection').style.display = 'none';
-    });
-});
-
+// =============================================
+// GESTIONE FILM E CAROSELLO
+// =============================================
 async function showFilmDetails(filmId) {
     try {
         // Nascondi carosello e mostra sezione dettaglio con spinner
@@ -387,13 +367,20 @@ async function showFilmDetails(filmId) {
         document.getElementById('filmLoadingSpinner').style.display = 'flex';
         document.getElementById('filmContent').style.display = 'none';
 
-        // Fetch dati film
-        const response = await fetch(`/films/${filmId}`);
-        if (!response.ok) throw new Error('Film non trovato');
-        const film = await response.json();
+        // Fetch dati film con Axios (timeout aumentato a 10 secondi)
+        const response = await axios.get(`/films/${filmId}`, {
+            timeout: 10000, // 10 secondi di timeout
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Accept': 'application/json'
+            }
+        });
 
-        // Popola il template
-        populateFilmData(film);
+        // Axios racchiude la response in data, e lo status code è in response.status
+        if (response.status !== 200) throw new Error('Film non trovato');
+
+        // Popola il template con i dati del film
+        populateFilmData(response.data);
 
         // Nascondi spinner e mostra contenuto
         document.getElementById('filmLoadingSpinner').style.display = 'none';
@@ -401,9 +388,22 @@ async function showFilmDetails(filmId) {
 
     } catch (error) {
         console.error('Errore caricamento film:', error);
+
+        let errorMessage = 'Errore nel caricamento del film';
+        if (error.response) {
+            // Errore con risposta dal server (status code 4xx/5xx)
+            errorMessage += `: ${error.response.data.error || error.response.statusText}`;
+        } else if (error.request) {
+            // La richiesta è stata fatta ma non c'è stata risposta
+            errorMessage = 'Il server non risponde - timeout raggiunto';
+        } else {
+            // Errore durante la configurazione della richiesta
+            errorMessage += `: ${error.message}`;
+        }
+
         document.getElementById('filmLoadingSpinner').innerHTML = `
             <div class="alert alert-danger">
-                Errore nel caricamento del film: ${error.message}
+                ${errorMessage}
                 <button onclick="location.reload()" class="btn btn-sm btn-outline-danger ms-3">Ricarica</button>
             </div>
         `;
@@ -500,42 +500,193 @@ function populateFilmData(film) {
     }
 }
 
-//SEARCHBAR
-document.addEventListener('DOMContentLoaded', function() {
-    // Gestione del dropdown per selezione tipo ricerca
+// =============================================
+// GESTIONE RICERCA E AUTOCOMPLETE
+// =============================================
+function setupSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchButton = document.getElementById('searchButton');
     const searchTypeDropdown = document.getElementById('searchTypeDropdown');
     const searchOptions = document.querySelectorAll('.search-option');
-    let currentSearchType = 'film'; // Default: ricerca film
 
+    // Gestione tipo di ricerca
     searchOptions.forEach(option => {
         option.addEventListener('click', function(e) {
             e.preventDefault();
-            currentSearchType = this.getAttribute('data-type');
+            currentSearchType = this.dataset.type;
             searchTypeDropdown.textContent = this.textContent;
         });
     });
 
-    // Gestione della ricerca (click sul bottone o invio)
-    const searchInput = document.getElementById('searchInput');
-    const searchButton = document.getElementById('searchButton');
+    // Gestione input con debounce
+    searchInput.addEventListener('input', function() {
+        if (currentSearchType !== 'film') return;
 
-    function performSearch() {
-        const query = searchInput.value.trim();
-        if (query.length === 0) return;
+        clearTimeout(autocompleteTimeout);
 
-        if (currentSearchType === 'film') {
-            // Reindirizza alla pagina di ricerca film
-            window.location.href = `/search/films?q=${encodeURIComponent(query)}`;
-        } else {
-            // Reindirizza alla pagina di ricerca attori
-            window.location.href = `/search/actors?q=${encodeURIComponent(query)}`;
-        }
-    }
+        autocompleteTimeout = setTimeout(() => {
+            const query = this.value.trim();
+            if (query.length >= 2) {
+                fetchAutocompleteResults(query);
+            } else {
+                hideAutocompleteDropdown();
+            }
+        }, 300);
+    });
 
-    searchButton.addEventListener('click', performSearch);
-    searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            performSearch();
+    // Mostra suggerimenti quando la searchbar riceve focus e ha già testo
+    searchInput.addEventListener('focus', function() {
+        const query = this.value.trim();
+        if (query.length >= 2 && currentSearchType === 'film') {
+            fetchAutocompleteResults(query);
         }
     });
+
+    // Gestione pulsante ricerca e invio
+    searchButton.addEventListener('click', performSearch);
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') performSearch();
+    });
+
+    // Chiudi dropdown al click esterno
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.input-group')) {
+            hideAutocompleteDropdown();
+        }
+    });
+}
+
+async function fetchAutocompleteResults(query) {
+    hideAutocompleteDropdown();
+
+    const loadingDropdown = document.createElement('div');
+    loadingDropdown.id = 'autocompleteLoading';
+    loadingDropdown.className = 'autocomplete-dropdown';
+    loadingDropdown.innerHTML = '<div class="autocomplete-loading">Caricamento suggerimenti</div>';
+    document.querySelector('.input-group').appendChild(loadingDropdown);
+
+    try {
+        const response = await axios.get('/films/search/autocomplete', {
+            params: { q: query },
+            timeout: 13000
+        });
+
+        hideAutocompleteDropdown();
+
+        if (document.getElementById('searchInput').value.trim() === query) {
+            showAutocompleteDropdown(response.data || []);
+        }
+
+    } catch (error) {
+        console.error('Autocomplete error:', error.message);
+        hideAutocompleteDropdown();
+
+        const errorDropdown = document.createElement('div');
+        errorDropdown.id = 'autocompleteDropdown';
+        errorDropdown.className = 'autocomplete-dropdown';
+        errorDropdown.innerHTML = '<div class="autocomplete-loading">Errore nel caricamento</div>';
+        document.querySelector('.input-group').appendChild(errorDropdown);
+    }
+}
+
+function showAutocompleteDropdown(results) {
+    const existingDropdown = document.getElementById('autocompleteDropdown');
+    const dropdown = existingDropdown || document.createElement('div');
+    dropdown.id = 'autocompleteDropdown';
+    dropdown.className = 'autocomplete-dropdown';
+
+    if (!results || results.length === 0) {
+        dropdown.innerHTML = '<div class="autocomplete-loading">Nessun risultato trovato</div>';
+    } else {
+        dropdown.innerHTML = '';
+        results.slice(0, 5).forEach(film => {
+            const item = document.createElement('a');
+            item.className = 'autocomplete-item';
+            item.href = `/films/${film.id}`;
+
+            item.innerHTML = `
+                <div class="autocomplete-item-content">
+                    ${film.posterLink ?
+                `<img src="${film.posterLink}" alt="${film.name}" class="autocomplete-poster">` :
+                `<div class="autocomplete-poster placeholder"></div>`}
+                    <div class="autocomplete-info">
+                        <div class="autocomplete-title">${film.name}</div>
+                        <div class="autocomplete-year">${film.year || 'N/A'}</div>
+                    </div>
+                </div>
+            `;
+
+            item.addEventListener('click', async (e) => {
+                if (e.ctrlKey || e.metaKey) return;
+                e.preventDefault();
+                hideAutocompleteDropdown(); // Chiudi il dropdown quando si clicca su un film
+                await showFilmDetails(film.id);
+            });
+
+            dropdown.appendChild(item);
+        });
+    }
+
+    if (!existingDropdown) {
+        document.querySelector('.input-group').appendChild(dropdown);
+    }
+}
+
+function hideAutocompleteDropdown() {
+    const dropdown = document.getElementById('autocompleteDropdown');
+    const loading = document.getElementById('autocompleteLoading');
+
+    if (dropdown) dropdown.remove();
+    if (loading) loading.remove();
+}
+
+function performSearch() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (query.length === 0) return;
+
+    if (currentSearchType === 'film') {
+        window.location.href = `/search/films?q=${encodeURIComponent(query)}`;
+    } else {
+        window.location.href = `/search/actors?q=${encodeURIComponent(query)}`;
+    }
+}
+// =============================================
+// INIT DELL'APPLICAZIONE
+// =============================================
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        hideAllSections();
+        document.getElementById('loaderSection').classList.remove('hidden-section');
+
+        // Setup eventi
+        setupNavbarEvents();
+        setupSearch();
+
+        // Setup click sui poster del carosello
+        document.querySelectorAll('.film-poster-container').forEach(poster => {
+            poster.addEventListener('click', async (e) => {
+                const filmId = poster.getAttribute('data-film-id');
+                await showFilmDetails(filmId);
+            });
+        });
+
+        // Bottone per tornare indietro
+        document.getElementById('backToCarousel')?.addEventListener('click', () => {
+            document.getElementById('carouselSection').style.display = 'block';
+            document.getElementById('filmDetailSection').style.display = 'none';
+        });
+
+        const isAuthenticated = await checkAuthState();
+        if (isAuthenticated) {
+            showDashboard();
+        } else {
+            await showAuthForms();
+        }
+    } catch (error) {
+        console.error('Init error:', error);
+        showAlert(`Errore iniziale: ${error.message}`, 'danger');
+        await showAuthForms();
+    } finally {
+        document.getElementById('loaderSection').classList.add('hidden-section');
+    }
 });
