@@ -2,41 +2,47 @@
     <h2 id="welcomeMessage"></h2>
 </div>
 
-<!-- Carosello - sezione visibile inizialmente -->
-<div id="carouselSection" class="carousel-section">
-    {{#if films.length}}
-        <div id="filmCarousel" class="carousel slide" data-bs-ride="carousel">
-            <div class="carousel-inner">
-                {{#each films}}
-                    <div class="carousel-item {{#if @first}}active{{/if}}">
-                        <div class="film-poster-container" data-film-id="{{this.id}}">
-                            <img src="{{this.posterUrl}}" class="d-block w-100" alt="{{this.title}}">
-                            <div class="film-info-overlay">
-                                <h5>{{this.title}}</h5>
-                                <div class="rating">
-                                    <span class="star">★</span>
-                                    <span>{{this.rating}}</span>
+<!-- Sezione principale dinamica -->
+<div id="dynamicContent">
+    <!-- Carosello - sezione visibile inizialmente -->
+    <div id="carouselSection" class="{{#unless showCarousel}}d-none{{/unless}}">
+        {{#if films.length}}
+            <div id="filmCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    {{#each films}}
+                        <div class="carousel-item {{#if @first}}active{{/if}}">
+                            <div class="film-poster-container" data-film-id="{{this.id}}">
+                                <img src="{{this.posterUrl}}" class="d-block w-100" alt="{{this.title}}">
+                                <div class="film-info-overlay">
+                                    <h5>{{this.title}}</h5>
+                                    <div class="rating">
+                                        <span class="star">★</span>
+                                        <span>{{this.rating}}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                {{/each}}
+                    {{/each}}
+                </div>
+                <!-- Controlli carosello -->
+                <button class="carousel-control-prev" type="button" data-bs-target="#filmCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon"></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#filmCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon"></span>
+                </button>
             </div>
-            <!-- Controlli carosello -->
-            <button class="carousel-control-prev" type="button" data-bs-target="#filmCarousel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon"></span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#filmCarousel" data-bs-slide="next">
-                <span class="carousel-control-next-icon"></span>
-            </button>
-        </div>
-    {{else}}
-        <div class="alert alert-warning">Nessun film disponibile al momento</div>
-    {{/if}}
+        {{else}}
+            <div class="alert alert-warning">Nessun film disponibile al momento</div>
+        {{/if}}
+    </div>
+    <!-- Risultati ricerca - visibili solo durante la ricerca -->
+    <div id="searchResultsSection" class="{{#unless showSearchResults}}d-none{{/unless}}">
+        {{{searchResults}}}
+    </div>
 </div>
-
 <!-- Sezione dettaglio film - inizialmente nascosta -->
-<div id="filmDetailSection" class="film-detail-section" style="display: none;">
+<div id="filmDetailSection" class="film-detail-section d-none;">
     <!-- Spinner di caricamento -->
     <div id="filmLoadingSpinner" class="text-center py-5">
         <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">

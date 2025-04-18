@@ -451,3 +451,47 @@
   40% { content: ".."; }
   60%, 100% { content: "..."; }
 }
+/* Stili per la pagina dei risultati di ricerca */
+.search-results-container {
+  padding: 2rem 0;
+}
+
+.film-card {
+  transition: transform 0.2s;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.film-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.film-poster {
+  border-radius: 4px;
+}
+
+.film-poster.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+}
+
+.film-info {
+  flex: 1;
+}
+
+/* Paginazione */
+.pagination {
+  margin-top: 2rem;
+}
+
+.page-item.active .page-link {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.page-link {
+  color: #0d6efd;
+}

@@ -143,11 +143,61 @@ public class FilmAggregationService {
     }
 
     public Page<FilmSearchResponse> searchFilmsFull(String query, Pageable pageable) {
-        List<FilmSearchResponse> results = searchFilms(query, 15);
+        String searchTerm = query.toLowerCase().trim();
+        int pageSize = pageable.getPageSize();
+        int pageNumber = pageable.getPageNumber();
+
+        // 1. Prima cerca i film che iniziano con la query
+        Page<Movie> exactMatchesPage = movieRepo.findByNameStartingWith(
+                searchTerm,
+                PageRequest.of(pageNumber, pageSize)
+        );
+
+        List<Movie> combinedResults = new ArrayList<>(exactMatchesPage.getContent());
+
+        // 2. Se non abbiamo abbastanza risultati, cerca quelli che contengono la query
+        if (combinedResults.size() < pageSize) {
+            int remaining = pageSize - combinedResults.size();
+            int subPage = 0;
+
+            // Calcola la pagina corretta per i risultati "contiene"
+            if (exactMatchesPage.getTotalElements() > 0) {
+                subPage = (int) (pageNumber - (exactMatchesPage.getTotalElements() / pageSize));
+            }
+
+            Page<Movie> containingMatchesPage = movieRepo.findByNameContainingButNotStartingWith(
+                    searchTerm,
+                    PageRequest.of(Math.max(subPage, 0), remaining)
+            );
+
+            combinedResults.addAll(containingMatchesPage.getContent());
+        }
+
+        // 3. Calcola il totale combinato
+        long totalExact = exactMatchesPage.getTotalElements();
+        Page<Movie> containingTotalPage = movieRepo.findByNameContainingButNotStartingWith(
+                searchTerm,
+                PageRequest.of(0, 1) // Solo per ottenere il count
+        );
+        long totalCombined = totalExact + containingTotalPage.getTotalElements();
+
+        // 4. Mappa a DTO
+        List<FilmSearchResponse> content = combinedResults.stream()
+                .map(movie -> {
+                    FilmSearchResponse response = new FilmSearchResponse();
+                    response.setId(movie.getId());
+                    response.setName(movie.getName());
+                    response.setYear(movie.getDate());
+                    posterRepo.findFirstByMovieId(movie.getId())
+                            .ifPresent(poster -> response.setPosterLink(poster.getLink()));
+                    return response;
+                })
+                .collect(Collectors.toList());
+
         return new PageImpl<>(
-                results,
-                PageRequest.of(0, results.size()), // Paginazione custom
-                movieRepo.countByNameContaining(query.toLowerCase().trim())
+                content,
+                pageable,
+                totalCombined
         );
     }
 }

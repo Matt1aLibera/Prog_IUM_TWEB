@@ -20,14 +20,18 @@ router.get('/', async (req, res) => {
         res.render('pages/index', {
             title: 'Il mio Sito',
             user: req.session.user || null,
-            films: films // Ora contiene solo id, title, posterUrl e rating
+            films: films,
+            showCarousel: true,
+            showSearchResults: false
         });
     } catch (error) {
         console.error('Error:', error);
         res.render('pages/index', {
             title: 'Il mio Sito',
             user: req.session.user || null,
-            films: []
+            films: [],
+            showCarousel: true,
+            showSearchResults: false
         });
     }
 });
@@ -86,36 +90,70 @@ router.get('/films/search/autocomplete', async (req, res) => {
     }
 });
 
-// Route per la ricerca completa
+// Route per la ricerca completa (aggiornata per coerenza con autocomplete)
 router.get('/films/search/full', async (req, res) => {
     try {
-        const {q, page = 0, size = 15} = req.query;
+        const { q, page = 0, size = 15 } = req.query;
+        const pageInt = Math.max(0, parseInt(page));
+        const sizeInt = Math.min(Math.max(1, parseInt(size)), 100);
 
         if (!q || q.length < 2) {
-            return res.render('film-search-results', {
-                content: [],
-                pageable: {pageNumber: parseInt(page), pageSize: parseInt(size)},
-                totalElements: 0,
-                query: q
+            return res.render('pages/index', {
+                showCarousel: false,
+                showSearchResults: true,
+                searchResults: '<div class="alert alert-info">Inserisci almeno 2 caratteri per la ricerca</div>'
             });
         }
 
         const response = await axios.get(
-            `${DATA_AGGREGATION_SERVER}/api/films/search/full?q=${encodeURIComponent(q)}&page=${page}&size=${size}`
+            `${DATA_AGGREGATION_SERVER}/api/films/search/full?q=${encodeURIComponent(q)}&page=${pageInt}&size=${sizeInt}`,
+            { timeout: 20000 }
         );
 
-        res.render('film-search-results', {
-            content: response.data.content,
-            pageable: response.data.pageable,
-            totalElements: response.data.totalElements,
-            query: q
+        const totalElements = response.data.totalElements || 0;
+        const totalPages = Math.ceil(totalElements / sizeInt);
+
+        // Renderizza la pagina di risultati come stringa
+        const searchResultsHtml = await new Promise((resolve, reject) => {
+            res.app.render('pages/film-search-results', {
+                content: response.data.content || [],
+                query: q,
+                currentPage: pageInt,
+                totalPages: totalPages,
+                totalElements: totalElements,
+                layout: false // Importante: non usare il layout
+            }, (err, html) => {
+                if (err) reject(err);
+                else resolve(html);
+            });
         });
+
+        // Invia i risultati come HTML o come JSON in base alla richiesta
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+            res.send(searchResultsHtml);
+        } else {
+            res.render('pages/index', {
+                showCarousel: false,
+                showSearchResults: true,
+                searchResults: searchResultsHtml
+            });
+        }
+
     } catch (error) {
         console.error('Full search error:', error.message);
-        res.status(500).render('error', {message: 'Errore durante la ricerca'});
+        const errorHtml = `<div class="alert alert-danger">Errore durante la ricerca: ${error.message}</div>`;
+
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+            res.status(500).send(errorHtml);
+        } else {
+            res.render('pages/index', {
+                showCarousel: false,
+                showSearchResults: true,
+                searchResults: errorHtml
+            });
+        }
     }
 });
-
 // Route per la ricerca attori
 router.get('/search/actors', (req, res) => {
     const query = req.query.q;

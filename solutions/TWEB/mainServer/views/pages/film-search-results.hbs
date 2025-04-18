@@ -1,0 +1,127 @@
+{{! views/pages/film-search-results.hbs }}
+<div class="search-results-container">
+    <div class="container mt-4">
+        {{#if query}}
+            <h2 class="mb-4">Risultati per "{{query}}"</h2>
+        {{else}}
+            <h2 class="mb-4">Risultati della ricerca</h2>
+        {{/if}}
+
+        {{#if content.length}}
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="searchResults">
+                {{#each content}}
+                    <div class="col">
+                        <div class="card h-100 film-card" data-film-id="{{this.id}}">
+                            <a href="javascript:void(0);" class="text-decoration-none film-link">
+                                <div class="card-body">
+                                    <div class="d-flex">
+                                        {{#if this.posterLink}}
+                                            <img src="{{this.posterLink}}"
+                                                 alt="{{this.name}}"
+                                                 class="film-poster me-3"
+                                                 style="width: 100px; height: 150px; object-fit: cover;">
+                                        {{else}}
+                                            <div class="film-poster placeholder me-3"
+                                                 style="width: 100px; height: 150px; background-color: #eee;">
+                                                <i class="bi bi-film" style="font-size: 2rem; color: #aaa;"></i>
+                                            </div>
+                                        {{/if}}
+                                        <div class="film-info">
+                                            <h5 class="card-title">{{this.name}}</h5>
+                                            <p class="card-text text-muted">
+                                                {{this.year}}
+                                                {{#if this.rating}}
+                                                    <span class="ms-2">
+                                                        <i class="bi bi-star-fill text-warning"></i> {{this.rating}}
+                                                    </span>
+                                                {{/if}}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                {{/each}}
+            </div>
+
+            {{! Paginazione migliorata }}
+            {{#if (gt totalPages 1)}}
+                <nav class="mt-4" aria-label="Paginazione risultati">
+                    <ul class="pagination justify-content-center flex-wrap">
+                        {{!-- Freccia indietro --}}
+                        <li class="page-item {{#if (eq currentPage 0)}}disabled{{/if}}">
+                            <a class="page-link pagination-link"
+                               href="#"
+                               onclick="AppState.navigateTo('searchResults', { query: '{{query}}', page: {{sub currentPage 1}} }); return false;"
+                               data-page="{{sub currentPage 1}}"
+                               aria-label="Previous">
+                                <i class="bi bi-chevron-left"></i>
+                                <span class="visually-hidden">Precedente</span>
+                            </a>
+                        </li>
+
+                        {{!-- Prima pagina con ellissi --}}
+                        {{#if (gt currentPage 3)}}
+                            <li class="page-item">
+                                <a class="page-link pagination-link"
+                                   href="#"
+                                   onclick="AppState.navigateTo('searchResults', { query: '{{query}}', page: 0 }); return false;"
+                                   data-page="0">1</a>
+                            </li>
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {{/if}}
+
+                        {{!-- Pagine centrali --}}
+                        {{#each (range (max 0 (sub currentPage 2)) (min (sub totalPages 1) (add currentPage 2)))}}
+                            <li class="page-item {{#if (eq this ../currentPage)}}active{{/if}}">
+                                <a class="page-link pagination-link"
+                                   href="#"
+                                   onclick="AppState.navigateTo('searchResults', { query: '{{query}}', page: {{this}} }); return false;"
+                                   data-page="{{this}}">{{add this 1}}</a>
+                            </li>
+                        {{/each}}
+
+                        {{!-- Ultima pagina con ellissi --}}
+                        {{#if (lt currentPage (sub totalPages 4))}}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link pagination-link"
+                                   href="#"
+                                   onclick="AppState.navigateTo('searchResults', { query: '{{query}}', page: {{sub totalPages 1}} }); return false;"
+                                   data-page="{{sub totalPages 1}}">{{totalPages}}</a>
+                            </li>
+                        {{/if}}
+
+                        {{!-- Freccia avanti --}}
+                        <li class="page-item {{#if (eq currentPage (sub totalPages 1))}}disabled{{/if}}">
+                            <a class="page-link pagination-link"
+                               href="#"
+                               onclick="AppState.navigateTo('searchResults', { query: '{{query}}', page: {{add currentPage 1}} }); return false;"
+                               data-page="{{add currentPage 1}}"
+                               aria-label="Next">
+                                <i class="bi bi-chevron-right"></i>
+                                <span class="visually-hidden">Successiva</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    {{!-- Informazioni pagina corrente --}}
+                    <div class="text-center mt-2 text-muted small">
+                        Pagina {{add currentPage 1}} di {{totalPages}} -
+                        {{totalElements}} risultati totali
+                    </div>
+                </nav>
+            {{/if}}
+        {{else}}
+            <div class="alert alert-info">
+                Nessun risultato trovato per "{{query}}"
+                <a href="/" class="alert-link">Torna alla home</a>
+            </div>
+        {{/if}}
+    </div>
+</div>

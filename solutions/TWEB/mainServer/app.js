@@ -15,7 +15,7 @@ var adminRouter =require ('./routes/admin')
 var app = express();
 // Configurazione Handlebars
 const { engine } = require('express-handlebars');
-app.engine('hbs', engine({
+const hbs = engine({
   extname: '.hbs',
   defaultLayout: 'layout',
   layoutsDir: path.join(__dirname, 'views/layouts'),
@@ -27,9 +27,31 @@ app.engine('hbs', engine({
   helpers: {
     json: function(context) {
       return JSON.stringify(context).replace(/"/g, '&quot;');
+    },
+    // Helpers per la paginazione
+    encodeURIComponent: function(str) {
+      return encodeURIComponent(str);
+    },
+    gt: (a, b) => a > b,
+    lt: (a, b) => a < b,
+    eq: (a, b) => a === b,
+    sub: (a, b) => a - b,
+    add: (a, b) => a + b,
+    div: (a, b) => a / b,
+    ceil: (a) => Math.ceil(a),
+    max: (a, b) => Math.max(a, b),
+    min: (a, b) => Math.min(a, b),
+    range: (start, end) => {
+      const result = [];
+      for (let i = start; i < end; i++) {
+        result.push(i);
+      }
+      return result;
     }
   }
-}));
+});
+
+app.engine('hbs', hbs);
 app.set('views', path.join(__dirname, 'views')); // Punta alla cartella padre
 app.set('view engine', 'hbs');
 

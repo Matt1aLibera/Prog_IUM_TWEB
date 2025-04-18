@@ -99,16 +99,24 @@ router.get('/films/search/full', async (req, res, next) => {
   try {
     const { q, page = 0, size = 15 } = req.query;
 
+    // Converti la pagina in numero (Spring si aspetta page 0-based)
+    const pageNumber = Math.max(0, parseInt(page));
+    const pageSize = parseInt(size);
+
     if (!q || q.length < 2) {
       return res.json({
         content: [],
-        pageable: { pageNumber: parseInt(page), pageSize: parseInt(size) },
+        pageable: {
+          pageNumber: pageNumber,
+          pageSize: pageSize,
+          offset: pageNumber * pageSize
+        },
         totalElements: 0
       });
     }
 
     const { data } = await axios.get(
-        `${SERVICES.postgres}/api/films/search/full?q=${encodeURIComponent(q)}&page=${page}&size=${size}`,
+        `${SERVICES.postgres}/api/films/search/full?q=${encodeURIComponent(q)}&page=${pageNumber}&size=${pageSize}`,
         { timeout: 15000 }
     );
 
@@ -116,7 +124,8 @@ router.get('/films/search/full', async (req, res, next) => {
       content: data.content,
       pageable: {
         pageNumber: data.pageable.pageNumber,
-        pageSize: data.pageable.pageSize
+        pageSize: data.pageable.pageSize,
+        offset: data.pageable.offset
       },
       totalElements: data.totalElements
     });

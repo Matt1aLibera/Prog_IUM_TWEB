@@ -13,6 +13,51 @@ let autocompleteTimeout;
 // =============================================
 // FUNZIONI DI UTILITÀ GENERALI
 // =============================================
+function showSection(sectionId) {
+    const sections = ['carouselSection', 'filmDetailSection', 'searchResultsSection'];
+    sections.forEach(id => {
+        if (id === sectionId) {
+            document.getElementById(id).classList.remove('d-none');
+        } else {
+            document.getElementById(id).classList.add('d-none');
+        }
+    });
+}
+// Funzione per tornare alla vista precedente
+function backToPreviousView() {
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get('q');
+    const page = params.get('page') || 0;
+
+    if (query) {
+        // Se siamo nei risultati di ricerca, mostra la stessa pagina
+        AppState.navigateTo('searchResults', {
+            query: query,
+            page: parseInt(page)
+        });
+    } else {
+        // Altrimenti torna al carosello
+        AppState.navigateTo('carousel');
+    }
+}
+
+// Gestione del tasto indietro del browser
+window.addEventListener('popstate', (event) => {
+    const params = new URLSearchParams(window.location.search);
+
+    if (event.state?.filmId) {
+        // Caso 1: Dettaglio film
+        showFilmDetails(event.state.filmId);
+    } else if (params.has('q')) {
+        // Caso 2: Risultati di ricerca (gestisce anche la paginazione)
+        const query = params.get('q');
+        const page = params.get('page') || 0;
+        updateSearchResults(query, page);
+    } else {
+        // Caso 3: Torna alla vista precedente
+        backToPreviousView();
+    }
+});
 function hideAllSections() {
     document.getElementById('authFormsSection')?.classList.add('hidden-section');
     document.getElementById('dashboardSection')?.classList.add('hidden-section');
@@ -362,14 +407,15 @@ async function handleDbLoad(button) {
 async function showFilmDetails(filmId) {
     try {
         // Nascondi carosello e mostra sezione dettaglio con spinner
-        document.getElementById('carouselSection').style.display = 'none';
-        document.getElementById('filmDetailSection').style.display = 'block';
+        document.getElementById('carouselSection').classList.add('d-none');
+        document.getElementById('searchResultsSection').classList.add('d-none');
+        document.getElementById('filmDetailSection').classList.remove('d-none');
         document.getElementById('filmLoadingSpinner').style.display = 'flex';
         document.getElementById('filmContent').style.display = 'none';
 
         // Fetch dati film con Axios (timeout aumentato a 10 secondi)
         const response = await axios.get(`/films/${filmId}`, {
-            timeout: 10000, // 10 secondi di timeout
+            timeout: 15000, // 10 secondi di timeout
             headers: {
                 'Cache-Control': 'no-cache',
                 'Accept': 'application/json'
@@ -538,14 +584,21 @@ function setupSearch() {
     searchInput.addEventListener('focus', function() {
         const query = this.value.trim();
         if (query.length >= 2 && currentSearchType === 'film') {
-            fetchAutocompleteResults(query);
+            return fetchAutocompleteResults(query);
         }
     });
 
     // Gestione pulsante ricerca e invio
-    searchButton.addEventListener('click', performSearch);
+    searchButton.addEventListener('click', function() {
+        hideAutocompleteDropdown();
+        performSearch();
+    });
+
     searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') performSearch();
+        if (e.key === 'Enter') {
+            hideAutocompleteDropdown();
+            performSearch();
+        }
     });
 
     // Chiudi dropdown al click esterno
@@ -616,11 +669,43 @@ function showAutocompleteDropdown(results) {
                 </div>
             `;
 
+
             item.addEventListener('click', async (e) => {
-                if (e.ctrlKey || e.metaKey) return;
                 e.preventDefault();
-                hideAutocompleteDropdown(); // Chiudi il dropdown quando si clicca su un film
-                await showFilmDetails(film.id);
+                hideAutocompleteDropdown();
+
+                // Mostra la sezione dettaglio film e nascondi le altre
+                document.getElementById('filmDetailSection').classList.remove('d-none');
+                document.getElementById('filmDetailSection').style.display = 'block';
+                document.getElementById('carouselSection').classList.add('d-none');
+                document.getElementById('searchResultsSection').classList.add('d-none');
+
+                // Mostra lo spinner
+                document.getElementById('filmLoadingSpinner').style.display = 'flex';
+                document.getElementById('filmContent').style.display = 'none';
+
+                try {
+                    const response = await axios.get(`/films/${film.id}`);
+                    populateFilmData(response.data);
+
+                    // Nascondi spinner e mostra contenuto
+                    document.getElementById('filmLoadingSpinner').style.display = 'none';
+                    document.getElementById('filmContent').style.display = 'block';
+
+                    // Aggiorna l'URL
+                    window.history.pushState({ filmId: film.id }, '', `/films/${film.id}`);
+                } catch (error) {
+                    console.error('Error loading film:', error);
+                    document.getElementById('filmLoadingSpinner').innerHTML = `
+                <div class="alert alert-danger">
+                    Errore nel caricamento del film
+                    <button onclick="showFilmDetails('${film.id}')" 
+                            class="btn btn-sm btn-outline-danger ms-2">
+                        Riprova
+                    </button>
+                </div>
+            `;
+                }
             });
 
             dropdown.appendChild(item);
@@ -644,12 +729,203 @@ function performSearch() {
     const query = document.getElementById('searchInput').value.trim();
     if (query.length === 0) return;
 
+    hideAutocompleteDropdown();
+
     if (currentSearchType === 'film') {
-        window.location.href = `/search/films?q=${encodeURIComponent(query)}`;
+        AppState.navigateTo('searchResults', { query, page: 0 });
     } else {
         window.location.href = `/search/actors?q=${encodeURIComponent(query)}`;
     }
 }
+
+async function updateSearchResults(query, page) {
+    const searchResultsSection = document.getElementById('searchResultsSection');
+
+    try {
+        searchResultsSection.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Caricamento...</span>
+                </div>
+                <p class="mt-2">Caricamento risultati...</p>
+            </div>
+        `;
+
+        const response = await axios.get(
+            `/films/search/full?q=${encodeURIComponent(query)}&page=${page}`,
+            {
+                headers: {
+                    'Accept': 'application/json, text/html',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }
+        );
+
+        searchResultsSection.innerHTML = response.data;
+        setupFilmCardClickHandlers();
+
+    } catch (error) {
+        console.error('Error updating search results:', error);
+        searchResultsSection.innerHTML = `
+            <div class="alert alert-danger">
+                Errore durante il caricamento dei risultati
+                <button onclick="AppState.navigateTo('searchResults', { query: '${query}', page: ${page} })" 
+                        class="btn btn-sm btn-outline-danger ms-2">
+                    Riprova
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Nuova funzione per gestire i click sulle card film
+function setupFilmCardClickHandlers() {
+    // Per il carosello (esistente)
+    document.querySelectorAll('.film-poster-container').forEach(poster => {
+        poster.addEventListener('click', async (e) => {
+            const filmId = poster.getAttribute('data-film-id');
+            AppState.navigateTo('filmDetails', {filmId});
+        });
+    });
+
+    // Per i risultati di ricerca (nuovo)
+    document.addEventListener('click', function(e) {
+        const filmCard = e.target.closest('.film-card');
+        if (filmCard) {
+            e.preventDefault();
+            const filmId = filmCard.dataset.filmId;
+            AppState.navigateTo('filmDetails', { filmId });
+        }
+    });
+
+    // Bottone per tornare indietro
+    document.getElementById('backToCarousel')?.addEventListener('click', backToPreviousView);
+    document.querySelectorAll('.pagination-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const page = this.getAttribute('data-page');
+            const query = new URLSearchParams(window.location.search).get('q');
+            updateSearchResults(query, page);
+        });
+    });
+}
+
+// =============================================
+// STATO DELL'APPLICAZIONE E GESTIONE VISTE
+// =============================================
+const AppState = {
+    currentView: 'carousel',
+    previousView: null,
+    currentFilmId: null,
+    searchQuery: null,
+    searchType: 'film',
+    currentPage: 0,
+
+    navigateTo: function(view, params = {}) {
+        this.previousView = this.currentView;
+        this.currentView = view;
+
+        switch(view) {
+            case 'carousel':
+                this.showCarousel();
+                break;
+            case 'filmDetails':
+                this.currentFilmId = params.filmId;
+                this.showFilmDetails(params.filmId);
+                break;
+            case 'searchResults':
+                this.searchQuery = params.query;
+                this.currentPage = params.page || 0;
+                this.showSearchResults(params.query, params.page);
+                break;
+        }
+
+        this.updateHistory(view, params);
+    },
+
+    showCarousel: function() {
+        document.getElementById('carouselSection').classList.remove('d-none');
+        document.getElementById('filmDetailSection').style.display = 'none';
+        document.getElementById('searchResultsSection').classList.add('d-none');
+    },
+
+    showFilmDetails: async function(filmId) {
+        document.getElementById('carouselSection').classList.add('d-none');
+        document.getElementById('searchResultsSection').classList.add('d-none');
+        document.getElementById('filmDetailSection').style.display = 'block';
+
+        await showFilmDetails(filmId);
+    },
+
+    showSearchResults: function(query, page = 0) {
+        document.getElementById('carouselSection').classList.add('d-none');
+        document.getElementById('filmDetailSection').style.display = 'none';
+        document.getElementById('searchResultsSection').classList.remove('d-none');
+
+        updateSearchResults(query, page);
+    },
+
+    updateHistory: function(view, params) {
+        let url, state;
+
+        switch(view) {
+            case 'carousel':
+                url = '/';
+                state = { view: 'carousel' };
+                break;
+            case 'filmDetails':
+                url = `/films/${params.filmId}`;
+                state = { view: 'filmDetails', filmId: params.filmId };
+                break;
+            case 'searchResults':
+                url = `/films/search/full?q=${encodeURIComponent(params.query)}&page=${params.page || 0}`;
+                state = {
+                    view: 'searchResults',
+                    query: params.query,
+                    page: params.page || 0
+                };
+                break;
+        }
+
+        window.history.pushState(state, '', url);
+    },
+
+    handlePopState: function(event) {
+        const state = event.state || { view: 'carousel' };
+        const params = new URLSearchParams(window.location.search);
+
+        if (!state.view && params.has('q')) {
+            // Gestione per URL diretti con parametri di ricerca
+            this.navigateTo('searchResults', {
+                query: params.get('q'),
+                page: params.get('page') || 0
+            });
+        } else {
+            // Navigazione normale
+            switch(state.view) {
+                case 'carousel':
+                    this.navigateTo('carousel');
+                    break;
+                case 'filmDetails':
+                    this.navigateTo('filmDetails', { filmId: state.filmId });
+                    break;
+                case 'searchResults':
+                    this.navigateTo('searchResults', {
+                        query: state.query,
+                        page: state.page
+                    });
+                    break;
+                default:
+                    this.navigateTo('carousel');
+            }
+        }
+    }
+};
+
+// Inizializzazione
+window.addEventListener('popstate', (event) => {
+    AppState.handlePopState(event);
+});
 // =============================================
 // INIT DELL'APPLICAZIONE
 // =============================================
@@ -661,24 +937,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Setup eventi
         setupNavbarEvents();
         setupSearch();
-
-        // Setup click sui poster del carosello
-        document.querySelectorAll('.film-poster-container').forEach(poster => {
-            poster.addEventListener('click', async (e) => {
-                const filmId = poster.getAttribute('data-film-id');
-                await showFilmDetails(filmId);
-            });
-        });
-
-        // Bottone per tornare indietro
-        document.getElementById('backToCarousel')?.addEventListener('click', () => {
-            document.getElementById('carouselSection').style.display = 'block';
-            document.getElementById('filmDetailSection').style.display = 'none';
-        });
+        setupFilmCardClickHandlers();
 
         const isAuthenticated = await checkAuthState();
         if (isAuthenticated) {
             showDashboard();
+
+            // Determina la vista iniziale in base all'URL
+            if (window.location.pathname.startsWith('/films/')) {
+                const filmId = window.location.pathname.split('/')[2];
+                AppState.navigateTo('filmDetails', { filmId });
+            } else if (window.location.pathname.startsWith('/films/search')) {
+                const urlParams = new URLSearchParams(window.location.search);
+                AppState.navigateTo('searchResults', {
+                    query: urlParams.get('q'),
+                    page: parseInt(urlParams.get('page')) || 0
+                });
+            } else {
+                AppState.navigateTo('carousel');
+            }
         } else {
             await showAuthForms();
         }
