@@ -16,10 +16,11 @@ if (window.location.pathname === '/films/search' && window.location.search) {
     window.history.replaceState(null, '', newUrl);
 }
 // Patch critica per il bug del browser
-window.addEventListener('popstate', (event) => {
-    if (event.state !== null || window.location.pathname !== '/') {
-        AppState.handlePopState(event);
-    }
+window.addEventListener('popstate', function(event) {
+    // Ignora il popstate iniziale su alcuni browser
+    if (event.state === null && window.location.pathname === '/') return;
+
+    AppState.handlePopState(event);
 });
 // =============================================
 // FUNZIONI DI UTILITÀ GENERALI
@@ -841,6 +842,9 @@ function setupFilmCardClickHandlers() {
 const AppState = {
     _popstateLock: false,
     _isHandlingPopstate: false,
+    _lastHandledState: null,
+    _filmNavigationLock: false,
+    _filmNavigationCount: 0,
     currentView: 'carousel',
     previousView: null,
     currentFilmId: null,
@@ -930,83 +934,83 @@ const AppState = {
     },
 
     handlePopState: function(event) {
-        // Blocca gestioni duplicate dello stesso evento
-        if (this._popstateLock) return;
-        this._popstateLock = true;
+        // Blocca la gestione duplicata dello stesso evento
+        if (this._isHandlingPopstate) return;
+        this._isHandlingPopstate = true;
 
         const url = new URL(window.location.href);
+        const prevState = this._lastHandledState;
+        const currentState = {
+            path: url.pathname,
+            query: url.searchParams.get('q'),
+            page: parseInt(url.searchParams.get('page')) || 0
+        };
 
-        // 1. Correzione definitiva degli URL malformati
-        if (url.pathname === '/films/search') {
-            if (url.searchParams.has('q')) {
-                const fixedUrl = `/films/search/full${url.search}`;
-                window.history.replaceState({
-                    view: 'searchResults',
-                    query: url.searchParams.get('q'),
-                    page: parseInt(url.searchParams.get('page')) || 0
-                }, '', fixedUrl);
-
-                this.showSearchResults(
-                    url.searchParams.get('q'),
-                    parseInt(url.searchParams.get('page')) || 0
-                );
-            } else {
-                window.history.replaceState({ view: 'carousel' }, '', '/');
-                this.showCarousel();
-            }
-            this._popstateLock = false;
+        // 1. Evita rielaborazioni dello stesso stato
+        if (prevState && JSON.stringify(prevState) === JSON.stringify(currentState)) {
+            this._isHandlingPopstate = false;
             return;
         }
 
-        // 2. Gestione avanzata dello stato
+        // 2. Correzione URL malformati
+        if (url.pathname === '/films/search') {
+            const fixedUrl = `/films/search/full${url.search}`;
+            window.history.replaceState(currentState, '', fixedUrl);
+            url.pathname = '/films/search/full';
+        }
+
         try {
-            const state = event.state || this.reconstructStateFromURL(url);
-
-            // Controllo di coerenza per evitare loop
-            const currentState = {
-                view: this.currentView,
-                filmId: this.currentFilmId,
-                query: this.searchQuery,
-                page: this.currentPage
-            };
-
-            if (JSON.stringify(state) === JSON.stringify(currentState)) {
-                this._popstateLock = false;
-                return;
+            // 3. Gestione della navigazione
+            if (url.pathname.startsWith('/film/')) {
+                const filmId = url.pathname.split('/')[2];
+                this._navigateToFilmDetails(filmId);
+            }
+            else if (url.pathname.startsWith('/films/search/full')) {
+                this._navigateToSearchResults(
+                    url.searchParams.get('q'),
+                    parseInt(url.searchParams.get('page')) || 0
+                );
+            }
+            else {
+                this._navigateToCarousel();
             }
 
-            // 3. Navigazione sincronizzata
-            switch(state.view) {
-                case 'filmDetails':
-                    if (state.filmId) {
-                        this.currentFilmId = state.filmId;
-                        this.showFilmDetails(state.filmId);
-                    } else {
-                        this.showCarousel();
-                    }
-                    break;
-
-                case 'searchResults':
-                    if (state.query) {
-                        this.searchQuery = state.query;
-                        this.currentPage = state.page || 0;
-                        this.showSearchResults(state.query, state.page || 0);
-                    } else {
-                        this.showCarousel();
-                    }
-                    break;
-
-                default:
-                    this.showCarousel();
-            }
+            // 4. Memorizza l'ultimo stato gestito
+            this._lastHandledState = currentState;
 
         } catch (error) {
             console.error('Navigation error:', error);
-            window.history.replaceState({ view: 'carousel' }, '', '/');
-            this.showCarousel();
+            this._navigateToCarousel();
         } finally {
-            this._popstateLock = false;
+            this._isHandlingPopstate = false;
         }
+    },
+
+// Aggiungi queste funzioni helper a AppState:
+    _navigateToFilmDetails: function(filmId) {
+        if (this.currentView === 'filmDetails' && this.currentFilmId === filmId) return;
+
+        this.currentView = 'filmDetails';
+        this.currentFilmId = filmId;
+        this.showFilmDetails(filmId);
+    },
+
+    _navigateToSearchResults: function(query, page) {
+        if (this.currentView === 'searchResults' &&
+            this.searchQuery === query &&
+            this.currentPage === page) return;
+
+        this.currentView = 'searchResults';
+        this.searchQuery = query;
+        this.currentPage = page;
+        this.showSearchResults(query, page);
+    },
+
+    _navigateToCarousel: function() {
+        if (this.currentView === 'carousel') return;
+
+        this.currentView = 'carousel';
+        this.showCarousel();
     },
 
     reconstructStateFromURL: function(url) {
