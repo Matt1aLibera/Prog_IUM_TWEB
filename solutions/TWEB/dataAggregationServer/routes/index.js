@@ -58,7 +58,7 @@ router.get('/carousel', async (req, res, next) => {
 });
 
 // Route per i dettagli completi del film
-router.get('/films/:id', async (req, res, next) => {
+router.get('/film/:id', async (req, res, next) => {
   try {
     const filmId = parseInt(req.params.id);
     if (isNaN(filmId)) {

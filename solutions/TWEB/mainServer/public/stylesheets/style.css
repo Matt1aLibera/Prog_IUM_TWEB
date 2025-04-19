@@ -476,6 +476,10 @@
   align-items: center;
   justify-content: center;
   color: #999;
+  background-color: #eee; /* Aggiungi questo per il colore grigio */
+  width: 100%;
+  height: 345px; /* O l'altezza che preferisci */
+  border-radius: 0.3rem;
 }
 
 .film-info {

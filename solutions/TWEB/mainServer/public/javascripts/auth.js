@@ -10,6 +10,17 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 let currentSearchType = 'film';
 let autocompleteTimeout;
 
+// Corregge la history del browser
+if (window.location.pathname === '/films/search' && window.location.search) {
+    const newUrl = `/films/search/full${window.location.search}`;
+    window.history.replaceState(null, '', newUrl);
+}
+// Patch critica per il bug del browser
+window.addEventListener('popstate', (event) => {
+    if (event.state !== null || window.location.pathname !== '/') {
+        AppState.handlePopState(event);
+    }
+});
 // =============================================
 // FUNZIONI DI UTILITÀ GENERALI
 // =============================================
@@ -23,41 +34,18 @@ function showSection(sectionId) {
         }
     });
 }
+
 // Funzione per tornare alla vista precedente
 function backToPreviousView() {
-    const params = new URLSearchParams(window.location.search);
-    const query = params.get('q');
-    const page = params.get('page') || 0;
-
-    if (query) {
-        // Se siamo nei risultati di ricerca, mostra la stessa pagina
-        AppState.navigateTo('searchResults', {
-            query: query,
-            page: parseInt(page)
-        });
-    } else {
-        // Altrimenti torna al carosello
-        AppState.navigateTo('carousel');
-    }
+    // Usa direttamente l'API del browser
+    window.history.go(-1);
 }
 
 // Gestione del tasto indietro del browser
 window.addEventListener('popstate', (event) => {
-    const params = new URLSearchParams(window.location.search);
-
-    if (event.state?.filmId) {
-        // Caso 1: Dettaglio film
-        showFilmDetails(event.state.filmId);
-    } else if (params.has('q')) {
-        // Caso 2: Risultati di ricerca (gestisce anche la paginazione)
-        const query = params.get('q');
-        const page = params.get('page') || 0;
-        updateSearchResults(query, page);
-    } else {
-        // Caso 3: Torna alla vista precedente
-        backToPreviousView();
-    }
+    AppState.handlePopState(event); // Tutta la logica è centralizzata qui
 });
+
 function hideAllSections() {
     document.getElementById('authFormsSection')?.classList.add('hidden-section');
     document.getElementById('dashboardSection')?.classList.add('hidden-section');
@@ -114,9 +102,9 @@ function closeMobileMenu() {
 // =============================================
 async function checkAuthState() {
     try {
-        const { data } = await axios.get('/auth/check', {
-            params: { t: Date.now() },
-            headers: { 'Cache-Control': 'no-cache' }
+        const {data} = await axios.get('/auth/check', {
+            params: {t: Date.now()},
+            headers: {'Cache-Control': 'no-cache'}
         });
 
         if (data.authenticated) {
@@ -212,7 +200,7 @@ async function setupAuthForms() {
             await handleAuthRequest(
                 loginForm,
                 '/auth/login',
-                { username, password },
+                {username, password},
                 'Accedi',
                 (userData) => updateUIForAuthenticatedUser(userData)
             );
@@ -244,7 +232,7 @@ async function setupAuthForms() {
             await handleAuthRequest(
                 registerForm,
                 '/auth/register',
-                { username, password, confirmPassword },
+                {username, password, confirmPassword},
                 'Registrati',
                 () => {
                     showAlert('Registrazione completata! Ora puoi accedere', 'success');
@@ -264,7 +252,7 @@ async function handleAuthRequest(form, endpoint, data, buttonText, onSuccess) {
     submitBtn.disabled = true;
 
     try {
-        const { data: result } = await axios.post(endpoint, data);
+        const {data: result} = await axios.post(endpoint, data);
         if (result.success) {
             if (endpoint === '/auth/login') {
                 window.location.reload();
@@ -333,11 +321,19 @@ function setupNavbarEvents() {
         e.stopPropagation();
 
         try {
-            switch(target.id) {
-                case 'loginBtn': await handleLoginClick(); break;
-                case 'registerBtn': await handleRegisterClick(); break;
-                case 'logoutBtn': await handleLogoutClick(target); break;
-                case 'loadDbBtn': await handleDbLoad(target); break;
+            switch (target.id) {
+                case 'loginBtn':
+                    await handleLoginClick();
+                    break;
+                case 'registerBtn':
+                    await handleRegisterClick();
+                    break;
+                case 'logoutBtn':
+                    await handleLogoutClick(target);
+                    break;
+                case 'loadDbBtn':
+                    await handleDbLoad(target);
+                    break;
             }
         } catch (error) {
             console.error(`${target.id} error:`, error);
@@ -388,7 +384,7 @@ async function handleDbLoad(button) {
     showAlert('Operazione in corso...', 'info', 10000);
 
     try {
-        const { data } = await axios.post('/admin/upload-db', {}, {
+        const {data} = await axios.post('/admin/upload-db', {}, {
             withCredentials: true
         });
         showAlert(data.message || 'Database caricato!', 'success');
@@ -414,7 +410,7 @@ async function showFilmDetails(filmId) {
         document.getElementById('filmContent').style.display = 'none';
 
         // Fetch dati film con Axios (timeout aumentato a 10 secondi)
-        const response = await axios.get(`/films/${filmId}`, {
+        const response = await axios.get(`/film/${filmId}`, {
             timeout: 15000, // 10 secondi di timeout
             headers: {
                 'Cache-Control': 'no-cache',
@@ -458,8 +454,25 @@ async function showFilmDetails(filmId) {
 
 function populateFilmData(film) {
     // Dati base
-    document.getElementById('filmPoster').src = film.poster?.link || film.posterUrl || '/default-poster.jpg';
-    document.getElementById('filmPoster').alt = film.movie?.name || film.title;
+    const posterContainer = document.getElementById('filmPosterContainer') ||
+        document.getElementById('filmPoster').parentNode;
+
+    // Svuota il container
+    posterContainer.innerHTML = '';
+
+    if (film.poster?.link || film.posterUrl) {
+        const img = document.createElement('img');
+        img.src = film.poster?.link || film.posterUrl;
+        img.alt = film.movie?.name || film.title;
+        img.className = 'img-fluid rounded-3 shadow';
+        img.id = 'filmPoster';
+        img.onerror = function () {
+            posterContainer.innerHTML = '<div id="filmPoster" class="img-fluid rounded-3 shadow film-poster placeholder"></div>';
+        };
+        posterContainer.appendChild(img);
+    } else {
+        posterContainer.innerHTML = '<div id="filmPoster" class="img-fluid rounded-3 shadow film-poster placeholder"></div>';
+    }
     document.getElementById('filmTitle').innerHTML =
         `${film.movie?.name || film.title} <small class="text-muted">(${film.movie?.date || film.movie?.year || film.year || 'N/D'})</small>`;
     document.getElementById('filmTagline').textContent = film.movie?.tagline || film.tagline || '';
@@ -470,7 +483,7 @@ function populateFilmData(film) {
     // Rating e durata
     document.getElementById('filmRating').textContent = film.rating ? film.rating.toFixed(1) : 'N/D';
     document.getElementById('filmDuration').textContent = film.duration ||
-        (film.movie?.minute ? `${Math.floor(film.movie.minute/60)}h ${film.movie.minute%60}m` : 'N/D');
+        (film.movie?.minute ? `${Math.floor(film.movie.minute / 60)}h ${film.movie.minute % 60}m` : 'N/D');
 
     // Paesi
     const countriesElement = document.getElementById('filmCountries');
@@ -549,6 +562,26 @@ function populateFilmData(film) {
 // =============================================
 // GESTIONE RICERCA E AUTOCOMPLETE
 // =============================================
+// Aggiungi questa funzione per gestire la paginazione
+function setupPaginationHandlers() {
+    document.addEventListener('click', function (e) {
+        const paginationLink = e.target.closest('.pagination-link');
+        if (paginationLink) {
+            e.preventDefault();
+
+            const page = parseInt(paginationLink.dataset.page);
+            const query = paginationLink.dataset.query;
+
+            if (!isNaN(page) && query) {
+                AppState.navigateTo('searchResults', {
+                    query: query,
+                    page: page
+                });
+            }
+        }
+    });
+}
+
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
     const searchButton = document.getElementById('searchButton');
@@ -557,7 +590,7 @@ function setupSearch() {
 
     // Gestione tipo di ricerca
     searchOptions.forEach(option => {
-        option.addEventListener('click', function(e) {
+        option.addEventListener('click', function (e) {
             e.preventDefault();
             currentSearchType = this.dataset.type;
             searchTypeDropdown.textContent = this.textContent;
@@ -565,7 +598,7 @@ function setupSearch() {
     });
 
     // Gestione input con debounce
-    searchInput.addEventListener('input', function() {
+    searchInput.addEventListener('input', function () {
         if (currentSearchType !== 'film') return;
 
         clearTimeout(autocompleteTimeout);
@@ -581,7 +614,7 @@ function setupSearch() {
     });
 
     // Mostra suggerimenti quando la searchbar riceve focus e ha già testo
-    searchInput.addEventListener('focus', function() {
+    searchInput.addEventListener('focus', function () {
         const query = this.value.trim();
         if (query.length >= 2 && currentSearchType === 'film') {
             return fetchAutocompleteResults(query);
@@ -589,12 +622,12 @@ function setupSearch() {
     });
 
     // Gestione pulsante ricerca e invio
-    searchButton.addEventListener('click', function() {
+    searchButton.addEventListener('click', function () {
         hideAutocompleteDropdown();
         performSearch();
     });
 
-    searchInput.addEventListener('keypress', function(e) {
+    searchInput.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             hideAutocompleteDropdown();
             performSearch();
@@ -602,7 +635,7 @@ function setupSearch() {
     });
 
     // Chiudi dropdown al click esterno
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         if (!e.target.closest('.input-group')) {
             hideAutocompleteDropdown();
         }
@@ -620,7 +653,7 @@ async function fetchAutocompleteResults(query) {
 
     try {
         const response = await axios.get('/films/search/autocomplete', {
-            params: { q: query },
+            params: {q: query},
             timeout: 13000
         });
 
@@ -655,7 +688,7 @@ function showAutocompleteDropdown(results) {
         results.slice(0, 5).forEach(film => {
             const item = document.createElement('a');
             item.className = 'autocomplete-item';
-            item.href = `/films/${film.id}`;
+            item.href = `/film/${film.id}`;
 
             item.innerHTML = `
                 <div class="autocomplete-item-content">
@@ -685,7 +718,7 @@ function showAutocompleteDropdown(results) {
                 document.getElementById('filmContent').style.display = 'none';
 
                 try {
-                    const response = await axios.get(`/films/${film.id}`);
+                    const response = await axios.get(`/film/${film.id}`);
                     populateFilmData(response.data);
 
                     // Nascondi spinner e mostra contenuto
@@ -693,7 +726,7 @@ function showAutocompleteDropdown(results) {
                     document.getElementById('filmContent').style.display = 'block';
 
                     // Aggiorna l'URL
-                    window.history.pushState({ filmId: film.id }, '', `/films/${film.id}`);
+                    window.history.pushState({filmId: film.id}, '', `/film/${film.id}`);
                 } catch (error) {
                     console.error('Error loading film:', error);
                     document.getElementById('filmLoadingSpinner').innerHTML = `
@@ -732,7 +765,7 @@ function performSearch() {
     hideAutocompleteDropdown();
 
     if (currentSearchType === 'film') {
-        AppState.navigateTo('searchResults', { query, page: 0 });
+        AppState.navigateTo('searchResults', {query, page: 0});
     } else {
         window.location.href = `/search/actors?q=${encodeURIComponent(query)}`;
     }
@@ -789,31 +822,25 @@ function setupFilmCardClickHandlers() {
     });
 
     // Per i risultati di ricerca (nuovo)
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         const filmCard = e.target.closest('.film-card');
         if (filmCard) {
             e.preventDefault();
             const filmId = filmCard.dataset.filmId;
-            AppState.navigateTo('filmDetails', { filmId });
+            AppState.navigateTo('filmDetails', {filmId});
         }
     });
 
     // Bottone per tornare indietro
     document.getElementById('backToCarousel')?.addEventListener('click', backToPreviousView);
-    document.querySelectorAll('.pagination-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const page = this.getAttribute('data-page');
-            const query = new URLSearchParams(window.location.search).get('q');
-            updateSearchResults(query, page);
-        });
-    });
 }
 
 // =============================================
 // STATO DELL'APPLICAZIONE E GESTIONE VISTE
 // =============================================
 const AppState = {
+    _popstateLock: false,
+    _isHandlingPopstate: false,
     currentView: 'carousel',
     previousView: null,
     currentFilmId: null,
@@ -821,11 +848,11 @@ const AppState = {
     searchType: 'film',
     currentPage: 0,
 
-    navigateTo: function(view, params = {}) {
+    navigateTo: function (view, params = {}) {
         this.previousView = this.currentView;
         this.currentView = view;
 
-        switch(view) {
+        switch (view) {
             case 'carousel':
                 this.showCarousel();
                 break;
@@ -843,13 +870,13 @@ const AppState = {
         this.updateHistory(view, params);
     },
 
-    showCarousel: function() {
+    showCarousel: function () {
         document.getElementById('carouselSection').classList.remove('d-none');
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.add('d-none');
     },
 
-    showFilmDetails: async function(filmId) {
+    showFilmDetails: async function (filmId) {
         document.getElementById('carouselSection').classList.add('d-none');
         document.getElementById('searchResultsSection').classList.add('d-none');
         document.getElementById('filmDetailSection').style.display = 'block';
@@ -857,7 +884,7 @@ const AppState = {
         await showFilmDetails(filmId);
     },
 
-    showSearchResults: function(query, page = 0) {
+    showSearchResults: function (query, page = 0) {
         document.getElementById('carouselSection').classList.add('d-none');
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.remove('d-none');
@@ -865,17 +892,27 @@ const AppState = {
         updateSearchResults(query, page);
     },
 
-    updateHistory: function(view, params) {
-        let url, state;
+    updateHistory: function (view, params) {
+        // Validazione minima
+        if (view === 'searchResults' && !params.query) {
+            console.error('Search navigation requires query');
+            return;
+        }
+        if (view === 'filmDetails' && !params.filmId) {
+            console.error('Film details navigation requires filmId');
+            return;
+        }
 
-        switch(view) {
+        // Resto del codice invariato
+        let url, state;
+        switch (view) {
             case 'carousel':
                 url = '/';
-                state = { view: 'carousel' };
+                state = {view: 'carousel'};
                 break;
             case 'filmDetails':
-                url = `/films/${params.filmId}`;
-                state = { view: 'filmDetails', filmId: params.filmId };
+                url = `/film/${params.filmId}`;
+                state = {view: 'filmDetails', filmId: params.filmId};
                 break;
             case 'searchResults':
                 url = `/films/search/full?q=${encodeURIComponent(params.query)}&page=${params.page || 0}`;
@@ -887,39 +924,107 @@ const AppState = {
                 break;
         }
 
-        window.history.pushState(state, '', url);
+        if (url && state) {
+            window.history.pushState(state, '', url);
+        }
     },
 
     handlePopState: function(event) {
-        const state = event.state || { view: 'carousel' };
-        const params = new URLSearchParams(window.location.search);
+        // Blocca gestioni duplicate dello stesso evento
+        if (this._popstateLock) return;
+        this._popstateLock = true;
 
-        if (!state.view && params.has('q')) {
-            // Gestione per URL diretti con parametri di ricerca
-            this.navigateTo('searchResults', {
-                query: params.get('q'),
-                page: params.get('page') || 0
-            });
-        } else {
-            // Navigazione normale
-            switch(state.view) {
-                case 'carousel':
-                    this.navigateTo('carousel');
-                    break;
-                case 'filmDetails':
-                    this.navigateTo('filmDetails', { filmId: state.filmId });
-                    break;
-                case 'searchResults':
-                    this.navigateTo('searchResults', {
-                        query: state.query,
-                        page: state.page
-                    });
-                    break;
-                default:
-                    this.navigateTo('carousel');
+        const url = new URL(window.location.href);
+
+        // 1. Correzione definitiva degli URL malformati
+        if (url.pathname === '/films/search') {
+            if (url.searchParams.has('q')) {
+                const fixedUrl = `/films/search/full${url.search}`;
+                window.history.replaceState({
+                    view: 'searchResults',
+                    query: url.searchParams.get('q'),
+                    page: parseInt(url.searchParams.get('page')) || 0
+                }, '', fixedUrl);
+
+                this.showSearchResults(
+                    url.searchParams.get('q'),
+                    parseInt(url.searchParams.get('page')) || 0
+                );
+            } else {
+                window.history.replaceState({ view: 'carousel' }, '', '/');
+                this.showCarousel();
             }
+            this._popstateLock = false;
+            return;
         }
-    }
+
+        // 2. Gestione avanzata dello stato
+        try {
+            const state = event.state || this.reconstructStateFromURL(url);
+
+            // Controllo di coerenza per evitare loop
+            const currentState = {
+                view: this.currentView,
+                filmId: this.currentFilmId,
+                query: this.searchQuery,
+                page: this.currentPage
+            };
+
+            if (JSON.stringify(state) === JSON.stringify(currentState)) {
+                this._popstateLock = false;
+                return;
+            }
+
+            // 3. Navigazione sincronizzata
+            switch(state.view) {
+                case 'filmDetails':
+                    if (state.filmId) {
+                        this.currentFilmId = state.filmId;
+                        this.showFilmDetails(state.filmId);
+                    } else {
+                        this.showCarousel();
+                    }
+                    break;
+
+                case 'searchResults':
+                    if (state.query) {
+                        this.searchQuery = state.query;
+                        this.currentPage = state.page || 0;
+                        this.showSearchResults(state.query, state.page || 0);
+                    } else {
+                        this.showCarousel();
+                    }
+                    break;
+
+                default:
+                    this.showCarousel();
+            }
+
+        } catch (error) {
+            console.error('Navigation error:', error);
+            window.history.replaceState({ view: 'carousel' }, '', '/');
+            this.showCarousel();
+        } finally {
+            this._popstateLock = false;
+        }
+    },
+
+    reconstructStateFromURL: function(url) {
+        if (url.pathname.startsWith('/film/')) {
+            return {
+                view: 'filmDetails',
+                filmId: url.pathname.split('/')[2]
+            };
+        }
+        if (url.pathname.startsWith('/films/search/full')) {
+            return {
+                view: 'searchResults',
+                query: url.searchParams.get('q'),
+                page: parseInt(url.searchParams.get('page')) || 0
+            };
+        }
+        return { view: 'carousel' };
+    },
 };
 
 // Inizializzazione
@@ -938,15 +1043,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupNavbarEvents();
         setupSearch();
         setupFilmCardClickHandlers();
+        setupPaginationHandlers(); // Aggiungi questa linea
 
         const isAuthenticated = await checkAuthState();
         if (isAuthenticated) {
             showDashboard();
 
             // Determina la vista iniziale in base all'URL
-            if (window.location.pathname.startsWith('/films/')) {
+            if (window.location.pathname.startsWith('/film/')) {
                 const filmId = window.location.pathname.split('/')[2];
-                AppState.navigateTo('filmDetails', { filmId });
+                AppState.navigateTo('filmDetails', {filmId});
             } else if (window.location.pathname.startsWith('/films/search')) {
                 const urlParams = new URLSearchParams(window.location.search);
                 AppState.navigateTo('searchResults', {

@@ -42,8 +42,8 @@
     </div>
 </div>
 <!-- Sezione dettaglio film - inizialmente nascosta -->
-<div id="filmDetailSection" class="film-detail-section d-none;">
-    <!-- Spinner di caricamento -->
+<div id="filmDetailSection" class="film-detail-section d-none">
+    <!-- Spinner di caricamento (solo per navigazione client-side) -->
     <div id="filmLoadingSpinner" class="text-center py-5">
         <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
             <span class="visually-hidden">Loading...</span>
@@ -51,8 +51,8 @@
         <p class="mt-3">Caricamento film...</p>
     </div>
 
-    <!-- Contenuto film (template vuoto che verrà popolato) -->
-    <div id="filmContent" style="display: none;">
+    <!-- Contenuto film -->
+    <div id="filmContent" style="{{#unless filmDetails}}display: none;{{/unless}}">
         <button id="backToCarousel" class="btn btn-outline-secondary mb-4">
             <i class="bi bi-arrow-left"></i> Torna al carosello
         </button>
@@ -62,21 +62,45 @@
             <div class="film-header">
                 <div class="row g-4">
                     <div class="col-md-4">
-                        <img id="filmPoster" src="" class="img-fluid rounded-3 shadow" alt="">
+                        {{#if filmDetails.poster.link}}
+                            <img id="filmPoster"
+                                 src="{{filmDetails.poster.link}}"
+                                 class="img-fluid rounded-3 shadow"
+                                 alt="{{filmDetails.movie.name}}"
+                                 onerror="this.classList.add('placeholder'); this.removeAttribute('src');">
+                        {{else}}
+                            <div id="filmPoster" class="img-fluid rounded-3 shadow film-poster placeholder"></div>
+                        {{/if}}
                     </div>
                     <div class="col-md-8">
                         <div class="film-meta p-4 rounded">
-                            <h1 id="filmTitle" class="display-5 fw-bold"></h1>
-                            <p id="filmTagline" class="lead text-muted"></p>
+                            <h1 id="filmTitle" class="display-5 fw-bold">
+                                {{#if filmDetails}}{{filmDetails.movie.name}}{{else}}N/D{{/if}}
+                            </h1>
+                            <p id="filmTagline" class="lead text-muted">
+                                {{#if filmDetails}}{{filmDetails.movie.tagline}}{{/if}}
+                            </p>
 
                             <div class="d-flex flex-wrap gap-2 mb-4">
-                            <span class="badge rating-badge py-2 px-3">
-                                <i class="bi bi-star-fill me-1"></i> <span id="filmRating">N/D</span>/5
-                            </span>
+                                <span class="badge rating-badge py-2 px-3">
+                                    <i class="bi bi-star-fill me-1"></i>
+                                    <span id="filmRating">
+                                        {{#if filmDetails}}{{filmDetails.rating}}{{else}}N/D{{/if}}
+                                    </span>/5
+                                </span>
                                 <span class="badge duration-badge py-2 px-3">
-                                <i class="bi bi-clock me-1"></i> <span id="filmDuration">N/D</span>
-                            </span>
-                                <div id="filmCountries" class="d-flex flex-wrap gap-2"></div>
+                                    <i class="bi bi-clock me-1"></i>
+                                    <span id="filmDuration">
+                                        {{#if filmDetails}}{{filmDetails.duration}}{{else}}N/D{{/if}}
+                                    </span>
+                                </span>
+                                <div id="filmCountries" class="d-flex flex-wrap gap-2">
+                                    {{#if filmDetails}}
+                                        {{#each filmDetails.countries}}
+                                            <span class="badge bg-secondary">{{this.countryName}}</span>
+                                        {{/each}}
+                                    {{/if}}
+                                </div>
                             </div>
 
                             <div class="action-buttons mb-4">
@@ -97,7 +121,9 @@
                     <div class="col-lg-6">
                         <section class="mb-5">
                             <h2 class="mb-3"><i class="bi bi-card-text me-2"></i>Trama</h2>
-                            <p id="filmDescription" class="fs-5">Nessuna descrizione disponibile</p>
+                            <p id="filmDescription" class="fs-5">
+                                {{#if filmDetails}}{{filmDetails.movie.description}}{{else}}Nessuna descrizione disponibile{{/if}}
+                            </p>
                         </section>
                     </div>
 
@@ -110,15 +136,25 @@
                                 <ul class="list-group list-group-flush">
                                     <li class="list-group-item d-flex justify-content-between">
                                         <span>Generi</span>
-                                        <span id="filmGenres">N/D</span>
+                                        <span id="filmGenres">
+                                            {{#if filmDetails}}
+                                                {{#each filmDetails.genres}}{{this.genre}}{{#unless @last}}, {{/unless}}{{/each}}
+                                            {{else}}N/D{{/if}}
+                                        </span>
                                     </li>
                                     <li class="list-group-item d-flex justify-content-between">
                                         <span>Studio</span>
-                                        <div id="filmStudios">N/D</div>
+                                        <div id="filmStudios">
+                                            {{#if filmDetails}}
+                                                {{#each filmDetails.studios}}{{this.studio}}{{#unless @last}}, {{/unless}}{{/each}}
+                                            {{else}}N/D{{/if}}
+                                        </div>
                                     </li>
                                     <li class="list-group-item d-flex justify-content-between">
                                         <span>Prima uscita</span>
-                                        <span id="filmFirstRelease">N/D</span>
+                                        <span id="filmFirstRelease">
+                                            {{#if filmDetails}}{{filmDetails.movie.date}}{{else}}N/D{{/if}}
+                                        </span>
                                     </li>
                                 </ul>
                             </div>
@@ -129,7 +165,13 @@
                             <h2 class="mb-3"><i class="bi bi-calendar-event me-2"></i>Date di uscita</h2>
                             <div class="scrollable-container">
                                 <ul id="filmReleases" class="list-group">
-                                    <!-- Popolato dinamicamente -->
+                                    {{#if filmDetails}}
+                                        {{#each filmDetails.release}}
+                                            <li class="list-group-item">
+                                                {{this.country}} - {{this.date}} ({{this.type}})
+                                            </li>
+                                        {{/each}}
+                                    {{/if}}
                                 </ul>
                             </div>
                         </section>
@@ -144,7 +186,13 @@
                             <h2 class="mb-3"><i class="bi bi-people-fill me-2"></i>Cast</h2>
                             <div class="scrollable-container">
                                 <ul id="filmActors" class="list-group">
-                                    <!-- Popolato dinamicamente -->
+                                    {{#if filmDetails}}
+                                        {{#each filmDetails.actors}}
+                                            <li class="list-group-item">
+                                                <strong>{{this.actorName}}</strong> as {{this.characterName}}
+                                            </li>
+                                        {{/each}}
+                                    {{/if}}
                                 </ul>
                             </div>
                         </section>
@@ -156,7 +204,13 @@
                             <h2 class="mb-3"><i class="bi bi-person-gear me-2"></i>Crew</h2>
                             <div class="scrollable-container">
                                 <ul id="filmCrew" class="list-group">
-                                    <!-- Popolato dinamicamente -->
+                                    {{#if filmDetails}}
+                                        {{#each filmDetails.crew}}
+                                            <li class="list-group-item">
+                                                <strong>{{this.name}}</strong> - {{this.role}}
+                                            </li>
+                                        {{/each}}
+                                    {{/if}}
                                 </ul>
                             </div>
                         </section>
@@ -166,3 +220,24 @@
         </div>
     </div>
 </div>
+
+{{#if filmDetails}}
+    <script>
+        // Solo per accesso diretto: integrazione con logica esistente
+        document.addEventListener('DOMContentLoaded', () => {
+            // Nascondi spinner (non necessario in render server-side)
+            document.getElementById('filmLoadingSpinner').style.display = 'none';
+
+            // Se la navigazione è client-side, i dati verranno gestiti dalle tue funzioni esistenti
+            // Se è un accesso diretto, il contenuto è già renderizzato dal server
+
+            // Aggiungi comunque i listener per mantenere la funzionalità
+            document.getElementById('backToCarousel')?.addEventListener('click', backToPreviousView);
+
+            // Nascondi le altre sezioni (come farebbero le tue funzioni)
+            document.getElementById('carouselSection').classList.add('d-none');
+            document.getElementById('searchResultsSection').classList.add('d-none');
+            document.getElementById('filmDetailSection').classList.remove('d-none');
+        });
+    </script>
+{{/if}}

@@ -2,6 +2,15 @@ var express = require('express');
 var router = express.Router();
 const DATA_AGGREGATION_SERVER = 'http://localhost:3003'; // URL auth-server
 const axios = require('axios');
+
+// Reindirizza /films/search?q=... a /films/search/full?q=...
+router.get('/films/search', (req, res) => {
+    if (req.query.q) {
+        // Reindirizza mantenendo i parametri
+        return res.redirect(308, `/films/search/full?q=${req.query.q}&page=${req.query.page || 0}`);
+    }
+    res.redirect('/'); // Fallback sicuro
+});
 /* GET home page. */
 router.get('/', async (req, res) => {
     if (req.session.user && !req.session.user.isAuthenticated) {
@@ -35,38 +44,6 @@ router.get('/', async (req, res) => {
         });
     }
 });
-
-router.get('/films/:id', async (req, res) => {
-    try {
-        const {data: film} = await axios.get(`${DATA_AGGREGATION_SERVER}/api/films/${req.params.id}`, {
-            timeout: 11000 // Timeout di 5 secondi
-        });
-
-        // Formatta la durata e aggiungi campo year se non presente
-        const formattedFilm = {
-            ...film,
-            duration: film.movie?.minute ?
-                `${Math.floor(film.movie.minute / 60)}h ${film.movie.minute % 60}m` :
-                null,
-            year: film.movie?.date || film.movie?.year // Gestisce entrambi i casi
-        };
-
-        // Cache controllata per 1 ora
-        res.set('Cache-Control', 'public, max-age=3600');
-        res.json(formattedFilm);
-
-    } catch (error) {
-        if (error.response?.status === 404) {
-            return res.status(404).json({error: 'Film non trovato'});
-        }
-        console.error('Film details error:', error);
-        res.status(error.response?.status || 500).json({
-            error: error.response?.data?.error || 'Errore interno del server',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-});
-
 // Route per l'autocomplete
 router.get('/films/search/autocomplete', async (req, res) => {
     try {
@@ -92,6 +69,7 @@ router.get('/films/search/autocomplete', async (req, res) => {
 
 // Route per la ricerca completa (aggiornata per coerenza con autocomplete)
 router.get('/films/search/full', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     try {
         const { q, page = 0, size = 15 } = req.query;
         const pageInt = Math.max(0, parseInt(page));
@@ -160,5 +138,48 @@ router.get('/search/actors', (req, res) => {
     // Qui implementerai la logica per cercare gli attori nel DB
     res.render('actor-search-results', {results: actorResults, query});
 });
+
+
+router.get('/film/:id', async (req, res) => {
+    try {
+        const {data: film} = await axios.get(`${DATA_AGGREGATION_SERVER}/api/films/${req.params.id}`, {
+            timeout: 11000
+        });
+
+        // Formatta la durata e aggiungi campo year se non presente
+        const formattedFilm = {
+            ...film,
+            duration: film.movie?.minute ?
+                `${Math.floor(film.movie.minute / 60)}h ${film.movie.minute % 60}m` :
+                null,
+            year: film.movie?.date || film.movie?.year // Gestisce entrambi i casi
+        };
+
+        // Cache controllata per 1 ora
+        res.set('Cache-Control', 'public, max-age=3600');
+        // Differenziazione tra API e browser
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+            return res.json(formattedFilm);
+        } else {
+            // Renderizza la pagina completa con i dati del film
+            return res.render('pages/index', {
+                showCarousel: false,
+                showSearchResults: false,
+                filmDetails: formattedFilm // Passa i dati al template
+            });
+        }
+
+    } catch (error) {
+        if (error.response?.status === 404) {
+            return res.status(404).json({error: 'Film non trovato'});
+        }
+        console.error('Film details error:', error);
+        res.status(error.response?.status || 500).json({
+            error: error.response?.data?.error || 'Errore interno del server',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
 
 module.exports = router;

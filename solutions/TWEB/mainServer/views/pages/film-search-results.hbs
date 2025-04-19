@@ -53,8 +53,8 @@
                         <li class="page-item {{#if (eq currentPage 0)}}disabled{{/if}}">
                             <a class="page-link pagination-link"
                                href="#"
-                               onclick="AppState.navigateTo('searchResults', { query: '{{query}}', page: {{sub currentPage 1}} }); return false;"
                                data-page="{{sub currentPage 1}}"
+                               data-query="{{query}}"
                                aria-label="Previous">
                                 <i class="bi bi-chevron-left"></i>
                                 <span class="visually-hidden">Precedente</span>
@@ -66,8 +66,8 @@
                             <li class="page-item">
                                 <a class="page-link pagination-link"
                                    href="#"
-                                   onclick="AppState.navigateTo('searchResults', { query: '{{query}}', page: 0 }); return false;"
-                                   data-page="0">1</a>
+                                   data-page="0"
+                                   data-query="{{query}}">1</a>
                             </li>
                             <li class="page-item disabled">
                                 <span class="page-link">...</span>
@@ -79,8 +79,8 @@
                             <li class="page-item {{#if (eq this ../currentPage)}}active{{/if}}">
                                 <a class="page-link pagination-link"
                                    href="#"
-                                   onclick="AppState.navigateTo('searchResults', { query: '{{query}}', page: {{this}} }); return false;"
-                                   data-page="{{this}}">{{add this 1}}</a>
+                                   data-page="{{this}}"
+                                   data-query="{{../query}}">{{add this 1}}</a>
                             </li>
                         {{/each}}
 
@@ -92,8 +92,8 @@
                             <li class="page-item">
                                 <a class="page-link pagination-link"
                                    href="#"
-                                   onclick="AppState.navigateTo('searchResults', { query: '{{query}}', page: {{sub totalPages 1}} }); return false;"
-                                   data-page="{{sub totalPages 1}}">{{totalPages}}</a>
+                                   data-page="{{sub totalPages 1}}"
+                                   data-query="{{query}}">{{totalPages}}</a>
                             </li>
                         {{/if}}
 
@@ -101,8 +101,8 @@
                         <li class="page-item {{#if (eq currentPage (sub totalPages 1))}}disabled{{/if}}">
                             <a class="page-link pagination-link"
                                href="#"
-                               onclick="AppState.navigateTo('searchResults', { query: '{{query}}', page: {{add currentPage 1}} }); return false;"
                                data-page="{{add currentPage 1}}"
+                               data-query="{{query}}"
                                aria-label="Next">
                                 <i class="bi bi-chevron-right"></i>
                                 <span class="visually-hidden">Successiva</span>
