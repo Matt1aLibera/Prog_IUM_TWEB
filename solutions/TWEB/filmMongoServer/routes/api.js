@@ -31,7 +31,7 @@ router.get('/films/ratings', async (req, res) => {
     }
 });
 //usa curl -X GET "http://localhost:3002/api/films/1001003"
-router.get('/film/:id', async (req, res) => {
+router.get('/films/:id', async (req, res) => {
     try {
         const movieId = parseInt(req.params.id);
         if (isNaN(movieId)) {
@@ -52,7 +52,7 @@ router.get('/film/:id', async (req, res) => {
             rating: result.rating
         });
     } catch (error) {
-        console.error('Errore route /film/:id:', error);
+        console.error('Errore route /films/:id:', error);
         res.status(500).json({
             error: "Errore interno del server",
             details: process.env.NODE_ENV === 'development' ? error.message : undefined

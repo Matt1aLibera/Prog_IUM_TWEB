@@ -701,16 +701,12 @@ function showAutocompleteDropdown(results) {
                 </div>
             `;
 
-
             item.addEventListener('click', async (e) => {
                 e.preventDefault();
                 hideAutocompleteDropdown();
 
-                // Mostra la sezione dettaglio film e nascondi le altre
-                document.getElementById('filmDetailSection').classList.remove('d-none');
-                document.getElementById('filmDetailSection').style.display = 'block';
-                document.getElementById('carouselSection').classList.add('d-none');
-                document.getElementById('searchResultsSection').classList.add('d-none');
+                // Usiamo AppState per la navigazione ma manteniamo la logica di visualizzazione
+                AppState.navigateTo('filmDetails', {filmId: film.id});
 
                 // Mostra lo spinner
                 document.getElementById('filmLoadingSpinner').style.display = 'flex';
@@ -724,19 +720,17 @@ function showAutocompleteDropdown(results) {
                     document.getElementById('filmLoadingSpinner').style.display = 'none';
                     document.getElementById('filmContent').style.display = 'block';
 
-                    // Aggiorna l'URL
-                    window.history.pushState({filmId: film.id}, '', `/film/${film.id}`);
                 } catch (error) {
                     console.error('Error loading film:', error);
                     document.getElementById('filmLoadingSpinner').innerHTML = `
-                <div class="alert alert-danger">
-                    Errore nel caricamento del film
-                    <button onclick="showFilmDetails('${film.id}')" 
-                            class="btn btn-sm btn-outline-danger ms-2">
-                        Riprova
-                    </button>
-                </div>
-            `;
+                        <div class="alert alert-danger">
+                            Errore nel caricamento del film
+                            <button onclick="AppState.navigateTo('filmDetails', {filmId: '${film.id}'})" 
+                                    class="btn btn-sm btn-outline-danger ms-2">
+                                Riprova
+                            </button>
+                        </div>
+                    `;
                 }
             });
 
