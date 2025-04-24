@@ -1,5 +1,9 @@
+<script id="chatData" type="application/json">
+{{{chatDataJson}}}
+</script>
+
 <div class="chat-page-container mt-4">
-    <!-- Header con pulsante indietro -->
+    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="bi bi-chat-left-text"></i> Chat Community</h2>
         <button id="backToMainBtn" class="btn btn-outline-secondary">
@@ -9,23 +13,24 @@
 
     <!-- Corpo principale -->
     <div class="row">
-        <!-- Sidebar stanze (30% width) -->
+        <!-- Sidebar stanze -->
         <div class="col-md-4 col-lg-3">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">Stanze disponibili</h5>
+                    <div class="small">Utente: {{user.username}}</div>
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush" id="roomsList">
                         {{#each activeRooms}}
-                            <a href="#" class="list-group-item list-group-item-action room-item {{#if active}}active{{/if}}"
+                            <a href="#" class="list-group-item list-group-item-action room-item"
                                data-room-id="{{id}}" data-room-type="{{type}}">
                                 <div class="d-flex justify-content-between align-items-center">
-                                <span>
-                                    <i class="bi bi-{{roomIcon type}} me-2"></i>
-                                    {{name}}
-                                </span>
-                                    <span class="badge bg-primary rounded-pill">{{userCount}}</span>
+                                    <span>
+                                        <i class="bi bi-{{roomIcon type}} me-2"></i>
+                                        {{name}}
+                                    </span>
+                                    <span class="badge bg-primary rounded-pill user-count">0</span>
                                 </div>
                             </a>
                         {{/each}}
@@ -39,45 +44,25 @@
             </div>
         </div>
 
-        <!-- Area chat principale (70% width) -->
+        <!-- Area chat -->
         <div class="col-md-8 col-lg-9">
             <div class="card shadow-sm h-100">
-                <div class="card-header bg-primary text-white">
-                    <h5 id="currentRoomTitle" class="mb-0">
-                        {{#if activeRoom}}
-                            {{activeRoom.name}}
-                        {{else}}
-                            Seleziona una stanza
-                        {{/if}}
-                    </h5>
+                <div class="card-header bg-primary text-white d-flex justify-content-between">
+                    <h5 id="currentRoomTitle" class="mb-0">Seleziona una stanza</h5>
+                    <div id="roomUsers" class="small"></div>
                 </div>
 
-                <!-- Messaggi -->
                 <div id="messagesContainer" class="card-body chat-messages">
-                    {{#if activeRoom}}
-                        {{#each activeRoom.messages}}
-                            <div class="message {{#if isCurrentUser}}message-current{{/if}}">
-                                <div class="message-header">
-                                    <span class="message-user">{{user.name}}</span>
-                                    <span class="message-time">{{time}}</span>
-                                </div>
-                                <div class="message-body">{{text}}</div>
-                            </div>
-                        {{/each}}
-                    {{else}}
-                        <div class="text-center text-muted py-5">
-                            <i class="bi bi-chat-square-text" style="font-size: 3rem;"></i>
-                            <p class="mt-3">Seleziona una stanza per iniziare a chattare</p>
-                        </div>
-                    {{/if}}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-chat-square-text" style="font-size: 3rem;"></i>
+                        <p class="mt-3">Seleziona una stanza per iniziare a chattare</p>
+                    </div>
                 </div>
 
-                <!-- Input messaggio -->
-                <div class="card-footer {{#unless activeRoom}}d-none{{/unless}}" id="messageInputContainer">
+                <div class="card-footer d-none" id="messageInputContainer">
                     <div class="input-group">
-                        <input type="text" id="messageInput" class="form-control"
-                               placeholder="Scrivi un messaggio..." {{#unless activeRoom}}disabled{{/unless}}>
-                        <button id="sendMessageBtn" class="btn btn-primary" {{#unless activeRoom}}disabled{{/unless}}>
+                        <input type="text" id="messageInput" class="form-control" placeholder="Scrivi un messaggio..." disabled>
+                        <button id="sendMessageBtn" class="btn btn-primary" disabled>
                             <i class="bi bi-send"></i> Invia
                         </button>
                     </div>
@@ -124,5 +109,3 @@
         </div>
     </div>
 </div>
-
-<script src="/javascripts/chat.js" defer></script>

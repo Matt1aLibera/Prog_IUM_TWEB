@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/auth', authRoutes); // Tutte le route inizieranno con /auth
-app.use('/chat', chatRoutes); // Route delle
+app.use('/chat', chatRoutes); // Route delle chat
 
 // Configurazione view engine (se necessario, altrimenti rimuovere)
 app.set('views', path.join(__dirname, 'views'));

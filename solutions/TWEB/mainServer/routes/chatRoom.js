@@ -1,85 +1,43 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 const axios = require('axios');
 
-// Nuova route per SPA
+// Configurazione
+const CHAT_SERVER_URL = 'http://localhost:3001'; // URL del server chat
+
+// Route principale per la chat SPA
 router.get('/chat/view', async (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    if (!req.session.user) {
+        return res.status(401).send('<div class="alert alert-warning">Login required</div>');
+    }
 
     try {
-        if (!req.session.user) {
-            return res.status(401).send('<div class="alert alert-warning">Devi effettuare il login per accedere alla chat</div>');
-        }
-
-        // Renderizza la pagina della chat come stringa
-        const chatHtml = await new Promise((resolve, reject) => {
-            res.app.render('pages/chat-page', {
-                user: req.session.user,
-                activeRooms: [],
-                currentRoom: null,
-                layout: false // Importante: non usare il layout
-            }, (err, html) => {
-                if (err) reject(err);
-                else resolve(html);
-            });
-        });
-
-        // Aggiungi i dati della chat come script
-        const [activeRooms, currentRoom] = await Promise.all([
-            getActiveChatRooms(),
-            getCurrentUserRoom(req.session.user.id)
-        ]);
-
-        const chatDataScript = `
-            <script id="chatData" type="application/json">
-                ${JSON.stringify({
+        const activeRooms = await getActiveChatRooms();
+        res.render('pages/chat-page', {
             user: req.session.user,
-            rooms: activeRooms || [],
-            currentRoom: currentRoom || null
-        })}
-            </script>
-        `;
-
-        // Invia la chat come HTML o come JSON in base alla richiesta
-        if (req.xhr || req.headers.accept?.includes('application/json')) {
-            res.send(chatHtml + chatDataScript);
-        } else {
-            res.render('pages/index', {
-                showCarousel: false,
-                showSearchResults: false,
-                showChat: true,
-                chatContent: chatHtml + chatDataScript
-            });
-        }
-
+            activeRooms,
+            chatDataJson: JSON.stringify({
+                user: req.session.user // Invia solo i dati necessari
+            }),
+            layout: false
+        });
     } catch (error) {
-        console.error('Chat view error:', error.message);
-        const errorHtml = `<div class="alert alert-danger">Errore durante il caricamento della chat: ${error.message}</div>`;
-
-        if (req.xhr || req.headers.accept?.includes('application/json')) {
-            res.status(500).send(errorHtml);
-        } else {
-            res.render('pages/index', {
-                showCarousel: false,
-                showSearchResults: false,
-                showChat: true,
-                chatContent: errorHtml
-            });
-        }
+        res.status(500).send(`<div class="alert alert-danger">Error: ${error.message}</div>`);
     }
 });
-
+// Helper per ottenere le stanze attive dal server chat
 async function getActiveChatRooms() {
     try {
-        const response = await axios.get(`${DATA_AGGREGATION_SERVER}/api/chat/rooms`, {
+        const response = await axios.get(`${CHAT_SERVER_URL}/chat/getRooms`, {
             timeout: 5000
         });
-        return response.data.map(room => ({
-            id: `${room.type}:${room.entityId}`,
-            type: room.type,
+
+        return response.data.rooms.map(room => ({
+            id: room._id, // Usa l'ID MongoDB
             name: room.name,
-            userCount: room.activeUsers,
-            active: false // Gestito client-side
+            topic: room.topic,
+            createdAt: room.createdAt,
+            active: false // Gestito lato client
         }));
     } catch (error) {
         console.error('Error fetching chat rooms:', error);
@@ -87,61 +45,22 @@ async function getActiveChatRooms() {
     }
 }
 
-async function getCurrentUserRoom(userId) {
-    if (!userId) return null;
-
+router.get('/active-rooms', async (req, res) => {
     try {
-        const response = await axios.get(`${DATA_AGGREGATION_SERVER}/api/chat/user/${userId}/room`, {
-            timeout: 3000
-        });
-        return response.data ? {
-            id: `${response.data.type}:${response.data.entityId}`,
-            name: response.data.name,
-            messages: response.data.messages.map(msg => ({
-                user: { id: msg.userId, name: msg.userName },
-                text: msg.text,
-                time: new Date(msg.timestamp).toLocaleTimeString(),
-                isCurrentUser: msg.userId === userId
-            }))
-        } : null;
+        const rooms = await Room.find()
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .lean();
+
+        res.json(rooms.map(room => ({
+            id: room._id,
+            name: room.name,
+            type: room.type,
+            userCount: 0 // Aggiornato dal server socket
+        })));
     } catch (error) {
-        console.error('Error fetching user room:', error);
-        return null;
+        res.status(500).json({ error: "Errore nel recupero stanze" });
     }
-}
+});
 
-// Helper function per la chat (aggiungere alle altre funzioni helper)
-async function renderChatView(req) {
-    if (!req.session.user) return '';
-
-    try {
-        const [activeRooms, currentRoom] = await Promise.all([
-            getActiveChatRooms(),
-            getCurrentUserRoom(req.session.user.id)
-        ]);
-
-        // Aggiungi elemento chatData per il client
-        const chatDataScript = `
-            <script id="chatData" type="application/json">
-                ${JSON.stringify({
-            user: req.session.user,
-            rooms: activeRooms || [],
-            currentRoom: currentRoom || null
-        })}
-            </script>
-        `;
-
-        const chatHtml = await new Promise((resolve, reject) => {
-            req.app.render('pages/chat-page', {
-                user: req.session.user,
-                activeRooms: activeRooms || [],
-                currentRoom: currentRoom || null
-            }, (err, html) => err ? reject(err) : resolve(html));
-        });
-
-        return chatHtml + chatDataScript;
-    } catch (error) {
-        console.error('Error rendering chat:', error);
-        return '<div class="alert alert-danger">Errore nel caricamento della chat</div>';
-    }
-}
+module.exports = router;

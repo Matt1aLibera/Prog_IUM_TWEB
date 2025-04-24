@@ -11,6 +11,7 @@ const MongoStore = require('connect-mongo');
 var indexRouter = require('./routes/index');
 var loginRouter = require('./routes/auth');
 var adminRouter =require ('./routes/admin')
+var chatRouter =require('./routes/chatRoom')
 
 var app = express();
 // Configurazione Handlebars
@@ -25,10 +26,24 @@ const hbs = engine({
     allowProtoMethodsByDefault: true
   },
   helpers: {
+    // Helper esistente per la serializzazione JSON
     json: function(context) {
       return JSON.stringify(context).replace(/"/g, '&quot;');
     },
-    // Helpers per la paginazione
+
+    // Helper per le icone delle stanze chat (NUOVO)
+    roomIcon: function(type) {
+      const icons = {
+        film: 'film',
+        actor: 'person',
+        crew: 'people',
+        character: 'mask',
+        generale: 'chat' // Aggiunto come fallback generale
+      };
+      return icons[type] || 'chat-dots'; // Icona di fallback
+    },
+
+    // Helpers per la paginazione (esistenti)
     encodeURIComponent: function(str) {
       return encodeURIComponent(str);
     },
@@ -99,6 +114,7 @@ app.use(flash());
 app.use('/admin', adminRouter);
 app.use('/', indexRouter);
 app.use('/auth', loginRouter);  // invece di '/login'
+app.use('/sio', chatRouter)
 
 
 // Gestione 404

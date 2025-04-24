@@ -44,6 +44,10 @@
     <div id="chatSection" class="{{#unless showChat}}d-none{{/unless}}">
         {{{chatContent}}}
     </div>
+    <!-- Script chat caricato condizionalmente -->
+    {{#if showChat}}
+        <script src="/javascripts/chat.js" defer></script>
+    {{/if}}
 </div>
 <!-- Sezione dettaglio film - inizialmente nascosta -->
 <div id="filmDetailSection" class="film-detail-section d-none">
@@ -126,7 +130,8 @@
                         <section class="mb-5">
                             <h2 class="mb-3"><i class="bi bi-card-text me-2"></i>Trama</h2>
                             <p id="filmDescription" class="fs-5">
-                                {{#if filmDetails}}{{filmDetails.movie.description}}{{else}}Nessuna descrizione disponibile{{/if}}
+                                {{#if filmDetails}}{{filmDetails.movie.description}}{{else}}
+                                    Nessuna descrizione disponibile{{/if}}
                             </p>
                         </section>
                     </div>
@@ -142,7 +147,8 @@
                                         <span>Generi</span>
                                         <span id="filmGenres">
                                             {{#if filmDetails}}
-                                                {{#each filmDetails.genres}}{{this.genre}}{{#unless @last}}, {{/unless}}{{/each}}
+                                                {{#each filmDetails.genres}}{{this.genre}}{{#unless @last}}
+                                                    , {{/unless}}{{/each}}
                                             {{else}}N/D{{/if}}
                                         </span>
                                     </li>
@@ -150,7 +156,8 @@
                                         <span>Studio</span>
                                         <div id="filmStudios">
                                             {{#if filmDetails}}
-                                                {{#each filmDetails.studios}}{{this.studio}}{{#unless @last}}, {{/unless}}{{/each}}
+                                                {{#each filmDetails.studios}}{{this.studio}}{{#unless @last}}
+                                                    , {{/unless}}{{/each}}
                                             {{else}}N/D{{/if}}
                                         </div>
                                     </li>
