@@ -11,6 +11,7 @@ router.get('/films/search', (req, res) => {
     }
     res.redirect('/'); // Fallback sicuro
 });
+
 /* GET home page. */
 router.get('/', async (req, res) => {
     if (req.session.user && !req.session.user.isAuthenticated) {
@@ -19,20 +20,29 @@ router.get('/', async (req, res) => {
     }
 
     try {
-        const films = req.session.user
-            ? (await axios.get(`${DATA_AGGREGATION_SERVER}/api/carousel`, {
-                params: {limit: 15}, // Aumentato a 15
-                timeout: 16000
-            })).data
-            : [];
-
-        res.render('pages/index', {
+        const showChat = req.query.view === 'chat';
+        const baseData = {
             title: 'Il mio Sito',
             user: req.session.user || null,
-            films: films,
-            showCarousel: true,
-            showSearchResults: false
-        });
+            showCarousel: !showChat && !req.query.search,
+            showSearchResults: !!req.query.search,
+            showChat: showChat
+        };
+
+        if (showChat && req.session.user) {
+            // Just set the flag - actual content will be loaded via XHR
+            baseData.chatContent = '<div class="loading-spinner"></div>';
+            baseData.films = [];
+        } else {
+            baseData.films = req.session.user
+                ? (await axios.get(`${DATA_AGGREGATION_SERVER}/api/carousel`, {
+                    params: { limit: 15 },
+                    timeout: 16000
+                })).data
+                : [];
+        }
+
+        res.render('pages/index', baseData);
     } catch (error) {
         console.error('Error:', error);
         res.render('pages/index', {
@@ -40,10 +50,15 @@ router.get('/', async (req, res) => {
             user: req.session.user || null,
             films: [],
             showCarousel: true,
-            showSearchResults: false
+            showSearchResults: false,
+            showChat: false,
+            error: 'Errore nel caricamento'
         });
     }
 });
+
+
+
 // Route per l'autocomplete
 router.get('/films/search/autocomplete', async (req, res) => {
     try {

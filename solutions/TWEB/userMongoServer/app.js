@@ -7,6 +7,7 @@ const { connectUserDB } = require('./databases/user');
 const initializeAdmin = require('./services/adminInit');
 const bodyParser = require('body-parser');
 const authRoutes = require('./routes/index');
+const chatRoutes = require('./routes/chatRoom')
 
 
 
@@ -17,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/auth', authRoutes); // Tutte le route inizieranno con /auth
+app.use('/chat', chatRoutes); // Route delle
 
 // Configurazione view engine (se necessario, altrimenti rimuovere)
 app.set('views', path.join(__dirname, 'views'));

@@ -1,0 +1,128 @@
+<div class="chat-page-container mt-4">
+    <!-- Header con pulsante indietro -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-chat-left-text"></i> Chat Community</h2>
+        <button id="backToMainBtn" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Torna alla Home
+        </button>
+    </div>
+
+    <!-- Corpo principale -->
+    <div class="row">
+        <!-- Sidebar stanze (30% width) -->
+        <div class="col-md-4 col-lg-3">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Stanze disponibili</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" id="roomsList">
+                        {{#each activeRooms}}
+                            <a href="#" class="list-group-item list-group-item-action room-item {{#if active}}active{{/if}}"
+                               data-room-id="{{id}}" data-room-type="{{type}}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-{{roomIcon type}} me-2"></i>
+                                    {{name}}
+                                </span>
+                                    <span class="badge bg-primary rounded-pill">{{userCount}}</span>
+                                </div>
+                            </a>
+                        {{/each}}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button id="createRoomBtn" class="btn btn-sm btn-success w-100">
+                        <i class="bi bi-plus-circle"></i> Crea nuova stanza
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Area chat principale (70% width) -->
+        <div class="col-md-8 col-lg-9">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 id="currentRoomTitle" class="mb-0">
+                        {{#if activeRoom}}
+                            {{activeRoom.name}}
+                        {{else}}
+                            Seleziona una stanza
+                        {{/if}}
+                    </h5>
+                </div>
+
+                <!-- Messaggi -->
+                <div id="messagesContainer" class="card-body chat-messages">
+                    {{#if activeRoom}}
+                        {{#each activeRoom.messages}}
+                            <div class="message {{#if isCurrentUser}}message-current{{/if}}">
+                                <div class="message-header">
+                                    <span class="message-user">{{user.name}}</span>
+                                    <span class="message-time">{{time}}</span>
+                                </div>
+                                <div class="message-body">{{text}}</div>
+                            </div>
+                        {{/each}}
+                    {{else}}
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-chat-square-text" style="font-size: 3rem;"></i>
+                            <p class="mt-3">Seleziona una stanza per iniziare a chattare</p>
+                        </div>
+                    {{/if}}
+                </div>
+
+                <!-- Input messaggio -->
+                <div class="card-footer {{#unless activeRoom}}d-none{{/unless}}" id="messageInputContainer">
+                    <div class="input-group">
+                        <input type="text" id="messageInput" class="form-control"
+                               placeholder="Scrivi un messaggio..." {{#unless activeRoom}}disabled{{/unless}}>
+                        <button id="sendMessageBtn" class="btn btn-primary" {{#unless activeRoom}}disabled{{/unless}}>
+                            <i class="bi bi-send"></i> Invia
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal creazione stanza -->
+<div class="modal fade" id="createRoomModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crea nuova stanza</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createRoomForm">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo stanza:</label>
+                        <select id="roomType" class="form-select">
+                            <option value="film">Film</option>
+                            <option value="actor">Attore</option>
+                            <option value="crew">Membro Crew</option>
+                            <option value="character">Personaggio</option>
+                        </select>
+                    </div>
+
+                    <div id="dynamicFieldsContainer">
+                        <!-- Campi dinamici verranno inseriti qui -->
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nome stanza (opzionale):</label>
+                        <input type="text" id="roomCustomName" class="form-control">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" id="confirmCreateRoom" class="btn btn-primary">Crea</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/javascripts/chat.js" defer></script>

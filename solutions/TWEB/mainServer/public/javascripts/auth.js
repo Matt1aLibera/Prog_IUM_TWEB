@@ -123,6 +123,7 @@ function updateUIForAuthenticatedUser(user) {
     document.querySelector('#logoutBtn').classList.remove('d-none');
     document.querySelector('#loginBtn').classList.add('d-none');
     document.querySelector('#registerBtn').classList.add('d-none');
+    document.querySelector('#chatBtn').classList.remove('d-none');
 
     // Update admin button
     updateAdminButton(user.role === 'admin');
@@ -137,6 +138,7 @@ function updateUIForUnauthenticated() {
     document.querySelector('#logoutBtn').classList.add('d-none');
     document.querySelector('#loginBtn').classList.remove('d-none');
     document.querySelector('#registerBtn').classList.remove('d-none');
+    document.querySelector('#chatBtn').classList.add('d-none');
     updateAdminButton(false);
     return showAuthForms();
 }
@@ -305,7 +307,7 @@ async function logout() {
 // =============================================
 function setupNavbarEvents() {
     document.addEventListener('click', async (e) => {
-        const target = e.target.closest('#loginBtn, #registerBtn, #logoutBtn, #loadDbBtn');
+        const target = e.target.closest('#loginBtn, #registerBtn, #logoutBtn, #loadDbBtn, #chatBtn');
         if (!target) return;
 
         e.preventDefault();
@@ -325,6 +327,9 @@ function setupNavbarEvents() {
                 case 'loadDbBtn':
                     await handleDbLoad(target);
                     break;
+                case 'chatBtn':
+                    await handleChatClick(target);
+                    break;
             }
         } catch (error) {
             console.error(`${target.id} error:`, error);
@@ -332,6 +337,31 @@ function setupNavbarEvents() {
             await checkAuthState();
         }
     });
+}
+
+async function handleChatClick(button) {
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Caricamento...';
+    button.disabled = true;
+
+    try {
+        // 1. Nascondi altre sezioni
+        document.getElementById('carouselSection').classList.add('d-none');
+        document.getElementById('searchResultsSection').classList.add('d-none');
+
+        // 2. Carica la chat
+        await loadChatView();
+
+        // 3. Aggiorna stato UI
+        document.getElementById('chatSection').classList.remove('d-none');
+
+    } catch (error) {
+        console.error('Chat error:', error);
+        showAlert('Errore nel caricamento della chat', 'danger');
+    } finally {
+        button.innerHTML = originalHtml;
+        button.disabled = false;
+    }
 }
 
 async function handleLoginClick() {
@@ -385,6 +415,45 @@ async function handleDbLoad(button) {
     } finally {
         button.innerHTML = originalText;
         button.disabled = false;
+    }
+}
+
+async function loadChatView() {
+    try {
+        // Mostra stato di caricamento
+        const dynamicContent = document.getElementById('dynamicContent');
+        dynamicContent.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Caricamento chat...</p>
+            </div>
+        `;
+
+        // Carica la chat
+        const response = await axios.get('/chat/view', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+
+        // Sostituisci il contenuto
+        dynamicContent.innerHTML = response.data;
+
+        // Inizializza la chat
+        if (typeof initChatSystem === 'function') {
+            initChatSystem();
+        }
+
+    } catch (error) {
+        console.error('Chat load error:', error);
+        document.getElementById('dynamicContent').innerHTML = `
+            <div class="alert alert-danger">
+                Errore nel caricamento della chat: ${error.message}
+                <button onclick="location.reload()" class="btn btn-sm btn-outline-danger ms-2">
+                    Ricarica
+                </button>
+            </div>
+        `;
     }
 }
 
