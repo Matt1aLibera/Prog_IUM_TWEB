@@ -894,128 +894,298 @@ function setupFilmCardClickHandlers() {
 // Variabili globali per lo stato della chat
 let socket = null;
 let currentRoom = null;
-
-// Inizializza il sistema di chat
 function initChatSystem() {
-    if (socket) return;
+    if (!document.getElementById('chatSection')) return;
 
-    try {
-        // 1. Recupera i dati utente dall'HTML
-        const chatData = JSON.parse(document.getElementById('chatData').textContent);
+    const chatData = JSON.parse(document.getElementById('chatData').textContent);
 
-        // 2. Connessione BASE senza specificare namespace nel path
-        socket = io({
-            path: '/socket.io', // Importante mantenere questo
-            transports: ['websocket'],
-            auth: {
-                userId: chatData.user.id,
-                username: chatData.user.username
-            },
-            reconnectionAttempts: 3,
-            reconnectionDelay: 1000
+    // Invia prima l'evento 'init' per autenticare
+    if (!socket) {
+        socket = io('/chat', {
+            transports: ['websocket']
         });
 
-        // 3. Inizializzazione connessione
-        socket.on('connect', () => {
-            console.log(`Connesso come ${chatData.user.username}`);
-
-            // Richiedi stanze iniziali (se necessario)
-            socket.emit('chat:get_rooms');
-        });
-
-        // 4. Gestione eventi (rimane uguale)
-        socket.on('chat:message', (data) => {
-            if (data.roomId === currentRoom) {
-                const isCurrentUser = data.user.id === chatData.user.id;
-                addMessageToUI(data.user.name, data.message, data.timestamp, isCurrentUser);
+        // Prima autentica, poi configura gli eventi
+        socket.emit('init', {
+            id: chatData.user.id,
+            username: chatData.user.username
+        }, (response) => {
+            if (!response.success) {
+                console.error('Autenticazione fallita');
+                return;
             }
+
+            // Configura eventi solo dopo autenticazione
+            configureSocketEvents();
         });
-
-        // [Altri eventi rimangono identici...]
-
-        socket.on('connect_error', (err) => {
-            console.error('Connection error:', err);
-            showAlert('Errore di connessione alla chat', 'danger');
-        });
-
-        // 5. Inizializza UI
-        setupUIEvents();
-
-    } catch (error) {
-        console.error('Chat init error:', error);
-        showAlert('Errore nell\'inizializzazione della chat', 'danger');
     }
+
+    setupUIEvents();
+    if (currentRoom) updateActiveRoomUI({
+        id: currentRoom,
+        name: `Stanza ${currentRoom}`,
+        users: 1
+    });
+    // Ascolta aggiornamenti stanze
+    socket.on('chat:rooms_updated', refreshRoomsList);
+
+    // Carica inizialmente le stanze
+    refreshRoomsList();
+}
+
+function configureSocketEvents() {
+    socket.on('connect', () => {
+        console.log('Connesso al namespace /chat');
+    });
+
+    socket.on('chat:message', (data) => {
+        if (data.roomId === currentRoom) {
+            addMessageToUI(data.user.username, data.message, data.timestamp);
+        }
+    });
+
+    socket.on('chat:user_joined', (user) => {
+        addSystemMessage(`${user.username} si è unito alla chat`);
+    });
+
+    socket.on('chat:user_left', (user) => {
+        addSystemMessage(`${user.username} ha lasciato la chat`);
+    });
 }
 function setupUIEvents() {
-    // Delegazione eventi per migliorare le performance
+    // Click su una stanza esistente
     document.getElementById('roomsList').addEventListener('click', (e) => {
         const roomItem = e.target.closest('.room-item');
         if (roomItem) {
             e.preventDefault();
-            joinRoom(roomItem.dataset.roomId);
+            showJoinModal(
+                roomItem.dataset.roomId,
+                roomItem.querySelector('span').textContent.trim()
+            );
         }
     });
 
-    document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
+    // Pulsante crea nuova stanza
+    document.getElementById('createRoomBtn').addEventListener('click', showCreateModal);
 
+    // Invio messaggio
+    document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
     document.getElementById('messageInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
 
-    document.getElementById('createRoomBtn').addEventListener('click', () => {
-        $('#createRoomModal').modal('show');
+    // ---------- AGGIUNGI QUI TUTTA LA GESTIONE DEI MODAL ----------
+
+    // Chiudi modali quando si clicca sulla X
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const modal = this.closest('.modal-custom');
+            hideModal(modal.id);
+        });
     });
 
-    document.getElementById('backToMainBtn').addEventListener('click', () => {
-        AppState.navigateTo(AppState.previousView || 'carousel');
+    // Chiudi modali quando si clicca su Annulla
+    document.querySelectorAll('.btn-secondary.close-modal').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const modal = this.closest('.modal-custom');
+            hideModal(modal.id);
+        });
     });
 
-    document.getElementById('confirmCreateRoom').addEventListener('click', createNewRoom);
+    // Chiudi quando si clicca sullo sfondo
+    document.querySelectorAll('.modal-custom').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideModal(this.id);
+            }
+        });
+    });
+
+    // Previeni la chiusura quando si clicca sul contenuto
+    document.querySelectorAll('.modal-content-custom').forEach(content => {
+        content.addEventListener('click', e => {
+            e.stopPropagation();
+        });
+    });
+
+    // Gestione tasto ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-custom.show').forEach(modal => {
+                hideModal(modal.id);
+            });
+        }
+    });
+}
+// Mostra modal per unione
+
+function showJoinModal(roomId, roomName = '') {
+    const joinCodeInput = document.getElementById('joinRoomCode');
+    joinCodeInput.value = roomId;
+
+    // Aggiungi nome stanza se disponibile
+    if (roomName) {
+        document.querySelector('#joinRoomModal .modal-header h5').textContent =
+            `Unisciti a "${roomName}"`;
+    }
+
+    showModal('joinRoomModal');
+
+    const confirmBtn = document.getElementById('confirmJoin');
+    confirmBtn.onclick = () => {
+        const code = joinCodeInput.value.trim();
+        if (code) {
+            joinOrCreateRoom(code);
+            hideModal('joinRoomModal');
+        }
+    };
+}
+// Funzioni per gestire i modali
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        modal.classList.add('show');
+        const input = modal.querySelector('input');
+        if (input) input.focus();
+    }, 10);
+}
+function hideModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.classList.remove('show');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
 }
 
 
+// Mostra modal per creazione stanza
+// Funzioni specifiche per la chat
+function showCreateModal() {
+    const modal = document.getElementById('createRoomModal');
+    const nameInput = document.getElementById('roomNameInput');
+    const topicSelect = document.getElementById('roomTopicSelect');
+    const codeInput = document.getElementById('roomCodeInput');
+    const confirmBtn = document.getElementById('confirmCreateRoom');
 
-// Funzione per unirsi a una stanza
-function joinRoom(roomId) {
-    if (currentRoom === roomId) return;
+    // Resetta i valori
+    nameInput.value = '';
+    topicSelect.value = '';
+    codeInput.value = generateRoomCode();
 
-    socket.emit('chat:join', roomId, (response) => {
-        if (response.success) {
-            currentRoom = roomId;
-            updateActiveRoomUI(response.roomData);
+    showModal('createRoomModal');
+
+    // Rimuovi vecchi listener e clona il pulsante
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.replaceWith(newConfirmBtn);
+
+    // Aggiungi nuovo listener
+    newConfirmBtn.addEventListener('click', () => {
+        const name = nameInput.value.trim();
+        const topic = topicSelect.value;
+        const roomCode = codeInput.value.trim() || generateRoomCode();
+
+        if (!name || !topic) {
+            showAlert('Nome e argomento sono obbligatori', 'danger');
+            return;
+        }
+
+        // Qui dovrai modificare joinOrCreateRoom per accettare i nuovi parametri
+        createNewRoom({
+            name: name,
+            topic: topic,
+            code: roomCode
+        });
+
+        hideModal('createRoomModal');
+    });
+}
+async function createNewRoom(roomData) {
+    try {
+        // 1. Prima crea la stanza nel database
+        const response = await axios.post('/sio/chat/createRoom', {
+            name: roomData.name,
+            topic: roomData.topic
+        }, {
+            validateStatus: function (status) {
+                return status >= 200 && status < 500; // Considera i 4xx come risposte valide
+            }
+        });
+
+        if (response.data.success) {
+            // 2. Poi unisciti alla stanza via Socket.IO
+            joinOrCreateRoom(roomData.code || response.data.room.id, {
+                name: roomData.name,
+                topic: roomData.topic,
+                isNew: true
+            });
+
+            showAlert(`Stanza "${roomData.name}" creata!`, 'success');
+        } else {
+            throw new Error(response.data.error || 'Errore sconosciuto');
+        }
+    } catch (error) {
+        console.error('Errore creazione stanza:', error);
+        showAlert(`Errore: ${error.response?.data?.error || error.message}`, 'danger');
+    }
+}
+function generateRoomCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// Unione o creazione stanza
+function joinOrCreateRoom(roomCode, roomMeta = {}) {
+    if (!socket) {
+        console.error('Socket non inizializzato!');
+        return;
+    }
+
+    socket.emit('chat:join_or_create', {
+        code: roomCode,
+        name: roomMeta.name || `Stanza ${roomCode}`,
+        topic: roomMeta.topic || 'generale'
+    }, (response) => {
+        if (response?.success) {
+            currentRoom = roomCode;
+            updateActiveRoomUI({
+                id: roomCode,
+                name: response.roomData.name,
+                topic: response.roomData.topic,
+                users: response.roomData.users || 1
+            });
+
+            // MODIFICA QUI - Nuovo formato messaggio
+            const msg = roomMeta.isNew ?
+                `Hai creato la stanza "${response.roomData.name}" (Codice: ${roomCode})` :
+                `Ti sei unito alla stanza "${response.roomData.name}" (Codice: ${roomCode})`;
+
+            addSystemMessage(msg);
+        } else {
+            const errorMsg = response?.error || 'Errore di connessione';
+            showAlert(errorMsg, 'danger');
         }
     });
 }
 
-
-// Funzione per inviare un messaggio
 function sendMessage() {
     const input = document.getElementById('messageInput');
     const message = input.value.trim();
 
-    if (message && currentRoom) {
-        socket.emit('chat:message', currentRoom, message);
+    if (message && currentRoom && socket) {
+        socket.emit('chat:message', {
+            roomId: currentRoom,
+            message: message
+        }, (ack) => {
+            if (!ack || !ack.success) {
+                console.error('Errore nell\'invio del messaggio');
+                showAlert('Errore nell\'invio del messaggio', 'danger');
+            }
+        });
         input.value = '';
     }
 }
-
-// Funzione per creare una nuova stanza
-function createNewRoom() {
-    const roomType = document.getElementById('roomType').value;
-    const customName = document.getElementById('roomCustomName').value;
-
-    socket.emit('chat:create_room', {
-        type: roomType,
-        name: customName || `Stanza ${roomType}`
-    }, (response) => {
-        if (response.success) {
-            $('#createRoomModal').modal('hide');
-            joinRoom(response.roomId);
-        }
-    });
-}
-
-
 // Helper per aggiungere un messaggio all'UI
 function addMessageToUI(username, text) {
     const messagesDiv = document.getElementById('messagesContainer');
@@ -1033,22 +1203,60 @@ function addSystemMessage(text) {
         <div class="system-message text-muted small">${text}</div>
     `;
 }
+async function refreshRoomsList() {
+    try {
+        const response = await axios.get('/sio/chat/active-rooms');
+
+        // Verifica la struttura della risposta
+        console.log("Dati ricevuti:", response.data);
+
+        // Assicurati che sia un array
+        const rooms = Array.isArray(response.data) ? response.data : [];
+
+        const roomsList = document.getElementById('roomsList');
+        roomsList.innerHTML = rooms.map(room => `
+            <a href="#" class="list-group-item list-group-item-action room-item"
+               data-room-id="${room.id}" data-room-type="${room.type || room.topic}"> <!-- Fallback su topic -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-${roomIcon(room.type || room.topic)} me-2"></i>
+                        ${room.name}
+                    </span>
+                    <span class="badge bg-primary rounded-pill">${room.userCount || 0}</span>
+                </div>
+            </a>
+        `).join('');
+    } catch (error) {
+        console.error('Errore caricamento stanze:', error);
+        // Fallback: mostra lista vuota
+        document.getElementById('roomsList').innerHTML =
+            '<div class="text-muted p-2">Nessuna stanza disponibile</div>';
+    }
+}
+
 
 function updateActiveRoomUI(roomData) {
-    // Aggiorna titolo stanza
-    document.getElementById('currentRoomTitle').textContent = roomData.name;
+    // Aggiorna titolo stanza - Mostra sia nome che codice
+    document.getElementById('currentRoomTitle').textContent =
+        `${roomData.name} (Codice: ${roomData.id})`;
 
-    // Abilita input messaggi
+    // Resto del codice rimane uguale...
     const inputContainer = document.getElementById('messageInputContainer');
     inputContainer.classList.remove('d-none');
     inputContainer.querySelector('input').disabled = false;
     inputContainer.querySelector('button').disabled = false;
 
-    // Aggiorna lista utenti (se presente nel DOM)
-    if (document.getElementById('roomUsers')) {
-        document.getElementById('roomUsers').innerHTML = roomData.users.map(u => `
-            <div class="user-badge">${u.username}</div>
-        `).join('');
+    const roomUsersElement = document.getElementById('roomUsers');
+    if (roomUsersElement) {
+        if (Array.isArray(roomData.users)) {
+            roomUsersElement.innerHTML = roomData.users.map(u => `
+                <div class="user-badge">${u.username}</div>
+            `).join('');
+        } else if (typeof roomData.users === 'number') {
+            roomUsersElement.innerHTML = `
+                <div class="user-count">${roomData.users} utenti</div>
+            `;
+        }
     }
 }
 
@@ -1340,7 +1548,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isAuthenticated = await checkAuthState();
         if (isAuthenticated) {
             showDashboard();
-
             // Determina la vista iniziale in base all'URL
             if (window.location.pathname === '/chat') {
                 AppState.navigateTo('chat');

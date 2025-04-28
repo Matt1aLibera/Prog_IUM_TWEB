@@ -72,40 +72,59 @@
     </div>
 </div>
 
-<!-- Modal creazione stanza -->
-<div class="modal fade" id="createRoomModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Crea nuova stanza</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Modal per creazione stanza -->
+<div id="createRoomModal" class="modal-custom">
+    <div class="modal-content-custom">
+        <div class="modal-header">
+            <h5>Crea nuova stanza</h5>
+            <button type="button" class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label for="roomNameInput">Nome stanza:</label>
+                <input type="text" id="roomNameInput" class="form-control"
+                       maxlength="50" required placeholder="Inserisci un nome (max 50 caratteri)">
             </div>
-            <div class="modal-body">
-                <form id="createRoomForm">
-                    <div class="mb-3">
-                        <label class="form-label">Tipo stanza:</label>
-                        <select id="roomType" class="form-select">
-                            <option value="film">Film</option>
-                            <option value="actor">Attore</option>
-                            <option value="crew">Membro Crew</option>
-                            <option value="character">Personaggio</option>
-                        </select>
-                    </div>
+            <div class="mb-3">
+                <label for="roomTopicSelect">Argomento:</label>
+                <select id="roomTopicSelect" class="form-select" required>
+                    <option value="" disabled selected>Seleziona un argomento</option>
+                    <option value="film">Film</option>
+                    <option value="attore">Attore</option>
+                    <option value="crew">Crew</option>
+                    <option value="personaggio">Personaggio</option>
+                    <option value="generale">Generale</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="roomCodeInput">Codice stanza (opzionale):</label>
+                <input type="text" id="roomCodeInput" class="form-control"
+                       placeholder="Lascia vuoto per generare automaticamente">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="confirmCreateRoom" class="btn btn-primary">Crea</button>
+            <button class="btn btn-secondary close-modal">Annulla</button>
+        </div>
+    </div>
+</div>
 
-                    <div id="dynamicFieldsContainer">
-                        <!-- Campi dinamici verranno inseriti qui -->
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Nome stanza (opzionale):</label>
-                        <input type="text" id="roomCustomName" class="form-control">
-                    </div>
-                </form>
+<!-- Modal per unione a stanza -->
+<div id="joinRoomModal" class="modal-custom">
+    <div class="modal-content-custom">
+        <div class="modal-header">
+            <h5>Unisciti a stanza</h5>
+            <button type="button" class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label>Codice stanza:</label>
+                <input type="text" id="joinRoomCode" class="form-control">
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                <button type="button" id="confirmCreateRoom" class="btn btn-primary">Crea</button>
-            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="confirmJoin" class="btn btn-primary">Unisciti</button>
+            <button class="btn btn-secondary close-modal">Annulla</button>
         </div>
     </div>
 </div>

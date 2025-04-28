@@ -44,22 +44,62 @@ async function getActiveChatRooms() {
         return []; // Fallback vuoto
     }
 }
-
-router.get('/active-rooms', async (req, res) => {
+router.post('/chat/createRoom', async (req, res) => {
     try {
-        const rooms = await Room.find()
-            .sort({ createdAt: -1 })
-            .limit(20)
-            .lean();
+        const response = await axios.post(`${CHAT_SERVER_URL}/chat/createRoom`, req.body, {
+            timeout: 5000
+        });
 
-        res.json(rooms.map(room => ({
+        // Inoltra la risposta del MongoDB server al client
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        console.error('Proxy error:', error.message);
+
+        // Gestisci diversi tipi di errori
+        if (error.response) {
+            // Errore dal MongoDB server
+            res.status(error.response.status).json(error.response.data);
+        } else if (error.request) {
+            // Nessuna risposta dal MongoDB server
+            res.status(503).json({
+                success: false,
+                error: 'Il servizio chat non è al momento disponibile'
+            });
+        } else {
+            // Altri errori
+            res.status(500).json({
+                success: false,
+                error: 'Errore interno del server'
+            });
+        }
+    }
+});
+
+
+router.get('/chat/active-rooms', async (req, res) => {
+    try {
+        const response = await axios.get(`${CHAT_SERVER_URL}/chat/getRooms`, {
+            timeout: 5000
+        });
+
+        // Estrai l'array rooms dalla risposta
+        const roomsData = response.data.rooms || []; // <-- Modifica chiave qui
+
+        // Mappa i dati
+        const rooms = roomsData.map(room => ({
             id: room._id,
             name: room.name,
-            type: room.type,
-            userCount: 0 // Aggiornato dal server socket
-        })));
+            type: room.topic, // Usa topic come type
+            userCount: 0
+        }));
+
+        res.json(rooms); // Invia direttamente l'array
     } catch (error) {
-        res.status(500).json({ error: "Errore nel recupero stanze" });
+        console.error('Error fetching rooms:', error);
+        res.status(500).json({
+            error: "Errore nel recupero stanze",
+            details: error.message
+        });
     }
 });
 

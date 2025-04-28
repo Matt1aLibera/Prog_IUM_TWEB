@@ -1,77 +1,113 @@
 const activeRooms = new Map();
 
+
 module.exports = {
-    init: function (io) {
-        io.on('connection', (socket) => {
-            const chatNamespace = io.of('/chat');
-            chatNamespace.on('connection', (socket) => {
-                console.log(`Connesso al namespace /chat: ${socket.id}`);
+    init: function(io) {
+        const chatNamespace = io.of('/chat');
 
-                // 1. Ricevi i dati utente dal client
-                socket.on('init', (userData, callback) => {
-                    // 2. Assegna i dati utente al socket
-                    socket.user = {
-                        id: userData.id,
-                        username: userData.username
+        chatNamespace.on('connection', (socket) => {
+            console.log(`Connesso al namespace /chat: ${socket.id}`);
+
+            // Autenticazione
+            socket.on('init', (userData, callback) => {
+                socket.user = {
+                    id: userData.id,
+                    username: userData.username
+                };
+                callback({ success: true });
+            });
+
+            // Creazione o connessione a stanza
+            socket.on('chat:join_or_create', (data, callback) => { // Ora riceve 'data' invece di solo roomCode
+                if (!socket.user) {
+                    return callback({ success: false, error: 'Not authenticated' });
+                }
+
+                const { code, name, topic } = data; // Estrai i parametri
+                let room = activeRooms.get(code);
+                const isNewRoom = !room;
+
+                if (isNewRoom) {
+                    room = {
+                        id: code,
+                        name: name || `Stanza ${code}`, // Usa il nome fornito o un default
+                        topic: topic || 'generale',     // Aggiungi il topic
+                        users: new Set(),
+                        createdAt: new Date()
                     };
+                    activeRooms.set(code, room);
+                }
 
-                    console.log(`User initialized: ${socket.user.username}`);
-                    callback({success: true});
+                room.users.add(socket.user.id);
+                socket.join(code);
+
+                callback({
+                    success: true,
+                    isNewRoom,
+                    roomData: {
+                        id: code,
+                        name: room.name, // Assicurati che sia una stringa
+                        topic: room.topic,
+                        users: Array.from(room.users).length
+                    }
                 });
 
-                // 3. Timeout per autenticazione
-                const authTimeout = setTimeout(() => {
-                    if (!socket.user) {
-                        socket.disconnect();
-                    }
-                }, 5000);
-
-                // 4. Gestione stanze (modificata)
-                socket.on('chat:join', (roomId, callback) => {
-                    if (!socket.user) {
-                        return callback({success: false, error: 'Not authenticated'});
-                    }
-
-                    // [RESTANTE LOGICA ESISTENTE...]
-                    const room = activeRooms.get(roomId) || {
-                        name: `Stanza ${roomId}`,
-                        users: new Set()
-                    };
-
-                    room.users.add(socket.user.id);
-                    activeRooms.set(roomId, room);
-
-                    socket.join(roomId);
-                    callback({
-                        success: true,
-                        roomData: {
-                            id: roomId,
-                            name: room.name,
-                            users: Array.from(room.users)
-                        }
-                    });
-
-                    socket.to(roomId).emit('chat:user_joined', {
+                if (!isNewRoom) {
+                    socket.to(code).emit('chat:user_joined', {
                         userId: socket.user.id,
                         username: socket.user.username
                     });
+                }
+            });
+
+            // Invio messaggi
+            socket.on('chat:message', (data, callback) => {
+                if (!socket.user || !data.roomId || typeof data.message !== 'string') {
+                    return callback({
+                        success: false,
+                        error: 'Dati non validi o non autorizzati'
+                    });
+                }
+
+                if (!socket.rooms.has(data.roomId)) {
+                    return callback({
+                        success: false,
+                        error: 'Non sei nella stanza'
+                    });
+                }
+
+                console.log('Messaggio ricevuto:', { // Debug
+                    room: data.roomId,
+                    user: socket.user.username,
+                    message: data.message
                 });
 
-                // [ALTRI EVENTI ESISTENTI...]
+                chatNamespace.to(data.roomId).emit('chat:message', {
+                    user: socket.user,
+                    message: data.message,
+                    timestamp: new Date(),
+                    roomId: data.roomId
+                });
 
-                socket.on('disconnect', () => {
-                    clearTimeout(authTimeout);
-                    if (socket.user) {
-                        activeRooms.forEach((room, roomId) => {
-                            if (room.users.has(socket.user.id)) {
-                                room.users.delete(socket.user.id);
-                                io.to(roomId).emit('chat:user_left', {
+                callback({ success: true });
+            });
+
+            // Disconnessione
+            socket.on('disconnect', () => {
+                if (socket.user) {
+                    activeRooms.forEach((room, roomCode) => {
+                        if (room.users.has(socket.user.id)) {
+                            room.users.delete(socket.user.id);
+                            if (room.users.size === 0) {
+                                activeRooms.delete(roomCode);
+                            } else {
+                                socket.to(roomCode).emit('chat:user_left', {
                                     userId: socket.user.id
                                 });
                             }
-                        });
-                    }
-                });
+                        }
+                    });
+                }
             });
         });
     }
