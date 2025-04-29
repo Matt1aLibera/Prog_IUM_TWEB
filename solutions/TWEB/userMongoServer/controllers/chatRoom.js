@@ -22,25 +22,25 @@ exports.createRoom = [
     ensureDBConnection,
     async (req, res) => {
         try {
-            const { name, topic } = req.body;
+            const { name, topic, code } = req.body; // <-- Aggiungi code
 
-            if (!name || !topic) {
+            if (!name || !topic || !code) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Nome e topic sono obbligatori'
+                    error: 'Nome, topic e codice sono obbligatori'
                 });
             }
 
-            const room = new ChatRoom({ name, topic });
+            const room = new ChatRoom({ name, topic, code }); // <-- Includi code
             await room.save();
 
             res.status(201).json({
                 success: true,
                 room: {
                     id: room._id,
+                    code: room.code, // <-- Includi nel response
                     name: room.name,
-                    topic: room.topic,
-                    db: 'chatRoomDB' // Per debug
+                    topic: room.topic
                 }
             });
         } catch (error) {
@@ -84,33 +84,33 @@ exports.deleteRoom = [
     ensureDBConnection,
     async (req, res) => {
         try {
-            const { id } = req.params;
+            const { code } = req.params; // <-- Ora usiamo il code invece dell'id
 
-            if (!mongoose.Types.ObjectId.isValid(id)) {
+            if (!code) {
                 return res.status(400).json({
                     success: false,
-                    error: 'ID non valido'
+                    error: 'Codice stanza mancante'
                 });
             }
 
-            const result = await ChatRoom.findByIdAndDelete(id);
+            const result = await ChatRoom.findOneAndDelete({ code: code }); // <-- Cerca per code
 
             if (!result) {
                 return res.status(404).json({
                     success: false,
-                    error: 'Room non trovata'
+                    error: 'Stanza non trovata'
                 });
             }
 
             res.json({
                 success: true,
-                message: 'Room eliminata',
-                db: 'chatRoomDB' // Per debug
+                message: 'Stanza eliminata',
+                deletedRoom: result
             });
         } catch (error) {
             res.status(500).json({
                 success: false,
-                error: 'Errore eliminazione room',
+                error: 'Errore eliminazione stanza',
                 details: error.message
             });
         }

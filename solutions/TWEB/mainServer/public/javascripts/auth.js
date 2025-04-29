@@ -938,6 +938,26 @@ function configureSocketEvents() {
         console.log('Connesso al namespace /chat');
     });
 
+    socket.on('chat:room_created', () => {
+        refreshRoomsList();
+        showAlert('Nuova stanza disponibile!', 'info');
+    });
+
+    socket.on('chat:room_deleted', (data) => {
+        refreshRoomsList();
+        // Se eri nella stanza eliminata, resetta l'UI
+        if (currentRoom === data.roomCode) {
+            currentRoom = null;
+            updateActiveRoomUI(null);
+            document.getElementById('messagesContainer').innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-chat-square-text" style="font-size: 3rem;"></i>
+                <p class="mt-3">Seleziona una stanza per iniziare a chattare</p>
+            </div>
+        `;
+        }
+    });
+
     socket.on('chat:message', (data) => {
         if (data.roomId === currentRoom) {
             addMessageToUI(data.user.username, data.message, data.timestamp);
@@ -972,6 +992,19 @@ function setupUIEvents() {
     document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
     document.getElementById('messageInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
+    });
+    document.getElementById('leaveRoomBtn').addEventListener('click', () => {
+        leaveCurrentRoom();
+
+        // Resetta l'UI dopo l'uscita
+        currentRoom = null;
+        updateActiveRoomUI(null);
+        document.getElementById('messagesContainer').innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-chat-square-text" style="font-size: 3rem;"></i>
+                <p class="mt-3">Seleziona una stanza per iniziare a chattare</p>
+            </div>
+        `;
     });
 
     // ---------- AGGIUNGI QUI TUTTA LA GESTIONE DEI MODAL ----------
@@ -1107,7 +1140,8 @@ async function createNewRoom(roomData) {
         // 1. Prima crea la stanza nel database
         const response = await axios.post('/sio/chat/createRoom', {
             name: roomData.name,
-            topic: roomData.topic
+            topic: roomData.topic,
+            code: roomData.code
         }, {
             validateStatus: function (status) {
                 return status >= 200 && status < 500; // Considera i 4xx come risposte valide
@@ -1135,13 +1169,36 @@ function generateRoomCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+// Funzione per uscire da una stanza
+async function leaveCurrentRoom() {
+    if (!socket || !currentRoom) return;
+
+    return new Promise((resolve) => {
+        socket.emit('chat:leave', currentRoom, (response) => {
+            if (response?.success) {
+                addSystemMessage(`Hai lasciato la stanza`);
+                showAlert('Sei uscito dalla stanza', 'success');
+                currentRoom = null;
+                updateActiveRoomUI(null);
+            } else {
+                const errorMsg = response?.error || 'Errore durante l\'uscita';
+                showAlert(errorMsg, 'danger');
+            }
+            resolve(response?.success);
+        });
+    });
+}
 // Unione o creazione stanza
 function joinOrCreateRoom(roomCode, roomMeta = {}) {
     if (!socket) {
         console.error('Socket non inizializzato!');
         return;
     }
-
+    // Resetta l'UI prima di entrare in una nuova stanza
+    if (currentRoom) {
+        document.getElementById('messagesContainer').innerHTML = '';
+    }
+    leaveCurrentRoom(); // Esci dalla stanza corrente prima di entrare in una nuova
     socket.emit('chat:join_or_create', {
         code: roomCode,
         name: roomMeta.name || `Stanza ${roomCode}`,
@@ -1206,21 +1263,16 @@ function addSystemMessage(text) {
 async function refreshRoomsList() {
     try {
         const response = await axios.get('/sio/chat/active-rooms');
-
-        // Verifica la struttura della risposta
-        console.log("Dati ricevuti:", response.data);
-
-        // Assicurati che sia un array
         const rooms = Array.isArray(response.data) ? response.data : [];
 
         const roomsList = document.getElementById('roomsList');
         roomsList.innerHTML = rooms.map(room => `
             <a href="#" class="list-group-item list-group-item-action room-item"
-               data-room-id="${room.id}" data-room-type="${room.type || room.topic}"> <!-- Fallback su topic -->
+               data-room-id="${room.id}" data-room-type="${room.topic}">
                 <div class="d-flex justify-content-between align-items-center">
                     <span>
-                        <i class="bi bi-${roomIcon(room.type || room.topic)} me-2"></i>
-                        ${room.name}
+                        <i class="bi bi-${roomIcon(room.topic)} me-2"></i>
+                        ${room.name} <small class="text-muted">(${room.id})</small>
                     </span>
                     <span class="badge bg-primary rounded-pill">${room.userCount || 0}</span>
                 </div>
@@ -1228,55 +1280,50 @@ async function refreshRoomsList() {
         `).join('');
     } catch (error) {
         console.error('Errore caricamento stanze:', error);
-        // Fallback: mostra lista vuota
-        document.getElementById('roomsList').innerHTML =
-            '<div class="text-muted p-2">Nessuna stanza disponibile</div>';
+        document.getElementById('roomsList').innerHTML = `
+            <div class="text-muted p-2">Errore nel caricamento delle stanze</div>
+        `;
     }
 }
 
 
 function updateActiveRoomUI(roomData) {
-    // Aggiorna titolo stanza - Mostra sia nome che codice
-    document.getElementById('currentRoomTitle').textContent =
-        `${roomData.name} (Codice: ${roomData.id})`;
-
-    // Resto del codice rimane uguale...
+    const leaveBtn = document.getElementById('leaveRoomBtn');
     const inputContainer = document.getElementById('messageInputContainer');
-    inputContainer.classList.remove('d-none');
-    inputContainer.querySelector('input').disabled = false;
-    inputContainer.querySelector('button').disabled = false;
-
     const roomUsersElement = document.getElementById('roomUsers');
-    if (roomUsersElement) {
-        if (Array.isArray(roomData.users)) {
-            roomUsersElement.innerHTML = roomData.users.map(u => `
-                <div class="user-badge">${u.username}</div>
-            `).join('');
-        } else if (typeof roomData.users === 'number') {
-            roomUsersElement.innerHTML = `
-                <div class="user-count">${roomData.users} utenti</div>
-            `;
+    const currentRoomTitle = document.getElementById('currentRoomTitle');
+
+    if (roomData) {
+        // Mostra il bottone e aggiorna UI
+        leaveBtn.classList.remove('d-none');
+        currentRoomTitle.textContent = `${roomData.name} (Codice: ${roomData.id})`;
+        inputContainer.classList.remove('d-none');
+        inputContainer.querySelector('input').disabled = false;
+        inputContainer.querySelector('button').disabled = false;
+
+        // Aggiorna lista utenti
+        if (roomUsersElement) {
+            if (Array.isArray(roomData.users)) {
+                roomUsersElement.innerHTML = roomData.users.map(u => `
+                    <div class="user-badge">${u.username}</div>
+                `).join('');
+            } else if (typeof roomData.users === 'number') {
+                roomUsersElement.innerHTML = `
+                    <div class="user-count">${roomData.users} utenti</div>
+                `;
+            }
+        }
+    } else {
+        // Nascondi il bottone e resetta UI
+        leaveBtn.classList.add('d-none');
+        currentRoomTitle.textContent = 'Seleziona una stanza';
+        inputContainer.classList.add('d-none');
+
+        if (roomUsersElement) {
+            roomUsersElement.innerHTML = '';
         }
     }
 }
-
-// Helper per aggiornare la lista delle stanze nell'UI
-function updateRoomsListUI(rooms) {
-    const roomsList = document.getElementById('roomsList');
-    roomsList.innerHTML = rooms.map(room => `
-        <a href="#" class="list-group-item list-group-item-action room-item ${room.id === currentRoom ? 'active' : ''}"
-           data-room-id="${room.id}" data-room-type="${room.type}">
-            <div class="d-flex justify-content-between align-items-center">
-                <span>
-                    <i class="bi bi-${roomIcon(room.type)} me-2"></i>
-                    ${room.name}
-                </span>
-                <span class="badge bg-primary rounded-pill">${room.userCount}</span>
-            </div>
-        </a>
-    `).join('');
-}
-
 // Helper per l'icona della stanza (da implementare in base alle tue esigenze)
 function roomIcon(type) {
     const icons = {

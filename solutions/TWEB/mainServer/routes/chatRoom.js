@@ -103,4 +103,23 @@ router.get('/chat/active-rooms', async (req, res) => {
     }
 });
 
+// Route per cancellare una stanza (chiamata da Socket.IO)
+router.delete('/chat/deleteRoom/:code', async (req, res) => {
+    try {
+        // Inoltra la richiesta al MongoDB server
+        const response = await axios.delete(`${CHAT_SERVER_URL}/chat/deleteRoom/${req.params.code}`);
+
+        // Restituisci la risposta del MongoDB server al chiamante (Socket.IO)
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        // Gestisci errori di connessione al MongoDB server
+        console.error('Errore cancellazione stanza:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Errore durante la cancellazione',
+            details: error.message
+        });
+    }
+});
+
 module.exports = router;

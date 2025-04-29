@@ -12,6 +12,12 @@ const chatRoomSchema = new Schema({
         type: String,
         required: true,
         enum: ['film', 'attore', 'crew', 'personaggio', 'generale']
+    },
+    code: {  // <-- Aggiungi questo campo
+        type: String,
+        required: true,
+        unique: true,
+        index: true
     }
 }, {
     timestamps: true // Aggiunge createdAt e updatedAt automaticamente
