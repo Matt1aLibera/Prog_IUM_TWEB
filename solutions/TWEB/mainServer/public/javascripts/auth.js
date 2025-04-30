@@ -346,7 +346,9 @@ async function handleChatClick(button) {
 
     try {
         // 1. Carica il contenuto
-        const response = await axios.get('/sio/chat/view');
+        const response = await axios.get('/sio/chat', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' } // Assicura che req.xhr sia true
+        });
         document.getElementById('chatSection').innerHTML = response.data;
 
         // 2. Attendiamo il rendering del DOM
@@ -368,18 +370,6 @@ async function handleChatClick(button) {
     } finally {
         button.innerHTML = originalHtml;
         button.disabled = false;
-    }
-}
-async function loadChatView() {
-    try {
-        // Carica la view solo se non è già presente
-        if (!document.getElementById('chatSection').innerHTML) {
-            const response = await axios.get('/sio/chat/view');
-            document.getElementById('chatSection').innerHTML = response.data;
-        }
-    } catch (error) {
-        console.error('Failed to load chat view:', error);
-        throw error;
     }
 }
 
@@ -979,7 +969,7 @@ function setupUIEvents() {
         if (roomItem) {
             e.preventDefault();
             showJoinModal(
-                roomItem.dataset.roomId,
+                '', // <-- Passa stringa vuota invece dell'ID
                 roomItem.querySelector('span').textContent.trim()
             );
         }
@@ -1054,24 +1044,31 @@ function setupUIEvents() {
 }
 // Mostra modal per unione
 
-function showJoinModal(roomId, roomName = '') {
+function showJoinModal(roomId = '', roomName = '') {
     const joinCodeInput = document.getElementById('joinRoomCode');
-    joinCodeInput.value = roomId;
+    joinCodeInput.value = ''; // <-- Imposta il valore vuoto invece di roomId
 
     // Aggiungi nome stanza se disponibile
     if (roomName) {
         document.querySelector('#joinRoomModal .modal-header h5').textContent =
             `Unisciti a "${roomName}"`;
+    } else {
+        document.querySelector('#joinRoomModal .modal-header h5').textContent =
+            'Unisciti a stanza';
     }
 
     showModal('joinRoomModal');
 
     const confirmBtn = document.getElementById('confirmJoin');
-    confirmBtn.onclick = () => {
+    // Rimuovi il vecchio event listener per evitare duplicati
+    confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+    document.getElementById('confirmJoin').onclick = () => {
         const code = joinCodeInput.value.trim();
         if (code) {
             joinOrCreateRoom(code);
             hideModal('joinRoomModal');
+        } else {
+            showAlert('Inserisci un codice stanza valido', 'warning');
         }
     };
 }
@@ -1267,17 +1264,17 @@ async function refreshRoomsList() {
 
         const roomsList = document.getElementById('roomsList');
         roomsList.innerHTML = rooms.map(room => `
-            <a href="#" class="list-group-item list-group-item-action room-item"
-               data-room-id="${room.id}" data-room-type="${room.topic}">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>
-                        <i class="bi bi-${roomIcon(room.topic)} me-2"></i>
-                        ${room.name} <small class="text-muted">(${room.id})</small>
-                    </span>
-                    <span class="badge bg-primary rounded-pill">${room.userCount || 0}</span>
-                </div>
-            </a>
-        `).join('');
+    <a href="#" class="list-group-item list-group-item-action room-item"
+       data-room-id="${room.id}" data-room-type="${room.type}">
+        <div class="d-flex justify-content-between align-items-center">
+            <span>
+                <i class="bi bi-${roomIcon(room.type)} me-2"></i>
+                ${room.name} <small class="text-muted">(${room.type})</small>
+            </span>
+            <span class="badge bg-primary rounded-pill">${room.userCount || 0}</span>
+        </div>
+    </a>
+`).join('');
     } catch (error) {
         console.error('Errore caricamento stanze:', error);
         document.getElementById('roomsList').innerHTML = `
@@ -1384,9 +1381,12 @@ const AppState = {
     },
 
     showChat: async function() {
+        // Nascondi tutte le altre view prima
         document.getElementById('carouselSection').classList.add('d-none');
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.add('d-none');
+
+        // Mostra la chat
         document.getElementById('chatSection').classList.remove('d-none');
 
         if (!this.chatInitialized) {
@@ -1399,12 +1399,14 @@ const AppState = {
         document.getElementById('carouselSection').classList.remove('d-none');
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.add('d-none');
+        document.getElementById('chatSection').classList.add('d-none');
     },
 
     showFilmDetails: async function (filmId) {
         document.getElementById('carouselSection').classList.add('d-none');
         document.getElementById('searchResultsSection').classList.add('d-none');
         document.getElementById('filmDetailSection').style.display = 'block';
+        document.getElementById('chatSection').classList.add('d-none');
 
         await showFilmDetails(filmId);
     },
@@ -1413,9 +1415,11 @@ const AppState = {
         document.getElementById('carouselSection').classList.add('d-none');
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.remove('d-none');
+        document.getElementById('chatSection').classList.add('d-none');
 
         updateSearchResults(query, page);
     },
+
 
     updateHistory: function(view, params) {
         // Validazione minima
@@ -1456,7 +1460,7 @@ const AppState = {
                 };
                 break;
             case 'chat':
-                url = '/chat';
+                url = '/sio/chat';
                 state = { view: 'chat' };
                 break;
         }
@@ -1497,7 +1501,7 @@ const AppState = {
                             url.searchParams.get('q'),
                             parseInt(url.searchParams.get('page')) || 0
                         );
-                    } else if (url.pathname === '/chat') {
+                    } else if (url.pathname === '/sio/chat') {
                         this._navigateToChat();
                     }
                     else {

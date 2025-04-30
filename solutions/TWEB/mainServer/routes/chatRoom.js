@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
-
+const path = require('path');
 // Configurazione
 const CHAT_SERVER_URL = 'http://localhost:3001'; // URL del server chat
 
 // Route principale per la chat SPA
-router.get('/chat/view', async (req, res) => {
+router.get('/chat', async (req, res) => {
     if (!req.session.user) {
         return res.status(401).send('<div class="alert alert-warning">Login required</div>');
     }
@@ -121,5 +121,4 @@ router.delete('/chat/deleteRoom/:code', async (req, res) => {
         });
     }
 });
-
 module.exports = router;
