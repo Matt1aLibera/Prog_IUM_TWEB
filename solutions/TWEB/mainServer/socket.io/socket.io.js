@@ -5,17 +5,18 @@ module.exports = {
     init: function(io) {
         const chatNamespace = io.of('/chat');
 
-        chatNamespace.on('connection', (socket) => {
-            console.log(`Connesso al namespace /chat: ${socket.id}`);
+        chatNamespace.use((socket, next) => {
+            // Middleware di autenticazione
+            const { userId, username } = socket.handshake.auth;
+            if (userId && username) {
+                socket.user = { id: userId, username };
+                return next();
+            }
+            next(new Error('Authentication error'));
+        });
 
-            // Autenticazione
-            socket.on('init', (userData, callback) => {
-                socket.user = {
-                    id: userData.id,
-                    username: userData.username
-                };
-                callback({ success: true });
-            });
+        chatNamespace.on('connection', (socket) => {
+            console.log(`Utente connesso: ${socket.user.username} (${socket.id})`);
 
             // Creazione o connessione a stanza
             socket.on('chat:join_or_create', (data, callback) => { // Ora riceve 'data' invece di solo roomCode

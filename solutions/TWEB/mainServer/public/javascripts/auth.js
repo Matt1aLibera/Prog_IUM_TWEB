@@ -248,6 +248,11 @@ async function handleAuthRequest(form, endpoint, data, buttonText, onSuccess) {
         const {data: result} = await axios.post(endpoint, data);
         if (result.success) {
             if (endpoint === '/auth/login') {
+                // Salva SOLO i dati necessari in sessionStorage
+                sessionStorage.setItem('chatUser', JSON.stringify({
+                    id: result.user.id,
+                    username: result.user.username
+                }));
                 window.location.reload();
             }
             if (typeof onSuccess === 'function') onSuccess(result.user || result);
@@ -887,26 +892,30 @@ let currentRoom = null;
 function initChatSystem() {
     if (!document.getElementById('chatSection')) return;
 
-    const chatData = JSON.parse(document.getElementById('chatData').textContent);
-
+    // Prendi i dati da sessionStorage invece che dal template
+    const chatUser = JSON.parse(sessionStorage.getItem('chatUser'));
+    if (!chatUser) {
+        return showAuthForms();
+    }
+    // Aggiorna il badge utente
+    const userBadge = document.getElementById('currentUserBadge');
+    if (userBadge) {
+        userBadge.textContent = `Utente: ${chatUser.username}`;
+    }
     // Invia prima l'evento 'init' per autenticare
     if (!socket) {
         socket = io('/chat', {
-            transports: ['websocket']
+            transports: ['websocket'],
+            auth: { // Invia i dati di autenticazione direttamente
+                userId: chatUser.id,
+                username: chatUser.username
+            }
         });
 
-        // Prima autentica, poi configura gli eventi
-        socket.emit('init', {
-            id: chatData.user.id,
-            username: chatData.user.username
-        }, (response) => {
-            if (!response.success) {
-                console.error('Autenticazione fallita');
-                return;
-            }
-
-            // Configura eventi solo dopo autenticazione
+        socket.on('connect', () => {
+            console.log('Connesso al namespace /chat');
             configureSocketEvents();
+            refreshRoomsList();
         });
     }
 
@@ -956,11 +965,32 @@ function configureSocketEvents() {
 
     socket.on('chat:user_joined', (user) => {
         addSystemMessage(`${user.username} si è unito alla chat`);
+        updateUserCount(1); // +1 utente
     });
 
     socket.on('chat:user_left', (user) => {
         addSystemMessage(`${user.username} ha lasciato la chat`);
+        updateUserCount(-1); // -1 utente
     });
+}
+// Nuova funzione helper
+function updateUserCount(change) {
+    const roomUsersElement = document.getElementById('roomUsers');
+    if (!roomUsersElement) return;
+
+    let countElement = roomUsersElement.querySelector('.user-count');
+
+    // Se non esiste, crealo
+    if (!countElement) {
+        roomUsersElement.innerHTML = '<div class="user-count">1 utente</div>';
+        countElement = roomUsersElement.querySelector('.user-count');
+    }
+
+    const currentCount = parseInt(countElement.textContent) || 1;
+    const newCount = Math.max(1, currentCount + change); // Minimo 1 utente
+
+    // Gestione singolare/plurale
+    countElement.textContent = `${newCount} utent${newCount === 1 ? 'e' : 'i'}`;
 }
 function setupUIEvents() {
     // Click su una stanza esistente
@@ -1176,7 +1206,7 @@ async function leaveCurrentRoom() {
                 addSystemMessage(`Hai lasciato la stanza`);
                 showAlert('Sei uscito dalla stanza', 'success');
                 currentRoom = null;
-                updateActiveRoomUI(null);
+                updateActiveRoomUI(null); // Questo ora resetta anche roomUsers
             } else {
                 const errorMsg = response?.error || 'Errore durante l\'uscita';
                 showAlert(errorMsg, 'danger');
@@ -1287,8 +1317,8 @@ async function refreshRoomsList() {
 function updateActiveRoomUI(roomData) {
     const leaveBtn = document.getElementById('leaveRoomBtn');
     const inputContainer = document.getElementById('messageInputContainer');
-    const roomUsersElement = document.getElementById('roomUsers');
     const currentRoomTitle = document.getElementById('currentRoomTitle');
+    const roomUsersElement = document.getElementById('roomUsers');
 
     if (roomData) {
         // Mostra il bottone e aggiorna UI
@@ -1298,24 +1328,16 @@ function updateActiveRoomUI(roomData) {
         inputContainer.querySelector('input').disabled = false;
         inputContainer.querySelector('button').disabled = false;
 
-        // Aggiorna lista utenti
+        // Inizializza il conteggio utenti
         if (roomUsersElement) {
-            if (Array.isArray(roomData.users)) {
-                roomUsersElement.innerHTML = roomData.users.map(u => `
-                    <div class="user-badge">${u.username}</div>
-                `).join('');
-            } else if (typeof roomData.users === 'number') {
-                roomUsersElement.innerHTML = `
-                    <div class="user-count">${roomData.users} utenti</div>
-                `;
-            }
+            roomUsersElement.innerHTML = '<div class="user-count">1 utente</div>';
         }
     } else {
         // Nascondi il bottone e resetta UI
         leaveBtn.classList.add('d-none');
         currentRoomTitle.textContent = 'Seleziona una stanza';
         inputContainer.classList.add('d-none');
-
+        // Resetta il conteggio utenti
         if (roomUsersElement) {
             roomUsersElement.innerHTML = '';
         }

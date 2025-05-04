@@ -7,18 +7,12 @@ const CHAT_SERVER_URL = 'http://localhost:3001'; // URL del server chat
 
 // Route principale per la chat SPA
 router.get('/chat', async (req, res) => {
-    if (!req.session.user) {
-        return res.status(401).send('<div class="alert alert-warning">Login required</div>');
-    }
-
     try {
+        // Non verifica alcuna sessione, serve solo a renderizzare la pagina vuota
         const activeRooms = await getActiveChatRooms();
         res.render('pages/chat-page', {
-            user: req.session.user,
             activeRooms,
-            chatDataJson: JSON.stringify({
-                user: req.session.user // Invia solo i dati necessari
-            }),
+            chatDataJson: JSON.stringify({}), // Dati vuoti
             layout: false
         });
     } catch (error) {
