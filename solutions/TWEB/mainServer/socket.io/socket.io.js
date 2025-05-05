@@ -19,49 +19,63 @@ module.exports = {
             console.log(`Utente connesso: ${socket.user.username} (${socket.id})`);
 
             // Creazione o connessione a stanza
-            socket.on('chat:join_or_create', (data, callback) => { // Ora riceve 'data' invece di solo roomCode
-                if (!socket.user) {
-                    return callback({ success: false, error: 'Not authenticated' });
-                }
+            socket.on('chat:join_or_create', (data, callback) => {
+                if (!socket.user) return callback({ error: 'Not authenticated' });
 
-                const { code, name, topic } = data; // Estrai i parametri
+                const { code, name, topic } = data;
                 let room = activeRooms.get(code);
                 const isNewRoom = !room;
 
                 if (isNewRoom) {
                     room = {
                         id: code,
-                        name: name || `Stanza ${code}`, // Usa il nome fornito o un default
-                        topic: topic || 'generale',     // Aggiungi il topic
-                        users: new Set(),
+                        name: name || `Stanza ${code}`,
+                        topic: topic || 'generale',
+                        users: new Map(),
                         createdAt: new Date()
                     };
                     activeRooms.set(code, room);
-                    chatNamespace.emit('chat:room_created', {
-                        id: code,
-                        name: room.name,
-                        topic: room.topic
-                    });
                 }
 
-                room.users.add(socket.user.id);
+                // Aggiungi l'utente alla stanza
+                room.users.set(socket.user.id, socket.user.username);
                 socket.join(code);
 
-                callback({
+                // Prepara i dati per la risposta
+                const userList = Array.from(room.users.values());
+                const responseData = {
                     success: true,
                     isNewRoom,
                     roomData: {
                         id: code,
-                        name: room.name, // Assicurati che sia una stringa
+                        name: room.name,
                         topic: room.topic,
-                        users: Array.from(room.users).length
+                        users: userList,
+                        userCount: userList.length
                     }
-                });
+                };
 
+                // Invia prima la risposta al client che si è unito
+                callback(responseData);
+
+                // Poi notifica tutti gli altri nella stanza
                 if (!isNewRoom) {
+                    chatNamespace.to(code).emit('chat:room_update', {
+                        roomId: code,
+                        users: userList,
+                        userCount: userList.length
+                    });
+
                     socket.to(code).emit('chat:user_joined', {
                         userId: socket.user.id,
                         username: socket.user.username
+                    });
+                } else {
+                    // Per le nuove stanze, emetti l'evento room_created
+                    chatNamespace.emit('chat:room_created', {
+                        id: code,
+                        name: room.name,
+                        topic: room.topic
                     });
                 }
             });
@@ -109,7 +123,15 @@ module.exports = {
                     room.users.delete(socket.user.id);
                     socket.leave(roomCode);
 
-                    // Notifica gli altri utenti
+                    // Invia aggiornamento a tutti nella stanza
+                    const userList = Array.from(room.users.values());
+                    chatNamespace.to(roomCode).emit('chat:room_update', {
+                        roomId: roomCode,
+                        users: userList,
+                        userCount: userList.length
+                    });
+
+                    // Notifica specifica per l'utente uscito
                     socket.to(roomCode).emit('chat:user_left', {
                         userId: socket.user.id,
                         username: socket.user.username

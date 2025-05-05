@@ -8,15 +8,51 @@ const CHAT_SERVER_URL = 'http://localhost:3001'; // URL del server chat
 // Route principale per la chat SPA
 router.get('/chat', async (req, res) => {
     try {
-        // Non verifica alcuna sessione, serve solo a renderizzare la pagina vuota
         const activeRooms = await getActiveChatRooms();
-        res.render('pages/chat-page', {
-            activeRooms,
-            chatDataJson: JSON.stringify({}), // Dati vuoti
-            layout: false
+
+        // Renderizza solo il contenuto della chat per le richieste AJAX
+        const chatHtml = await new Promise((resolve, reject) => {
+            res.app.render('pages/chat-page', {
+                activeRooms,
+                chatDataJson: JSON.stringify({}),
+                layout: false
+            }, (err, html) => {
+                if (err) reject(err);
+                else resolve(html);
+            });
         });
+
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+            res.send(chatHtml);
+        }
+        // Altrimenti renderizza la pagina completa
+        else {
+            res.render('pages/index', {
+                showCarousel: false,
+                showSearchResults: false,
+                showChat: true,  // Questo renderà visibile la chatSection
+                chatContent: chatHtml,
+                // Mantieni tutte le altre variabili necessarie al layout
+                user: req.user,  // se usi autenticazione
+                pageTitle: "Chat"  // o altre meta-info
+            });
+        }
     } catch (error) {
-        res.status(500).send(`<div class="alert alert-danger">Error: ${error.message}</div>`);
+        const errorHtml = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+            res.status(500).send(errorHtml);
+        } else {
+            res.render('pages/index', {
+                showCarousel: false,
+                showSearchResults: false,
+                showChat: true,
+                chatContent: errorHtml,
+                // Mantieni tutte le altre variabili necessarie
+                user: req.user,
+                pageTitle: "Chat Error"
+            });
+        }
     }
 });
 // Helper per ottenere le stanze attive dal server chat

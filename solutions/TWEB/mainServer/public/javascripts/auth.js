@@ -32,11 +32,6 @@ function backToPreviousView() {
     window.history.go(-1);
 }
 
-// Gestione del tasto indietro del browser
-window.addEventListener('popstate', (event) => {
-    AppState.handlePopState(event); // Tutta la logica è centralizzata qui
-});
-
 function hideAllSections() {
     document.getElementById('authFormsSection')?.classList.add('hidden-section');
     document.getElementById('dashboardSection')?.classList.add('hidden-section');
@@ -350,16 +345,25 @@ async function handleChatClick(button) {
     button.disabled = true;
 
     try {
-        // 1. Carica il contenuto
-        const response = await axios.get('/sio/chat', {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' } // Assicura che req.xhr sia true
-        });
-        document.getElementById('chatSection').innerHTML = response.data;
+        // 1. Mostra la sezione chat
+        const chatSection = document.getElementById('chatSection');
+        chatSection.classList.remove('d-none');
 
-        // 2. Attendiamo il rendering del DOM
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // 2. Carica il contenuto solo se vuoto
+        if (chatSection.children.length === 0) {
+            const response = await axios.get('/sio/chat');
+            chatSection.innerHTML = response.data;
+            // Breve attesa per il rendering
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
 
         // 3. Inizializza la chat
+        if (!AppState.chatInitialized) {
+            await initChatSystem();
+            AppState.chatInitialized = true;
+        }
+
+        // 4. Aggiorna lo stato
         AppState.navigateTo('chat');
 
     } catch (error) {
@@ -367,8 +371,9 @@ async function handleChatClick(button) {
         document.getElementById('chatSection').innerHTML = `
             <div class="alert alert-danger">
                 Errore nel caricamento: ${error.message}
-                <button onclick="location.reload()" class="btn btn-sm btn-outline-danger ms-2">
-                    Ricarica
+                <button onclick="handleChatClick(this)" 
+                        class="btn btn-sm btn-outline-danger ms-2">
+                    Riprova
                 </button>
             </div>
         `;
@@ -890,8 +895,12 @@ function setupFilmCardClickHandlers() {
 let socket = null;
 let currentRoom = null;
 function initChatSystem() {
-    if (!document.getElementById('chatSection')) return;
-
+    // Verifica che la sezione chat esista e sia visibile
+    const chatSection = document.getElementById('chatSection');
+    if (!chatSection || chatSection.classList.contains('d-none')) {
+        console.log('Chat section non disponibile');
+        return;
+    }
     // Prendi i dati da sessionStorage invece che dal template
     const chatUser = JSON.parse(sessionStorage.getItem('chatUser'));
     if (!chatUser) {
@@ -919,16 +928,19 @@ function initChatSystem() {
         });
     }
 
+    // Setup eventi solo per elementi esistenti
     setupUIEvents();
-    if (currentRoom) updateActiveRoomUI({
-        id: currentRoom,
-        name: `Stanza ${currentRoom}`,
-        users: 1
-    });
+
+    if (currentRoom) {
+        updateActiveRoomUI({
+            id: currentRoom,
+            name: `Stanza ${currentRoom}`,
+            users: 1
+        });
+    }
+
     // Ascolta aggiornamenti stanze
     socket.on('chat:rooms_updated', refreshRoomsList);
-
-    // Carica inizialmente le stanze
     refreshRoomsList();
 }
 
@@ -957,6 +969,12 @@ function configureSocketEvents() {
         }
     });
 
+    socket.on('chat:room_update', (data) => {
+        if (currentRoom === data.roomId) {
+            updateRoomUsers(data.users, data.userCount);
+        }
+    });
+
     socket.on('chat:message', (data) => {
         if (data.roomId === currentRoom) {
             addMessageToUI(data.user.username, data.message, data.timestamp);
@@ -965,66 +983,72 @@ function configureSocketEvents() {
 
     socket.on('chat:user_joined', (user) => {
         addSystemMessage(`${user.username} si è unito alla chat`);
-        updateUserCount(1); // +1 utente
     });
 
     socket.on('chat:user_left', (user) => {
         addSystemMessage(`${user.username} ha lasciato la chat`);
-        updateUserCount(-1); // -1 utente
     });
 }
 // Nuova funzione helper
-function updateUserCount(change) {
+function updateRoomUsers(users, count) {
     const roomUsersElement = document.getElementById('roomUsers');
     if (!roomUsersElement) return;
 
-    let countElement = roomUsersElement.querySelector('.user-count');
+    const currentUser = JSON.parse(sessionStorage.getItem('chatUser'));
 
-    // Se non esiste, crealo
-    if (!countElement) {
-        roomUsersElement.innerHTML = '<div class="user-count">1 utente</div>';
-        countElement = roomUsersElement.querySelector('.user-count');
+    roomUsersElement.innerHTML = `
+        <div class="user-count">${count} utenti</div>
+        ${users.map(user =>
+        `<div class="user-badge ${user === currentUser?.username ? 'you' : ''}">
+                ${user === currentUser?.username ? 'Tu' : user}
+            </div>`
+    ).join('')}
+    `;
+}
+
+function setupUIEvents() {
+    // Helper per aggiungere event listener con controllo null
+    function safeAddListener(selector, event, handler) {
+        const element = document.getElementById(selector);
+        if (element) {
+            element.addEventListener(event, handler);
+        } else {
+            console.warn(`Elemento ${selector} non trovato per l'evento ${event}`);
+        }
     }
 
-    const currentCount = parseInt(countElement.textContent) || 1;
-    const newCount = Math.max(1, currentCount + change); // Minimo 1 utente
-
-    // Gestione singolare/plurale
-    countElement.textContent = `${newCount} utent${newCount === 1 ? 'e' : 'i'}`;
-}
-function setupUIEvents() {
     // Click su una stanza esistente
-    document.getElementById('roomsList').addEventListener('click', (e) => {
-        const roomItem = e.target.closest('.room-item');
-        if (roomItem) {
-            e.preventDefault();
-            showJoinModal(
-                '', // <-- Passa stringa vuota invece dell'ID
-                roomItem.querySelector('span').textContent.trim()
-            );
-        }
-    });
+    const roomsList = document.getElementById('roomsList');
+    if (roomsList) {
+        roomsList.addEventListener('click', (e) => {
+            const roomItem = e.target.closest('.room-item');
+            if (roomItem) {
+                e.preventDefault();
+                showJoinModal('', roomItem.querySelector('span').textContent.trim());
+            }
+        });
+    }
 
-    // Pulsante crea nuova stanza
-    document.getElementById('createRoomBtn').addEventListener('click', showCreateModal);
-
-    // Invio messaggio
-    document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
-    document.getElementById('messageInput').addEventListener('keypress', (e) => {
+    // Aggiungi listener solo se gli elementi esistono
+    safeAddListener('createRoomBtn', 'click', showCreateModal);
+    safeAddListener('sendMessageBtn', 'click', sendMessage);
+    safeAddListener('messageInput', 'keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
-    document.getElementById('leaveRoomBtn').addEventListener('click', () => {
+    safeAddListener('leaveRoomBtn', 'click', () => {
         leaveCurrentRoom();
-
         // Resetta l'UI dopo l'uscita
         currentRoom = null;
         updateActiveRoomUI(null);
-        document.getElementById('messagesContainer').innerHTML = `
-            <div class="text-center text-muted py-5">
-                <i class="bi bi-chat-square-text" style="font-size: 3rem;"></i>
-                <p class="mt-3">Seleziona una stanza per iniziare a chattare</p>
-            </div>
-        `;
+        const messagesContainer = document.getElementById('messagesContainer');
+        if (messagesContainer) {
+            messagesContainer.innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-chat-square-text" style="font-size: 3rem;"></i>
+                    <p class="mt-3">Seleziona una stanza per iniziare a chattare</p>
+                </div>
+            `;
+        }
     });
 
     // ---------- AGGIUNGI QUI TUTTA LA GESTIONE DEI MODAL ----------
@@ -1233,12 +1257,7 @@ function joinOrCreateRoom(roomCode, roomMeta = {}) {
     }, (response) => {
         if (response?.success) {
             currentRoom = roomCode;
-            updateActiveRoomUI({
-                id: roomCode,
-                name: response.roomData.name,
-                topic: response.roomData.topic,
-                users: response.roomData.users || 1
-            });
+            updateActiveRoomUI(response.roomData);
 
             // MODIFICA QUI - Nuovo formato messaggio
             const msg = roomMeta.isNew ?
@@ -1301,7 +1320,6 @@ async function refreshRoomsList() {
                 <i class="bi bi-${roomIcon(room.type)} me-2"></i>
                 ${room.name} <small class="text-muted">(${room.type})</small>
             </span>
-            <span class="badge bg-primary rounded-pill">${room.userCount || 0}</span>
         </div>
     </a>
 `).join('');
@@ -1321,23 +1339,28 @@ function updateActiveRoomUI(roomData) {
     const roomUsersElement = document.getElementById('roomUsers');
 
     if (roomData) {
-        // Mostra il bottone e aggiorna UI
         leaveBtn.classList.remove('d-none');
         currentRoomTitle.textContent = `${roomData.name} (Codice: ${roomData.id})`;
         inputContainer.classList.remove('d-none');
         inputContainer.querySelector('input').disabled = false;
         inputContainer.querySelector('button').disabled = false;
 
-        // Inizializza il conteggio utenti
         if (roomUsersElement) {
-            roomUsersElement.innerHTML = '<div class="user-count">1 utente</div>';
+            const currentUser = JSON.parse(sessionStorage.getItem('chatUser'));
+            roomUsersElement.innerHTML = `
+                <div class="user-count">${roomData.userCount} utenti</div>
+                ${roomData.users.map(user =>
+                `<div class="user-badge ${user === currentUser?.username ? 'you' : ''}">
+                        ${user === currentUser?.username ? 'Tu' : user}
+                    </div>`
+            ).join('')}
+            `;
         }
     } else {
-        // Nascondi il bottone e resetta UI
         leaveBtn.classList.add('d-none');
         currentRoomTitle.textContent = 'Seleziona una stanza';
         inputContainer.classList.add('d-none');
-        // Resetta il conteggio utenti
+
         if (roomUsersElement) {
             roomUsersElement.innerHTML = '';
         }
@@ -1377,7 +1400,7 @@ const AppState = {
         timestamp: 0,
     },
 
-    navigateTo: function (view, params = {}) {
+    navigateTo: function (view, params = {}, replace = false) {
         this.previousView = this.currentView;
         this.currentView = view;
 
@@ -1399,7 +1422,7 @@ const AppState = {
                 break;
         }
 
-        this.updateHistory(view, params);
+        this.updateHistory(view, params, replace);
     },
 
     showChat: async function() {
@@ -1417,11 +1440,50 @@ const AppState = {
         }
     },
 
-    showCarousel: function () {
-        document.getElementById('carouselSection').classList.remove('d-none');
+    showCarousel: async function () {
+        const carouselSection = document.getElementById('carouselSection');
+        const previousContent = carouselSection.innerHTML;
+        carouselSection.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Caricamento...</span>
+            </div>
+            <p class="mt-3">Caricamento film...</p>
+        </div>
+    `;
+        // Mostra la sezione
+        carouselSection.classList.remove('d-none');
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.add('d-none');
         document.getElementById('chatSection').classList.add('d-none');
+
+        try {
+            // Ricarica i film solo se necessario
+            if (document.querySelectorAll('.film-poster-container').length === 0) {
+                const response = await axios.get('/');
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(response.data, 'text/html');
+                const newCarousel = doc.getElementById('carouselSection');
+
+                if (newCarousel) {
+                    carouselSection.innerHTML = newCarousel.innerHTML;
+                    setupFilmCardClickHandlers();
+                } else {
+                    carouselSection.innerHTML = previousContent;
+                }
+            }
+        } catch (error) {
+            console.error('Error reloading carousel:', error);
+            carouselSection.innerHTML = `
+            <div class="alert alert-danger">
+                Errore nel caricamento del carosello
+                <button onclick="AppState.navigateTo('carousel')" 
+                        class="btn btn-sm btn-outline-danger ms-2">
+                    Riprova
+                </button>
+            </div>
+        `;
+        }
     },
 
     showFilmDetails: async function (filmId) {
@@ -1443,7 +1505,7 @@ const AppState = {
     },
 
 
-    updateHistory: function(view, params) {
+    updateHistory: function(view, params, replace = false) {
         // Validazione minima
         if (view === 'searchResults' && !params.query) {
             console.error('Search navigation requires query');
@@ -1465,7 +1527,6 @@ const AppState = {
                 state = {
                     view: 'filmDetails',
                     filmId: params.filmId,
-                    // Aggiungiamo lo stato precedente solo quando viene da searchResults
                     previousState: this.currentView === 'searchResults' ? {
                         view: 'searchResults',
                         query: this.searchQuery,
@@ -1483,77 +1544,99 @@ const AppState = {
                 break;
             case 'chat':
                 url = '/sio/chat';
-                state = { view: 'chat' };
+                state = {
+                    view: 'chat',
+                    previousState: {
+                        view: this.currentView,
+                        ...(this.currentView === 'searchResults' && {
+                            query: this.searchQuery,
+                            page: this.currentPage
+                        }),
+                        ...(this.currentView === 'filmDetails' && {
+                            filmId: this.currentFilmId
+                        })
+                    }
+                };
                 break;
         }
 
         if (url && state) {
-            window.history.pushState(state, '', url);
+            if (replace) {
+                window.history.replaceState(state, '', url);
+            } else {
+                window.history.pushState(state, '', url);
+            }
         }
     },
 
     handlePopState: function(event) {
-        // Blocca la gestione duplicata dello stesso evento
         if (this._isHandlingPopstate) return;
         this._isHandlingPopstate = true;
 
         try {
             const url = new URL(window.location.href);
 
-            // Se c'è uno stato nell'evento (navigazione avanti/indietro)
-            if (event.state) {
-                // Caso speciale: tornando da un film con stato precedente
-                if (event.state.previousState &&
-                    this.currentView === 'filmDetails' &&
-                    !url.pathname.startsWith('/film/')) {
-
-                    this._navigateToSearchResults(
-                        event.state.previousState.query,
-                        event.state.previousState.page
-                    );
-                }
-                // Caso normale
-                else {
-                    if (url.pathname.startsWith('/film/')) {
-                        const filmId = url.pathname.split('/')[2];
-                        this._navigateToFilmDetails(filmId);
-                    }
-                    else if (url.pathname.startsWith('/films/search/full')) {
-                        this._navigateToSearchResults(
-                            url.searchParams.get('q'),
-                            parseInt(url.searchParams.get('page')) || 0
-                        );
-                    } else if (url.pathname === '/sio/chat') {
-                        this._navigateToChat();
-                    }
-                    else {
-                        this._navigateToCarousel();
-                    }
-                }
+            // Caso speciale: tornando alla home
+            if (url.pathname === '/') {
+                this._navigateToCarousel();
+                return;
             }
-            // Gestione URL diretto (senza state)
-            else {
-                if (url.pathname === '/films/search') {
-                    const fixedUrl = `/films/search/full${url.search}`;
-                    window.history.replaceState(null, '', fixedUrl);
-                    url.pathname = '/films/search/full';
-                }
 
+            // Se siamo sulla chat e torniamo indietro
+            if (this.currentView === 'chat' && url.pathname !== '/sio/chat') {
+                if (event.state?.previousState) {
+                    // Usa lo stato precedente salvato
+                    const prev = event.state.previousState;
+                    switch(prev.view) {
+                        case 'carousel':
+                            this._navigateToCarousel();
+                            break;
+                        case 'searchResults':
+                            this._navigateToSearchResults(prev.query, prev.page);
+                            break;
+                        case 'filmDetails':
+                            this._navigateToFilmDetails(prev.filmId);
+                            break;
+                        default:
+                            this._navigateToCarousel();
+                    }
+                } else {
+                    this._navigateToCarousel();
+                }
+                return;
+            }
+
+            // Gestione normale degli stati
+            if (event.state) {
+                switch(event.state.view) {
+                    case 'carousel':
+                        this._navigateToCarousel();
+                        break;
+                    case 'filmDetails':
+                        this._navigateToFilmDetails(event.state.filmId);
+                        break;
+                    case 'searchResults':
+                        this._navigateToSearchResults(event.state.query, event.state.page);
+                        break;
+                    case 'chat':
+                        this._navigateToChat();
+                        break;
+                }
+            } else {
+                // Fallback per URL diretto
                 if (url.pathname.startsWith('/film/')) {
                     const filmId = url.pathname.split('/')[2];
                     this._navigateToFilmDetails(filmId);
-                }
-                else if (url.pathname.startsWith('/films/search/full')) {
-                    this._navigateToSearchResults(
-                        url.searchParams.get('q'),
-                        parseInt(url.searchParams.get('page')) || 0
-                    );
-                }
-                else {
+                } else if (url.pathname.startsWith('/films/search')) {
+                    const query = url.searchParams.get('q');
+                    const page = parseInt(url.searchParams.get('page')) || 0;
+                    this._navigateToSearchResults(query, page);
+                } else if (url.pathname === '/sio/chat') {
+                    this._navigateToChat();
+                } else {
                     this._navigateToCarousel();
                 }
             }
-
         } catch (error) {
             console.error('Navigation error:', error);
             this._navigateToCarousel();
@@ -1616,25 +1699,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupNavbarEvents();
         setupSearch();
         setupFilmCardClickHandlers();
-        setupPaginationHandlers(); // Aggiungi questa linea
+        setupPaginationHandlers();
 
         const isAuthenticated = await checkAuthState();
         if (isAuthenticated) {
             showDashboard();
+
+            // Salva lo stato iniziale nella history
+            if (window.location.pathname === '/' && !history.state) {
+                history.replaceState({ view: 'carousel' }, '', '/');
+            }
+
             // Determina la vista iniziale in base all'URL
-            if (window.location.pathname === '/chat') {
-                AppState.navigateTo('chat');
+            if (window.location.pathname === '/sio/chat') {
+                AppState.navigateTo('chat', {}, true); // ora è valido
             } else if (window.location.pathname.startsWith('/film/')) {
                 const filmId = window.location.pathname.split('/')[2];
-                AppState.navigateTo('filmDetails', {filmId});
+                AppState.navigateTo('filmDetails', {filmId}, true);
             } else if (window.location.pathname.startsWith('/films/search')) {
                 const urlParams = new URLSearchParams(window.location.search);
                 AppState.navigateTo('searchResults', {
                     query: urlParams.get('q'),
                     page: parseInt(urlParams.get('page')) || 0
-                });
+                }, true);
             } else {
-                AppState.navigateTo('carousel');
+                AppState.navigateTo('carousel', {}, true);
             }
         } else {
             await showAuthForms();

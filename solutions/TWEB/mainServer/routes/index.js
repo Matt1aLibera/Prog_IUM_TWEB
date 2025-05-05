@@ -26,7 +26,14 @@ router.get('/', async (req, res) => {
             user: req.session.user || null,
             showCarousel: !showChat && !req.query.search,
             showSearchResults: !!req.query.search,
-            showChat: showChat
+            showChat: showChat,
+            // Aggiungi sempre il carosello anche se non mostrato
+            films: req.session.user
+                ? (await axios.get(`${DATA_AGGREGATION_SERVER}/api/carousel`, {
+                    params: { limit: 15 },
+                    timeout: 16000
+                })).data
+                : []
         };
 
         if (showChat && req.session.user) {
