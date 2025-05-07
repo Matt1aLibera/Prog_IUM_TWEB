@@ -14,52 +14,72 @@ router.get('/films/search', (req, res) => {
 
 /* GET home page. */
 router.get('/', async (req, res) => {
-    if (req.session.user && !req.session.user.isAuthenticated) {
-        req.session.destroy();
+    console.log('--- NUOVA RICHIESTA A / ---');
+
+    const tabId = req.query.tabId; // Potrebbe essere undefined
+    const user = tabId && req.session.tabSessions?.[tabId];
+
+    console.log('TabId ricevuto:', tabId);
+    console.log('Utente associato:', user);
+
+    // Se c'è un utente ma non è autenticato, pulisci la sessione
+    if (user && !user.isAuthenticated) {
+        delete req.session.tabSessions[tabId];
         return res.redirect('/');
     }
 
     try {
         const showChat = req.query.view === 'chat';
+        let films = [];
+
+        // Chiama l'API del carosello SE:
+        // 1. Non siamo in chat/non stiamo cercando, E
+        // 2. L'utente è loggato OPPURE vogliamo precaricare i film per non loggati
+        if (!showChat && !req.query.search) {
+            try {
+                console.log('Chiamando API carosello...');
+                const response = await axios.get(`${DATA_AGGREGATION_SERVER}/api/carousel`, {
+                    params: { limit: 15 },
+                    timeout: 16000
+                });
+                films = response.data || [];
+                console.log('Film ricevuti:', films.length);
+            } catch (apiError) {
+                console.error('Errore API carosello:', apiError.message);
+                films = [];
+            }
+        }
+
         const baseData = {
             title: 'Il mio Sito',
-            user: req.session.user || null,
-            showCarousel: !showChat && !req.query.search,
+            user: user,
+            // Mostra il carosello SOLO se:
+            // 1. Non siamo in chat/non stiamo cercando, E
+            // 2. L'utente è loggato (se vuoi mostrarlo solo a utenti loggati)
+            showCarousel: !showChat && !req.query.search && !!user,
             showSearchResults: !!req.query.search,
             showChat: showChat,
-            // Aggiungi sempre il carosello anche se non mostrato
-            films: req.session.user
-                ? (await axios.get(`${DATA_AGGREGATION_SERVER}/api/carousel`, {
-                    params: { limit: 15 },
-                    timeout: 16000
-                })).data
-                : []
+            films: films, // Film precaricati (sia per loggati che non loggati)
+            chatContent: showChat && user ? '<div class="loading-spinner"></div>' : null
         };
 
-        if (showChat && req.session.user) {
-            // Just set the flag - actual content will be loaded via XHR
-            baseData.chatContent = '<div class="loading-spinner"></div>';
-            baseData.films = [];
-        } else {
-            baseData.films = req.session.user
-                ? (await axios.get(`${DATA_AGGREGATION_SERVER}/api/carousel`, {
-                    params: { limit: 15 },
-                    timeout: 16000
-                })).data
-                : [];
-        }
+        console.log('Dati inviati al template:', {
+            showCarousel: baseData.showCarousel,
+            filmsCount: baseData.films.length,
+            userPresent: !!user
+        });
 
         res.render('pages/index', baseData);
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Errore generale in /:', error);
         res.render('pages/index', {
             title: 'Il mio Sito',
-            user: req.session.user || null,
+            user: null,
             films: [],
-            showCarousel: true,
+            showCarousel: false, // Disabilita per evitare loop
             showSearchResults: false,
             showChat: false,
-            error: 'Errore nel caricamento'
+            error: 'Errore temporaneo'
         });
     }
 });

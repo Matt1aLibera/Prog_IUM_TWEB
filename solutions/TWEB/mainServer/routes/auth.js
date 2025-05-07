@@ -54,7 +54,7 @@ passport.use('remote', new (require('passport-local').Strategy)({
 // Versione semplificata con solo API JSON
 router.post('/login', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, tabId } = req.body; // Aggiunto tabId
 
         // 1. Verifica campi obbligatori
         if (!username || !password) {
@@ -63,6 +63,13 @@ router.post('/login', async (req, res) => {
                 error: 'Username e password obbligatori'
             });
         }
+
+        // Debug: stampa i dati ricevuti
+        console.log('Dati login ricevuti:', {
+            username,
+            tabId,
+            hasPassword: !!password // Stampa solo se esiste (per sicurezza)
+        });
 
         // 2. Chiamata all'auth-server
         const response = await axios.post(`${AUTH_SERVER}/auth/verify`, {
@@ -78,28 +85,38 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // 4. Creazione sessione
+        // 4. Creazione sessione CON tabId
         const user = response.data.user;
-        req.session.user = {
+        // Inizializza tabSessions se non esiste
+        req.session.tabSessions = req.session.tabSessions || {};
+
+        // Crea/aggiorna la sessione per questo tabId
+        req.session.tabSessions[tabId] = {
             id: user._id || user.id,
             username: user.username,
             role: user.role,
-            isAuthenticated: true
+            isAuthenticated: true,
+            uniqueSessionId: crypto.randomUUID()
         };
 
-        // 5. Risposta JSON
+        console.log('Nuova sessione creata per tab:', {
+            tabId: tabId,
+            sessionId: req.sessionID,
+            userData: req.session.tabSessions[tabId]
+        });
+
         res.json({
             success: true,
-            user: {
-                id: user._id || user.id,
-                username: user.username,
-                role: user.role
-            }
-            // Non serve più il redirect, gestito dal frontend
+            user: req.session.tabSessions[tabId],
+            tabId: tabId
         });
 
     } catch (error) {
-        console.error('Login error:', error);
+        console.error('Login error:', {
+            error: error.message,
+            stack: error.stack,
+            requestData: req.body
+        });
         res.status(500).json({
             success: false,
             error: error.response?.data?.error || 'Errore durante il login'
@@ -123,27 +140,50 @@ router.post('/register', async (req, res) => {
 
 // Route di logout
 router.post('/logout', (req, res) => {
-    req.session.destroy(err => {
-        if (err) {
-            console.error('Errore durante il logout:', err);
-            return res.status(500).json({ success: false, error: 'Errore durante il logout' });
-        }
-        res.clearCookie('connect.sid');
-        res.json({ success: true });
-    });
-})
+    const tabId = req.body.tabId;
 
-router.get('/check', (req, res) => {
-    if (req.session.user) {
-        res.json({
-            authenticated: true,
-            user: req.session.user
+    if (tabId && req.session.tabSessions?.[tabId]) {
+        console.log('Logout per tab:', tabId);
+        delete req.session.tabSessions[tabId]; // Rimuove solo la sotto-sessione
+    }
+
+    // Se non ci sono più tab attivi, distrugge la sessione HTTP
+    if (!req.session.tabSessions || Object.keys(req.session.tabSessions).length === 0) {
+        req.session.destroy(err => {
+            if (err) console.error('Errore destroy sessione:', err);
+            res.clearCookie('connect.sid');
+            res.json({ success: true });
         });
     } else {
-        res.status(401).json({
-            authenticated: false
-        });
+        res.json({ success: true });
     }
+});
+
+router.get('/check', (req, res) => {
+    const tabId = req.query.tabId;
+
+    if (!tabId || !req.session.tabSessions?.[tabId]) {
+        console.log('Nessuna sessione attiva per tab:', tabId, {
+            allTabs: req.session.tabSessions ? Object.keys(req.session.tabSessions) : 'no tabs'
+        });
+        return res.status(401).json({ authenticated: false });
+    }
+
+    const currentSession = req.session.tabSessions[tabId];
+    console.log('Sessione valida per tab:', {
+        tabId,
+        user: currentSession.username,
+        sessionData: currentSession
+    });
+
+    // Aggiungi tabId alla risposta!
+    res.json({
+        authenticated: true,
+        user: {
+            ...currentSession,
+            tabId: tabId // Questo risolve il mismatch lato client
+        }
+    });
 });
 
 module.exports = router;

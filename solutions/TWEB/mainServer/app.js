@@ -89,16 +89,18 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Metti a true se usi HTTPS
+    secure: false,
     httpOnly: true,
-    maxAge: 86400000,
-    sameSite: 'strict' // Aggiungi questa linea
+    maxAge: 86400000, // 1 giorno in ms
+    sameSite: 'strict'
   },
   store: MongoStore.create({
     mongoUrl: 'mongodb://localhost:27017/session_store',
-    ttl: 86400,
+    collectionName: 'multi_sessions',
+    ttl: 86400, // 1 giorno in secondi
     autoRemove: 'interval',
-    autoRemoveInterval: 60 // Minuti
+    autoRemoveInterval: 60, // Minuti
+    touchAfter: 3600 // 1 ora
   })
 }));
 app.use((req, res, next) => {
@@ -107,7 +109,6 @@ app.use((req, res, next) => {
 });
 // File statici
 app.use(express.static(path.join(__dirname, 'public')));
-
 app.use(flash());
 
 // Route

@@ -87,26 +87,72 @@ function closeMobileMenu() {
 // GESTIONE AUTENTICAZIONE E UTENTE
 // =============================================
 async function checkAuthState() {
-    try {
-        const {data} = await axios.get('/auth/check', {
-            params: {t: Date.now()},
-            headers: {'Cache-Control': 'no-cache'}
-        });
-
-        if (data.authenticated) {
-            updateUIForAuthenticatedUser(data.user);
-            return true;
-        } else {
-            await updateUIForUnauthenticated();
-            return false;
-        }
-    } catch (error) {
-        console.error('Auth check failed:', error);
+    // 1. Recupera il tabId (DEVE esistere grazie all'init)
+    const tabId = sessionStorage.getItem('tabId');
+    if (!tabId) {
+        console.error('Mancanza tabId nello sessionStorage!');
         await updateUIForUnauthenticated();
         return false;
     }
-}
+    console.log('Stato sessioni attive:', {
+        tabId: sessionStorage.getItem('tabId'),
+        sessionUser: JSON.parse(sessionStorage.getItem('chatUser') || 'null')
+    });
 
+    try {
+        // 2. Chiamata API con tabId
+        const { data } = await axios.get('/auth/check', {
+            params: {
+                t: Date.now(),
+                tabId: tabId
+            },
+            headers: { 'Cache-Control': 'no-cache' }
+        });
+
+        // 3. Verifica autenticazione e coerenza tabId (MODIFICA MINIMA)
+        if (data.authenticated) {
+            if (data.user?.tabId !== tabId) {
+                console.warn('Disallineamento tabId - accesso negato', {
+                    sessionTabId: data.user?.tabId,
+                    localTabId: tabId,
+                    note: 'La sessione originale rimane attiva'
+                });
+                console.log('Dati ricevuti da /auth/check:', {
+                    authenticated: data.authenticated,
+                    user: data.user,
+                    expectedTabId: tabId
+                });
+                // Modificato: rimossa chiamata a forceLogout()
+                await updateUIForUnauthenticated();
+                sessionStorage.removeItem('chatUser');
+                return false;
+            }
+
+            // Resto invariato
+            updateUIForAuthenticatedUser(data.user);
+            sessionStorage.setItem('chatUser', JSON.stringify({
+                id: data.user.id,
+                username: data.user.username,
+                tabId: data.user.tabId
+            }));
+            return true;
+        }
+
+        // 4. Comportamento esistente per non autenticato
+        await updateUIForUnauthenticated();
+        sessionStorage.removeItem('chatUser');
+        return false;
+
+    } catch (error) {
+        console.error('Auth check failed:', {
+            error: error.response?.data || error.message,
+            tabId: tabId
+        });
+        await updateUIForUnauthenticated();
+        sessionStorage.removeItem('chatUser');
+        return false;
+    }
+}
 function updateUIForAuthenticatedUser(user) {
     // Update navbar
     const greeting = document.querySelector('#userGreeting');
@@ -126,6 +172,11 @@ function updateUIForAuthenticatedUser(user) {
     // Update welcome message and show dashboard
     updateWelcomeMessage(user.username);
     showDashboard();
+    // MOSTRA IL CAROSELLO
+    const carouselSection = document.getElementById('carouselSection');
+    if (carouselSection) {
+        carouselSection.classList.remove('d-none'); // Rimuove la classe che nasconde il carosello
+    }
 }
 
 function updateUIForUnauthenticated() {
@@ -164,8 +215,21 @@ async function showAuthForms() {
 async function setupAuthForms() {
     toggleForms(true);
 
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
+    // 1. Pulisci i form esistenti clonandoli
+    const cleanForm = (formId) => {
+        const form = document.getElementById(formId);
+        if (form) {
+            const newForm = form.cloneNode(true);
+            form.parentNode.replaceChild(newForm, form);
+            return newForm;
+        }
+        return null;
+    };
+
+    const loginForm = cleanForm('loginForm');
+    const registerForm = cleanForm('registerForm');
+
+    // 2. Setup degli eventi (identico al tuo codice originale)
     const switchToRegister = document.getElementById('switchToRegister');
     const switchToLogin = document.getElementById('switchToLogin');
 
@@ -240,15 +304,34 @@ async function handleAuthRequest(form, endpoint, data, buttonText, onSuccess) {
     submitBtn.disabled = true;
 
     try {
-        const {data: result} = await axios.post(endpoint, data);
+        // AGGIUNGI IL TAB ID ALLA RICHIESTA (per il backend)
+        let tabId = sessionStorage.getItem('tabId');
+        let attempts = 0;
+        while (!tabId && attempts < 5) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            tabId = sessionStorage.getItem('tabId');
+            attempts++;
+        }
+
+        if (!tabId) {
+            tabId = crypto.randomUUID();
+            sessionStorage.setItem('tabId', tabId);
+            console.warn('Fallback: generato tabId al volo', tabId);
+        }
+
+        const requestData = {
+            ...data,
+            tabId: tabId // Associa la tab corrente al login
+        };
+        const {data: result} = await axios.post(endpoint, requestData);
         if (result.success) {
             if (endpoint === '/auth/login') {
                 // Salva SOLO i dati necessari in sessionStorage
                 sessionStorage.setItem('chatUser', JSON.stringify({
                     id: result.user.id,
-                    username: result.user.username
+                    username: result.user.username,
+                    tabId: tabId
                 }));
-                window.location.reload();
             }
             if (typeof onSuccess === 'function') onSuccess(result.user || result);
         } else {
@@ -1443,6 +1526,7 @@ const AppState = {
     showCarousel: async function () {
         const carouselSection = document.getElementById('carouselSection');
         const previousContent = carouselSection.innerHTML;
+        const tabId = sessionStorage.getItem('tabId'); // Recupera il tabId dallo storage
         carouselSection.innerHTML = `
         <div class="text-center py-5">
             <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
@@ -1460,7 +1544,12 @@ const AppState = {
         try {
             // Ricarica i film solo se necessario
             if (document.querySelectorAll('.film-poster-container').length === 0) {
-                const response = await axios.get('/');
+                const response = await axios.get('/', {
+                    params: {
+                        tabId: tabId,  // <-- Passa il tabId alla route /
+                        t: Date.now()  // Evita cache
+                    }
+                });
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(response.data, 'text/html');
                 const newCarousel = doc.getElementById('carouselSection');
@@ -1692,6 +1781,12 @@ window.addEventListener('popstate', (event) => {
 // =============================================
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        // 1. INIZIALIZZAZIONE TAB ID
+        if (!sessionStorage.getItem('tabId')) {
+            const newTabId = crypto.randomUUID();
+            sessionStorage.setItem('tabId', newTabId);
+            console.log('Generato nuovo tabId:', newTabId); // Debug
+        }
         hideAllSections();
         document.getElementById('loaderSection').classList.remove('hidden-section');
 
