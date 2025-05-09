@@ -1,7 +1,7 @@
+const createError = require('http-errors');
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
-const { createError } = require('http-errors');
 
 // Configurazione servizi esterni
 const SERVICES = {
@@ -160,6 +160,29 @@ router.get('/films/search/autocomplete', async (req, res, next) => {
       error: 'Internal server error',
       details: error.response?.data || error.message
     });
+  }
+});
+
+router.post('/oscars/search', async (req, res) => {
+  try {
+    const { filmName, year } = req.body;
+
+    // 1. Chiamata al Postgres Server (già testata con curl)
+    const response = await axios.get(`${SERVICES.postgres}/api/oscars/search`, {
+      params: { filmName, year }
+    });
+
+    // 2. Formatta la risposta (opzionale)
+    const formattedOscars = response.data.map(oscar => ({
+      category: oscar.category,
+      year: oscar.yearCeremony,
+      isWinner: oscar.winner,
+      nominee: oscar.name
+    }));
+
+    res.json(formattedOscars);
+  } catch (error) {
+    res.status(500).json({ error: "Errore nel fetch degli Oscar" });
   }
 });
 

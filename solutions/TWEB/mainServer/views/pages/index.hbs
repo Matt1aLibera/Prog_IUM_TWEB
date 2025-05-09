@@ -119,10 +119,10 @@
 
             <!-- Contenuto principale -->
             <div class="film-body mt-5">
-                <!-- Prima riga: Trama vs Dettagli+Release -->
+                <!-- Prima riga: Trama + Dettagli -->
                 <div class="row mb-5">
                     <!-- Trama (sinistra) -->
-                    <div class="col-lg-6">
+                    <div class="col-lg-6 order-lg-1 order-2">
                         <section class="mb-5">
                             <h2 class="mb-3"><i class="bi bi-card-text me-2"></i>Trama</h2>
                             <p id="filmDescription" class="fs-5">
@@ -130,65 +130,8 @@
                                     Nessuna descrizione disponibile{{/if}}
                             </p>
                         </section>
-                    </div>
 
-                    <!-- Dettagli + Release (destra) -->
-                    <div class="col-lg-6">
-                        <!-- Dettagli tecnici -->
-                        <div class="card border-0 shadow-sm mb-5">
-                            <div class="card-body">
-                                <h3 class="h5 mb-3"><i class="bi bi-info-circle me-2"></i>Dettagli</h3>
-                                <ul class="list-group list-group-flush">
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Generi</span>
-                                        <span id="filmGenres">
-                                            {{#if filmDetails}}
-                                                {{#each filmDetails.genres}}{{this.genre}}{{#unless @last}}
-                                                    , {{/unless}}{{/each}}
-                                            {{else}}N/D{{/if}}
-                                        </span>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Studio</span>
-                                        <div id="filmStudios">
-                                            {{#if filmDetails}}
-                                                {{#each filmDetails.studios}}{{this.studio}}{{#unless @last}}
-                                                    , {{/unless}}{{/each}}
-                                            {{else}}N/D{{/if}}
-                                        </div>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>Prima uscita</span>
-                                        <span id="filmFirstRelease">
-                                            {{#if filmDetails}}{{filmDetails.movie.date}}{{else}}N/D{{/if}}
-                                        </span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <!-- Release -->
-                        <section class="mb-5">
-                            <h2 class="mb-3"><i class="bi bi-calendar-event me-2"></i>Date di uscita</h2>
-                            <div class="scrollable-container">
-                                <ul id="filmReleases" class="list-group">
-                                    {{#if filmDetails}}
-                                        {{#each filmDetails.release}}
-                                            <li class="list-group-item">
-                                                {{this.country}} - {{this.date}} ({{this.type}})
-                                            </li>
-                                        {{/each}}
-                                    {{/if}}
-                                </ul>
-                            </div>
-                        </section>
-                    </div>
-                </div>
-
-                <!-- Seconda riga: Cast vs Crew -->
-                <div class="row">
-                    <!-- Cast (sinistra) -->
-                    <div class="col-lg-6">
+                        <!-- Cast -->
                         <section class="mb-5">
                             <h2 class="mb-3"><i class="bi bi-people-fill me-2"></i>Cast</h2>
                             <div class="scrollable-container">
@@ -203,10 +146,8 @@
                                 </ul>
                             </div>
                         </section>
-                    </div>
 
-                    <!-- Crew (destra) -->
-                    <div class="col-lg-6">
+                        <!-- Crew -->
                         <section class="mb-5">
                             <h2 class="mb-3"><i class="bi bi-person-gear me-2"></i>Crew</h2>
                             <div class="scrollable-container">
@@ -215,6 +156,70 @@
                                         {{#each filmDetails.crew}}
                                             <li class="list-group-item">
                                                 <strong>{{this.name}}</strong> - {{this.role}}
+                                            </li>
+                                        {{/each}}
+                                    {{/if}}
+                                </ul>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Colonna destra -->
+                    <div class="col-lg-6 order-lg-2 order-1">
+                        <!-- Dettagli tecnici -->
+                        <div class="card border-0 shadow-sm mb-5">
+                            <div class="card-body">
+                                <h3 class="h5 mb-3"><i class="bi bi-info-circle me-2"></i>Dettagli</h3>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span>Generi</span>
+                                        <span id="filmGenres">
+                                            {{#if filmDetails}}
+                                                {{#each filmDetails.genres}}{{this.genre}}{{#unless @last}}, {{/unless}}{{/each}}
+                                            {{else}}N/D{{/if}}
+                                        </span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span>Studio</span>
+                                        <div id="filmStudios">
+                                            {{#if filmDetails}}
+                                                {{#each filmDetails.studios}}{{this.studio}}{{#unless @last}}, {{/unless}}{{/each}}
+                                            {{else}}N/D{{/if}}
+                                        </div>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span>Prima uscita</span>
+                                        <span id="filmFirstRelease">
+                                            {{#if filmDetails}}{{filmDetails.movie.date}}{{else}}N/D{{/if}}
+                                        </span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Premi Oscar -->
+                        <section class="mb-5" id="oscarsSection">
+                            <h2 class="mb-3"><i class="bi bi-trophy me-2"></i>Premi Oscar</h2>
+                            <div id="oscarsLoading" class="text-center py-2">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                            </div>
+                            <ul id="oscarsList" class="list-group d-none">
+                                <!-- Popolato dinamicamente -->
+                            </ul>
+                            <div id="noOscars" class="alert alert-light d-none">
+                                Nessun premio Oscar trovato
+                            </div>
+                        </section>
+
+                        <!-- Release -->
+                        <section class="mb-5">
+                            <h2 class="mb-3"><i class="bi bi-calendar-event me-2"></i>Date di uscita</h2>
+                            <div class="scrollable-container">
+                                <ul id="filmReleases" class="list-group">
+                                    {{#if filmDetails}}
+                                        {{#each filmDetails.release}}
+                                            <li class="list-group-item">
+                                                {{this.country}} - {{this.date}} ({{this.type}})
                                             </li>
                                         {{/each}}
                                     {{/if}}

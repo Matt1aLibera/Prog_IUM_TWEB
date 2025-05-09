@@ -688,6 +688,138 @@ function populateFilmData(film) {
             </li>
         `).join('') || '<li class="list-group-item">Nessuna data di uscita disponibile</li>';
     }
+    loadFilmOscars(film.movie?.name, film.movie?.date || film.movie?.year);
+}
+async function loadFilmOscars(filmName, filmYear) {
+    // Converti l'anno in modo robusto
+    let year = null;
+    if (filmYear) {
+        // Se è già un numero (es. 2014)
+        if (typeof filmYear === 'number' && !isNaN(filmYear)) {
+            year = filmYear;
+        }
+        // Se è una stringa data (es. "2014-01-01")
+        else if (typeof filmYear === 'string') {
+            const dateObj = new Date(filmYear);
+            year = isNaN(dateObj) ? null : dateObj.getFullYear();
+        }
+    }
+
+    console.log("[DEBUG] Anno elaborato:", {
+        input: filmYear,
+        output: year,
+        type: typeof filmYear
+    });
+    try {
+        const oscarsSection = document.getElementById('oscarsSection');
+        if (!oscarsSection) {
+            console.log("[OSCARS DEBUG] Sezione Oscar non trovata nel DOM");
+            return;
+        }
+        // DEBUG: Verifica i valori in input
+        console.log("[DEBUG INPUT]", {
+            filmName,
+            filmYear,
+            typeofFilmName: typeof filmName,
+            typeofFilmYear: typeof filmYear
+        });
+
+        // Costruzione ROBUSTA del requestBody
+        const requestBody = {
+            filmName: String(filmName),
+            year: typeof filmYear === 'number' ? filmYear :
+                (filmYear ? new Date(filmYear).getFullYear() : null)
+        };
+// DEBUG: Verifica l'oggetto creato
+        console.log("[DEBUG REQUEST BODY]", {
+            requestBody,
+            stringified: JSON.stringify(requestBody)
+        });
+        console.log("[OSCARS DEBUG] Invio richiesta con body:", {
+            rawFilmName: filmName,
+            rawFilmYear: filmYear,
+            processedYear: requestBody.year,
+            fullRequestBody: JSON.parse(JSON.stringify(requestBody)) // Deep clone per sicurezza
+        });
+
+        // 2. Effettua la chiamata
+        const response = await fetch('http://localhost:3003/api/oscars/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        console.log("[DEBUG RESPONSE]", {
+            status: response.status,
+            headers: [...response.headers.entries()]
+        });
+
+        // 3. Analizza la risposta
+        const oscars = await response.json();
+        console.log("[DEBUG RESPONSE DATA]", {
+            rawData: oscars,
+            dataType: Array.isArray(oscars) ? 'array' : typeof oscars,
+            length: Array.isArray(oscars) ? oscars.length : 'N/A'
+        });
+
+        // 4. Controllo di coerenza
+        if (!Array.isArray(oscars)) {
+            console.error("[OSCARS ERROR] Formato risposta non valido, atteso array, ricevuto:", typeof oscars);
+            throw new Error("Formato dati non valido");
+        }
+
+        renderOscars(oscars);
+
+    } catch (error) {
+        console.error("[OSCARS ERROR] Dettaglio errore:", {
+            errorName: error.name,
+            errorMessage: error.message,
+            stack: error.stack,
+            fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+        });
+
+        const noOscarsElement = document.getElementById('noOscars');
+        if (noOscarsElement) {
+            noOscarsElement.classList.remove('d-none');
+            noOscarsElement.textContent = `Errore tecnico: ${error.message}`;
+        }
+    } finally {
+        const loadingElement = document.getElementById('oscarsLoading');
+        if (loadingElement) loadingElement.classList.add('d-none');
+
+        console.log("[OSCARS DEBUG] Caricamento completato (con o senza successo)");
+    }
+}
+
+function renderOscars(oscars) {
+    const container = document.getElementById('oscarsList');
+    const noOscars = document.getElementById('noOscars');
+
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (oscars.length > 0) {
+        oscars.forEach(oscar => {
+            const item = document.createElement('li');
+            item.className = `list-group-item ${oscar.isWinner ? 'oscar-winner' : ''}`;
+
+            item.innerHTML = `
+                <strong>${oscar.category}</strong>
+                <div class="text-muted small">
+                    ${oscar.year} • 
+                    ${oscar.isWinner ? '🏆 Vincitore' : 'Nomina'}
+                    ${oscar.nominee ? ` • ${oscar.nominee}` : ''}
+                </div>
+            `;
+            container.appendChild(item);
+        });
+        container.classList.remove('d-none');
+        noOscars.classList.add('d-none');
+    } else {
+        container.classList.add('d-none');
+        noOscars.classList.remove('d-none');
+    }
 }
 
 // =============================================

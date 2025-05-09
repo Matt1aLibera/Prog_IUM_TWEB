@@ -224,7 +224,7 @@
   background-color: var(--bs-primary);
 }
 
-/*pagina film*/
+/* Pagina film */
 .film-container {
   background-color: rgba(248, 249, 250, 0.9) !important;
   border: 1px solid #dee2e6;
@@ -241,60 +241,9 @@
   padding: 2rem;
   border-radius: 0.5rem;
 }
+
 .action-buttons .btn {
   min-width: 150px;
-}
-
-/* Cast Section */
-.actor-card {
-  transition: transform 0.3s;
-}
-.actor-card:hover {
-  transform: translateY(-5px);
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  .film-header {
-    text-align: center;
-  }
-
-  .action-buttons {
-    justify-content: center;
-  }
-}
-
-.film-poster-container {
-  position: relative;
-  cursor: pointer;
-}
-
-.film-info-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 10px;
-  transform: translateY(100%);
-  opacity: 0;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.film-poster-container:hover .film-info-overlay {
-  transform: translateY(0);
-  opacity: 1;
-}
-
-.rating {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.star {
-  color: gold;
 }
 
 /* Stile per il container dei dettagli del film */
@@ -316,40 +265,56 @@
   animation: fadeIn 0.5s ease;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* Miglioramenti alla visualizzazione */
-.film-meta .badge {
-  font-size: 0.9rem;
-  background-color: rgba(13, 110, 253, 0.1) !important; /* Sfondo blu chiaro */
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
+/* Layout principale */
 .film-body {
   background-color: #f8f9fa;
   padding: 2rem;
   border-radius: 0.5rem;
+  margin-top: 2rem;
 }
 
-.list-group-item {
-  padding: 0.75rem 1.25rem;
-  transition: background-color 0.2s;
+/* Sezioni comuni */
+section {
+  margin-bottom: 2.5rem;
 }
+
+section:last-child {
+  margin-bottom: 0;
+}
+
+h2, h3 {
+  color: #212529;
+  position: relative;
+  padding-bottom: 0.5rem;
+}
+
+h2:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 50px;
+  height: 3px;
+  background-color: #0d6efd;
+}
+
 /* Container scorrevoli */
 .scrollable-container {
   max-height: 300px;
   overflow-y: auto;
   border-radius: 0.5rem;
   border: 1px solid #dee2e6;
+  margin-top: 0.5rem;
 }
 
 .scrollable-container .list-group-item {
   border-left: none;
   border-right: none;
+}
+
+.list-group-item {
+  padding: 0.75rem 1.25rem;
+  transition: all 0.2s ease;
 }
 
 .list-group-item:hover {
@@ -362,33 +327,34 @@
   font-weight: normal;
 }
 
-/* Responsive */
-@media (max-width: 992px) {
-  .film-header .row {
-    flex-direction: column;
-  }
-
-  .film-header .col-md-4 {
-    margin-bottom: 1.5rem;
-  }
-
-  .film-body .row {
-    flex-direction: column-reverse;
-  }
-
-  .scrollable-container {
-    max-height: 200px;
-  }
-}
-/* Stile per la sezione dettaglio film */
-.film-detail-section {
-  animation: fadeIn 0.5s ease;
+/* Stile specifico per gli Oscar */
+#oscarsList .list-group-item {
+  padding: 0.75rem 1.25rem;
 }
 
-.film-body {
-  background-color: #f8f9fa;
-  padding: 2rem;
-  border-radius: 0.5rem;
+.oscar-winner {
+  border-left: 3px solid #f5c518;
+  background-color: rgba(245, 197, 24, 0.05);
+  animation: pulse-gold 2s infinite;
+}
+
+@keyframes pulse-gold {
+  0% { background-color: rgba(245, 197, 24, 0.05); }
+  50% { background-color: rgba(245, 197, 24, 0.1); }
+  100% { background-color: rgba(245, 197, 24, 0.05); }
+}
+
+/* Badge personalizzati */
+.rating-badge {
+  background-color: rgba(255, 193, 7, 0.2) !important;
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.duration-badge {
+  background-color: rgba(13, 110, 253, 0.1) !important;
+  color: #0d6efd;
+  border: 1px solid rgba(13, 110, 253, 0.2);
 }
 
 /* Pulsante Salva */
@@ -405,19 +371,6 @@
 /* Icone */
 .bi {
   vertical-align: middle;
-}
-
-/* Badge personalizzati */
-.rating-badge {
-  background-color: rgba(255, 193, 7, 0.2) !important;
-  color: #ffc107;
-  border: 1px solid rgba(255, 193, 7, 0.3);
-}
-
-.duration-badge {
-  background-color: rgba(13, 110, 253, 0.1) !important;
-  color: #0d6efd;
-  border: 1px solid rgba(13, 110, 253, 0.2);
 }
 
 /* Stile per le release */
@@ -453,6 +406,101 @@
 .release-rating {
   font-weight: 500;
   color: #0d6efd;
+}
+
+/* Poster film */
+.film-poster-container {
+  position: relative;
+  cursor: pointer;
+}
+
+.film-info-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px;
+  transform: translateY(100%);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.film-poster-container:hover .film-info-overlay {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .film-header .row {
+    flex-direction: column;
+  }
+
+  .film-header .col-md-4 {
+    margin-bottom: 1.5rem;
+  }
+
+  .film-body .row {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .order-lg-1.order-2,
+  .order-lg-2.order-1 {
+    order: unset !important;
+  }
+
+  /* Spaziatura mobile */
+  #oscarsSection {
+    margin-top: 2rem;
+  }
+
+  .film-body > .row > div {
+    margin-bottom: 2rem;
+  }
+
+  .scrollable-container {
+    max-height: 200px;
+  }
+}
+
+@media (max-width: 768px) {
+  .film-header {
+    text-align: center;
+  }
+
+  .action-buttons {
+    justify-content: center;
+  }
+
+  .film-meta {
+    padding: 1.5rem;
+  }
+
+  .film-body {
+    padding: 1.5rem;
+  }
+}
+
+/* Animazioni */
+.actor-card {
+  transition: transform 0.3s;
+}
+
+.actor-card:hover {
+  transform: translateY(-5px);
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.star {
+  color: gold;
 }
 
 /* Aumenta la larghezza della navbar e della barra di ricerca */
