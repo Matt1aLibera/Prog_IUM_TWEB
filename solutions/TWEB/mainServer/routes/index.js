@@ -223,5 +223,103 @@ router.get('/film/:id', async (req, res) => {
     }
 });
 
+router.get('/advanced-search', async (req, res) => {
+    try {
+        // 1. Renderizza il contenuto della ricerca avanzata
+        const searchHtml = await new Promise((resolve, reject) => {
+            res.app.render('pages/advanced-search', {
+                layout: false
+            }, (err, html) => {
+                if (err) {
+                    console.error('Render error:', err);
+                    reject(err);
+                } else {
+                    resolve(html);
+                }
+            });
+        });
+
+        // 2. Gestione per richieste AJAX/JSON (chiamate dal client)
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+            res.send(searchHtml);
+        }
+        // 3. Gestione per richieste normali (refresh pagina)
+        else {
+            res.render('pages/index', {
+                showCarousel: false,
+                showSearchResults: false,
+                showChat: false,
+                showAdvancedSearch: true,  // Mostra solo la sezione avanzata
+                advancedSearchContent: searchHtml,
+                user: req.user || null,    // Mantieni i dati utente
+                pageTitle: "Ricerca Avanzata",
+                // Aggiungi altre variabili necessarie al tuo layout
+                currentYear: new Date().getFullYear()
+            });
+        }
+
+    } catch (error) {
+        console.error('Advanced search route error:', error);
+
+        const errorHtml = `<div class="alert alert-danger">Errore: ${error.message}</div>`;
+
+        // Gestione errori per AJAX/JSON
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+            res.status(500).send(errorHtml);
+        }
+        // Gestione errori per richieste normali
+        else {
+            res.status(500).render('pages/index', {
+                showCarousel: false,
+                showSearchResults: false,
+                showChat: false,
+                showAdvancedSearch: true,
+                advancedSearchContent: errorHtml,
+                user: req.user || null,
+                pageTitle: "Errore Ricerca"
+            });
+        }
+    }
+});
+
+router.get('/search/advanced', async (req, res) => {
+    // Stampa debug dei parametri ricevuti
+    console.log('Parametri ricevuti dal client:', req.query);
+
+    try {
+        // Stampa la struttura completa della query
+        console.log('Query completa:', {
+            url: req.originalUrl,
+            method: req.method,
+            headers: req.headers,
+            params: req.params,
+            query: req.query
+        });
+
+        // Inoltra la richiesta al DAS
+        const dasResponse = await axios.get('http://localhost:3003/api/advanced-search', {
+            params: req.query,
+            headers: {
+                'X-API-Key': process.env.DAS_API_KEY // Autenticazione tra servizi
+            }
+        });
+
+        // Stampa debug risposta dal DAS
+        console.log('Risposta dal DAS:', dasResponse.data);
+
+        res.json(dasResponse.data);
+    } catch (error) {
+        console.error('Errore durante la ricerca avanzata:', {
+            message: error.message,
+            stack: error.stack,
+            response: error.response?.data
+        });
+
+        res.status(500).json({
+            error: 'Errore durante la ricerca',
+            details: error.response?.data || error.message
+        });
+    }
+});
 
 module.exports = router;

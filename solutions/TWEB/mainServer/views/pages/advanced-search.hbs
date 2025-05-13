@@ -1,0 +1,238 @@
+<div class="advanced-search-container">
+    <div class="container py-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h2 class="mb-0"><i class="bi bi-sliders me-2"></i>Ricerca Avanzata</h2>
+            </div>
+
+            <div class="card-body">
+                <form id="advancedSearchForm">
+                    <!-- Selettore tipo ricerca -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Tipo ricerca:</label>
+                            <select class="form-select" name="searchType" id="searchTypeSelect">
+                                <option value="films">Film</option>
+                                <option value="reviews">Recensioni</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Filtri dinamici -->
+                    <div id="dynamicFilters">
+                        <!-- Popolato dinamicamente via JS -->
+                    </div>
+
+                    <!-- Ordinamento -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Ordinamento:</label>
+                            <select class="form-select" name="sortBy">
+                                <option value="rating_desc">Rating (Decrescente)</option>
+                                <option value="rating_asc">Rating (Crescente)</option>
+                                <option value="date_desc">Data (Decrescente)</option>
+                                <option value="date_asc">Data (Crescente)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-search me-2"></i>Cerca
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="advancedSearchResults" class="mt-4"></div>
+    </div>
+</div>
+
+<!-- Template per i filtri dei film -->
+<template id="filmFiltersTemplate">
+    <div class="film-filters">
+        <!-- Ricerca film -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Titolo film (opzionale):</label>
+                <input type="text" class="form-control" name="filmQuery" placeholder="Cerca film...">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Ricerca per:</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" name="filmSearchQuery" placeholder="Cerca attore, personaggio...">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <span id="filmSearchTypeLabel">Attore</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" data-value="actor">Attore</a></li>
+                        <li><a class="dropdown-item" href="#" data-value="character">Personaggio</a></li>
+                        <li><a class="dropdown-item" href="#" data-value="crew">Crew</a></li>
+                        <li><a class="dropdown-item" href="#" data-value="studio">Studio</a></li>
+                    </ul>
+                    <input type="hidden" name="filmSearchType" value="actor">
+                </div>
+            </div>
+        </div>
+
+        <!-- Anno e rating -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Anno di uscita:</label>
+                <div class="input-group">
+                    <input type="number" class="form-control" name="yearFrom" placeholder="Dal" min="1900" max="2023">
+                    <input type="number" class="form-control" name="yearTo" placeholder="Al" min="1900" max="2023">
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Rating minimo:</label>
+                <div class="star-rating-slider">
+                    <input type="range" class="form-range" name="minRating" min="0" max="5" step="0.25" value="0">
+                    <div class="slider-labels">
+                        <span>0</span>
+                        <div class="stars">
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                        </div>
+                        <span>5</span>
+                    </div>
+                    <div class="rating-value-display">Valore: <span>0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Oscar e generi -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Oscar:</label>
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="oscarStatus" id="oscarAny" value="any" checked>
+                    <label class="btn btn-outline-primary" for="oscarAny">Tutti</label>
+
+                    <input type="radio" class="btn-check" name="oscarStatus" id="oscarNominated" value="nominated">
+                    <label class="btn btn-outline-primary" for="oscarNominated">Nominati</label>
+
+                    <input type="radio" class="btn-check" name="oscarStatus" id="oscarWinner" value="winner">
+                    <label class="btn btn-outline-primary" for="oscarWinner">Vincitori</label>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Generi (multiselezione):</label>
+                <div class="genre-checkboxes">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="Comedy" id="genreComedy">
+                                <label class="form-check-label" for="genreComedy">Commedia</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="Drama" id="genreDrama">
+                                <label class="form-check-label" for="genreDrama">Dramma</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="Action" id="genreAction">
+                                <label class="form-check-label" for="genreAction">Azione</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="Horror" id="genreHorror">
+                                <label class="form-check-label" for="genreHorror">Horror</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="Adventure" id="genreAdventure">
+                                <label class="form-check-label" for="genreAdventure">Avventura</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="Thriller" id="genreThriller">
+                                <label class="form-check-label" for="genreThriller">Thriller</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="Science Fiction" id="genreSciFi">
+                                <label class="form-check-label" for="genreSciFi">Fantascienza</label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="Music" id="genreMusic">
+                                <label class="form-check-label" for="genreMusic">Musica</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="Romance" id="genreRomance">
+                                <label class="form-check-label" for="genreRomance">Romantico</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="History" id="genreHistory">
+                                <label class="form-check-label" for="genreHistory">Storico</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="Crime" id="genreCrime">
+                                <label class="form-check-label" for="genreCrime">Crime</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="Animation" id="genreAnimation">
+                                <label class="form-check-label" for="genreAnimation">Animazione</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="genres" value="Mystery" id="genreMystery">
+                                <label class="form-check-label" for="genreMystery">Mistero</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Template per i filtri delle recensioni -->
+<template id="reviewFiltersTemplate">
+    <div class="review-filters">
+        <!-- Ricerca recensioni -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <label class="form-label">Titolo film:</label>
+                <input type="text" class="form-control" name="reviewFilmQuery" placeholder="Cerca film...">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Critico:</label>
+                <input type="text" class="form-control" name="reviewCriticQuery" placeholder="Cerca critico...">
+            </div>
+        </div>
+
+        <!-- Filtri recensioni -->
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label">Rating minimo:</label>
+                <div class="star-rating-slider">
+                    <input type="range" class="form-range" name="reviewMinRating" min="0" max="5" step="0.25" value="0">
+                    <div class="slider-labels">
+                        <span>0</span>
+                        <div class="stars">
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                            <i class="bi bi-star-fill"></i>
+                        </div>
+                        <span>5</span>
+                    </div>
+                    <div class="rating-value-display">Valore: <span>0</span></div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-check form-switch mt-4">
+                    <input class="form-check-input" type="checkbox" name="topCriticsOnly" id="topCriticsOnly">
+                    <label class="form-check-label" for="topCriticsOnly">Solo Top Critics</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

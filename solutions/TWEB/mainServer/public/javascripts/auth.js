@@ -16,7 +16,7 @@ if (window.location.pathname === '/films/search' && window.location.search) {
     window.history.replaceState(null, '', newUrl);
 }
 // Patch critica per il bug del browser
-window.addEventListener('popstate', function(event) {
+window.addEventListener('popstate', function (event) {
     // Ignora il popstate iniziale su alcuni browser
     if (event.state === null && window.location.pathname === '/') return;
 
@@ -36,6 +36,7 @@ function hideAllSections() {
     document.getElementById('authFormsSection')?.classList.add('hidden-section');
     document.getElementById('dashboardSection')?.classList.add('hidden-section');
     document.getElementById('loaderSection')?.classList.add('hidden-section');
+    document.getElementById('advancedSearchSection').classList.add('hidden-section');
 }
 
 function showDashboard() {
@@ -101,12 +102,12 @@ async function checkAuthState() {
 
     try {
         // 2. Chiamata API con tabId
-        const { data } = await axios.get('/auth/check', {
+        const {data} = await axios.get('/auth/check', {
             params: {
                 t: Date.now(),
                 tabId: tabId
             },
-            headers: { 'Cache-Control': 'no-cache' }
+            headers: {'Cache-Control': 'no-cache'}
         });
 
         // 3. Verifica autenticazione e coerenza tabId (MODIFICA MINIMA)
@@ -153,6 +154,7 @@ async function checkAuthState() {
         return false;
     }
 }
+
 function updateUIForAuthenticatedUser(user) {
     // Update navbar
     const greeting = document.querySelector('#userGreeting');
@@ -390,7 +392,7 @@ async function logout() {
 // =============================================
 function setupNavbarEvents() {
     document.addEventListener('click', async (e) => {
-        const target = e.target.closest('#loginBtn, #registerBtn, #logoutBtn, #loadDbBtn, #chatBtn');
+        const target = e.target.closest('#loginBtn, #registerBtn, #logoutBtn, #loadDbBtn, #chatBtn, #advancedSearchBtn');
         if (!target) return;
 
         e.preventDefault();
@@ -410,6 +412,9 @@ function setupNavbarEvents() {
                 case 'loadDbBtn':
                     await handleDbLoad(target);
                     break;
+                case 'advancedSearchBtn':
+                    await handleAdvancedSearchClick(target);
+                    break;
                 case 'chatBtn':
                     await handleChatClick(target);
                     break;
@@ -420,6 +425,54 @@ function setupNavbarEvents() {
             await checkAuthState();
         }
     });
+}
+
+async function handleAdvancedSearchClick(button) {
+    const originalHtml = button.innerHTML;
+    const section = document.getElementById('advancedSearchSection');
+
+    if (!section) {
+        console.error('Sezione ricerca avanzata non trovata');
+        return;
+    }
+
+    // Toggle behavior
+    if (section.classList.contains('show-section')) {
+        section.classList.replace('show-section', 'hidden-section');
+        button.innerHTML = originalHtml;
+        return;
+    }
+
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Caricamento...';
+    button.disabled = true;
+
+    try {
+        section.classList.replace('hidden-section', 'show-section');
+
+        if (!section.querySelector('.advanced-search-container')) {
+            const response = await axios.get('/advanced-search');
+            section.innerHTML = response.data;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 50));
+        initAdvancedSearch();
+        AppState.navigateTo('advancedSearch');
+
+    } catch (error) {
+        console.error('Advanced search error:', error);
+        section.innerHTML = `
+            <div class="alert alert-danger">
+                Errore nel caricamento: ${error.message}
+                <button onclick="handleAdvancedSearchClick(this)" 
+                        class="btn btn-sm btn-outline-danger ms-2">
+                    Riprova
+                </button>
+            </div>
+        `;
+    } finally {
+        button.innerHTML = originalHtml;
+        button.disabled = false;
+    }
 }
 
 async function handleChatClick(button) {
@@ -577,7 +630,7 @@ async function showFilmDetails(filmId) {
                 <button onclick="location.reload()" class="btn btn-sm btn-outline-danger ms-3">Ricarica</button>
             </div>
         `;
-    }finally{
+    } finally {
         // Pulisci la richiesta completata
         delete AppState._activeFilmRequests[filmId];
     }
@@ -689,17 +742,16 @@ function populateFilmData(film) {
         `).join('') || '<li class="list-group-item">Nessuna data di uscita disponibile</li>';
     }
     loadFilmOscars(film.movie?.name, film.movie?.date || film.movie?.year);
+    loadFilmReviews(film.movie?.name || film.title);
 }
+
 async function loadFilmOscars(filmName, filmYear) {
     // Converti l'anno in modo robusto
     let year = null;
     if (filmYear) {
-        // Se è già un numero (es. 2014)
         if (typeof filmYear === 'number' && !isNaN(filmYear)) {
             year = filmYear;
-        }
-        // Se è una stringa data (es. "2014-01-01")
-        else if (typeof filmYear === 'string') {
+        } else if (typeof filmYear === 'string') {
             const dateObj = new Date(filmYear);
             year = isNaN(dateObj) ? null : dateObj.getFullYear();
         }
@@ -710,13 +762,14 @@ async function loadFilmOscars(filmName, filmYear) {
         output: year,
         type: typeof filmYear
     });
+
     try {
         const oscarsSection = document.getElementById('oscarsSection');
         if (!oscarsSection) {
             console.log("[OSCARS DEBUG] Sezione Oscar non trovata nel DOM");
             return;
         }
-        // DEBUG: Verifica i valori in input
+
         console.log("[DEBUG INPUT]", {
             filmName,
             filmYear,
@@ -724,45 +777,43 @@ async function loadFilmOscars(filmName, filmYear) {
             typeofFilmYear: typeof filmYear
         });
 
-        // Costruzione ROBUSTA del requestBody
         const requestBody = {
             filmName: String(filmName),
             year: typeof filmYear === 'number' ? filmYear :
                 (filmYear ? new Date(filmYear).getFullYear() : null)
         };
-// DEBUG: Verifica l'oggetto creato
+
         console.log("[DEBUG REQUEST BODY]", {
             requestBody,
             stringified: JSON.stringify(requestBody)
         });
+
         console.log("[OSCARS DEBUG] Invio richiesta con body:", {
             rawFilmName: filmName,
             rawFilmYear: filmYear,
             processedYear: requestBody.year,
-            fullRequestBody: JSON.parse(JSON.stringify(requestBody)) // Deep clone per sicurezza
+            fullRequestBody: JSON.parse(JSON.stringify(requestBody))
         });
 
-        // 2. Effettua la chiamata
-        const response = await fetch('http://localhost:3003/api/oscars/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
+        // CHIAMATA AXIOS
+        const response = await axios.post('http://localhost:3003/api/oscars/search', requestBody, {
+            headers: {'Content-Type': 'application/json'},
+            timeout: 15000
         });
 
         console.log("[DEBUG RESPONSE]", {
             status: response.status,
-            headers: [...response.headers.entries()]
+            headers: response.headers,
+            config: response.config
         });
 
-        // 3. Analizza la risposta
-        const oscars = await response.json();
+        const oscars = response.data;
         console.log("[DEBUG RESPONSE DATA]", {
             rawData: oscars,
             dataType: Array.isArray(oscars) ? 'array' : typeof oscars,
             length: Array.isArray(oscars) ? oscars.length : 'N/A'
         });
 
-        // 4. Controllo di coerenza
         if (!Array.isArray(oscars)) {
             console.error("[OSCARS ERROR] Formato risposta non valido, atteso array, ricevuto:", typeof oscars);
             throw new Error("Formato dati non valido");
@@ -775,18 +826,22 @@ async function loadFilmOscars(filmName, filmYear) {
             errorName: error.name,
             errorMessage: error.message,
             stack: error.stack,
-            fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+            fullError: error.response ? {
+                status: error.response.status,
+                data: error.response.data,
+                headers: error.response.headers
+            } : 'No response received'
         });
 
         const noOscarsElement = document.getElementById('noOscars');
         if (noOscarsElement) {
             noOscarsElement.classList.remove('d-none');
-            noOscarsElement.textContent = `Errore tecnico: ${error.message}`;
+            noOscarsElement.textContent = error.response?.data?.error ||
+                `Errore tecnico: ${error.message}`;
         }
     } finally {
         const loadingElement = document.getElementById('oscarsLoading');
         if (loadingElement) loadingElement.classList.add('d-none');
-
         console.log("[OSCARS DEBUG] Caricamento completato (con o senza successo)");
     }
 }
@@ -820,6 +875,114 @@ function renderOscars(oscars) {
         container.classList.add('d-none');
         noOscars.classList.remove('d-none');
     }
+}
+
+function showReviewsLoading(show) {
+    const loadingElement = document.getElementById('reviewsLoading');
+    const contentElement = document.getElementById('reviewsList');
+    const noReviewsElement = document.getElementById('noReviews');
+
+    if (show) {
+        loadingElement.classList.remove('d-none');
+        contentElement.classList.add('d-none');
+        noReviewsElement.classList.add('d-none');
+    } else {
+        loadingElement.classList.add('d-none');
+        contentElement.classList.remove('d-none');
+    }
+}
+
+function showReviewsError(error) {
+    const noReviewsElement = document.getElementById('noReviews');
+    noReviewsElement.classList.remove('d-none');
+
+    // Mostra messaggio di errore appropriato
+    if (error.response) {
+        noReviewsElement.textContent = `Errore: ${error.response.data.error || 'Errore nel caricamento delle recensioni'}`;
+    } else if (error.request) {
+        noReviewsElement.textContent = 'Impossibile connettersi al server';
+    } else {
+        noReviewsElement.textContent = `Errore: ${error.message}`;
+    }
+
+    // Log dettagliato per debug
+    console.error('Errore caricamento recensioni:', {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+    });
+}
+
+function updateReviewStats(stats) {
+    // Puoi implementare questa funzione se vuoi mostrare statistiche
+    // Ad esempio, la valutazione media delle recensioni
+    console.log('Statistiche recensioni:', stats);
+}
+
+async function loadFilmReviews(movieTitle, limit = 5, offset = 0) {
+    try {
+        showReviewsLoading(true);
+
+        // Pulisci le recensioni esistenti
+        document.getElementById('reviewsList').innerHTML = '';
+
+        const response = await axios.get(`http://localhost:3003/api/films/${encodeURIComponent(movieTitle)}/reviews`, {
+            params: {limit, offset}
+        });
+
+        if (response.data.reviews.length === 0) {
+            document.getElementById('noReviews').classList.remove('d-none');
+            document.getElementById('noReviews').textContent = 'Nessuna recensione disponibile per questo film';
+        } else {
+            renderReviews(response.data.reviews);
+            updateReviewStats(response.data.stats);
+
+            // Mostra il pulsante "Carica più" se ci sono altre recensioni
+            if (response.data.pagination.total > offset + limit) {
+                document.getElementById('loadMoreReviews').classList.remove('d-none');
+            }
+        }
+    } catch (error) {
+        showReviewsError(error);
+    } finally {
+        showReviewsLoading(false);
+    }
+}
+
+function renderReviews(reviews) {
+    const container = document.getElementById('reviewsList');
+    const noReviewsElement = document.getElementById('noReviews');
+
+    if (!reviews || reviews.length === 0) {
+        noReviewsElement.classList.remove('d-none');
+        return;
+    }
+
+    container.innerHTML = ''; // Pulisci il container
+
+    reviews.forEach(review => {
+        const reviewEl = createReviewElement(review);
+        container.appendChild(reviewEl);
+    });
+
+    // Mostra il container delle recensioni
+    container.classList.remove('d-none');
+    noReviewsElement.classList.add('d-none');
+}
+
+function createReviewElement(review) {
+    const el = document.createElement('div');
+    el.className = `review-card ${review.isFresh ? 'fresh' : 'rotten'}`;
+    el.innerHTML = `
+        <div class="review-header">
+            <span class="review-score">${review.score}/5</span>
+            <span class="review-critic">${review.critic}</span>
+            <span class="review-publisher">${review.publisher}</span>
+        </div>
+        <div class="review-content">${review.content}</div>
+        <div class="review-date">${new Date(review.date).toLocaleDateString()}</div>
+    `;
+    return el;
 }
 
 // =============================================
@@ -1094,7 +1257,7 @@ function setupFilmCardClickHandlers() {
     });
 
     // Per i risultati di ricerca
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         const filmCard = e.target.closest('.film-card');
         if (filmCard) {
             e.preventDefault();
@@ -1103,12 +1266,14 @@ function setupFilmCardClickHandlers() {
         }
     });
 }
+
 // =============================================
 // CHAT SYSTEM CLIENT
 // =============================================
 // Variabili globali per lo stato della chat
 let socket = null;
 let currentRoom = null;
+
 function initChatSystem() {
     // Verifica che la sezione chat esista e sia visibile
     const chatSection = document.getElementById('chatSection');
@@ -1204,6 +1369,7 @@ function configureSocketEvents() {
         addSystemMessage(`${user.username} ha lasciato la chat`);
     });
 }
+
 // Nuova funzione helper
 function updateRoomUsers(users, count) {
     const roomUsersElement = document.getElementById('roomUsers');
@@ -1270,7 +1436,7 @@ function setupUIEvents() {
 
     // Chiudi modali quando si clicca sulla X
     document.querySelectorAll('.close-modal').forEach(btn => {
-        btn.addEventListener('click', function(e) {
+        btn.addEventListener('click', function (e) {
             e.preventDefault();
             const modal = this.closest('.modal-custom');
             hideModal(modal.id);
@@ -1279,7 +1445,7 @@ function setupUIEvents() {
 
     // Chiudi modali quando si clicca su Annulla
     document.querySelectorAll('.btn-secondary.close-modal').forEach(btn => {
-        btn.addEventListener('click', function(e) {
+        btn.addEventListener('click', function (e) {
             e.preventDefault();
             const modal = this.closest('.modal-custom');
             hideModal(modal.id);
@@ -1288,7 +1454,7 @@ function setupUIEvents() {
 
     // Chiudi quando si clicca sullo sfondo
     document.querySelectorAll('.modal-custom').forEach(modal => {
-        modal.addEventListener('click', function(e) {
+        modal.addEventListener('click', function (e) {
             if (e.target === this) {
                 hideModal(this.id);
             }
@@ -1311,6 +1477,7 @@ function setupUIEvents() {
         }
     });
 }
+
 // Mostra modal per unione
 
 function showJoinModal(roomId = '', roomName = '') {
@@ -1341,6 +1508,7 @@ function showJoinModal(roomId = '', roomName = '') {
         }
     };
 }
+
 // Funzioni per gestire i modali
 function showModal(modalId) {
     const modal = document.getElementById(modalId);
@@ -1351,6 +1519,7 @@ function showModal(modalId) {
         if (input) input.focus();
     }, 10);
 }
+
 function hideModal(modalId) {
     const modal = document.getElementById(modalId);
     modal.classList.remove('show');
@@ -1401,6 +1570,7 @@ function showCreateModal() {
         hideModal('createRoomModal');
     });
 }
+
 async function createNewRoom(roomData) {
     try {
         // 1. Prima crea la stanza nel database
@@ -1431,6 +1601,7 @@ async function createNewRoom(roomData) {
         showAlert(`Errore: ${error.response?.data?.error || error.message}`, 'danger');
     }
 }
+
 function generateRoomCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
@@ -1454,6 +1625,7 @@ async function leaveCurrentRoom() {
         });
     });
 }
+
 // Unione o creazione stanza
 function joinOrCreateRoom(roomCode, roomMeta = {}) {
     if (!socket) {
@@ -1504,6 +1676,7 @@ function sendMessage() {
         input.value = '';
     }
 }
+
 // Helper per aggiungere un messaggio all'UI
 function addMessageToUI(username, text) {
     const messagesDiv = document.getElementById('messagesContainer');
@@ -1521,6 +1694,7 @@ function addSystemMessage(text) {
         <div class="system-message text-muted small">${text}</div>
     `;
 }
+
 async function refreshRoomsList() {
     try {
         const response = await axios.get('/sio/chat/active-rooms');
@@ -1581,6 +1755,7 @@ function updateActiveRoomUI(roomData) {
         }
     }
 }
+
 // Helper per l'icona della stanza (da implementare in base alle tue esigenze)
 function roomIcon(type) {
     const icons = {
@@ -1590,6 +1765,182 @@ function roomIcon(type) {
         'character': 'person-badge'
     };
     return icons[type] || 'chat';
+}
+// =============================================
+// SEZIONE RICERCA AVANZATA
+// =============================================
+function initAdvancedSearch() {
+    const searchTypeSelect = document.getElementById('searchTypeSelect');
+    const searchForm = document.getElementById('advancedSearchForm');
+    const filtersContainer = document.getElementById('dynamicFilters');
+
+    if (!searchTypeSelect || !searchForm || !filtersContainer) {
+        console.error('Elementi principali non trovati');
+        return;
+    }
+
+    // Templates
+    const filmFiltersTemplate = document.getElementById('filmFiltersTemplate');
+    const reviewFiltersTemplate = document.getElementById('reviewFiltersTemplate');
+
+    // Funzione per aggiornare i filtri
+    const updateFilters = (type) => {
+        try {
+            filtersContainer.innerHTML = '';
+
+            switch(type) {
+                case 'films':
+                    if (filmFiltersTemplate) {
+                        filtersContainer.innerHTML = filmFiltersTemplate.innerHTML;
+                        initFilmFilters();
+                    }
+                    break;
+
+                case 'reviews':
+                    if (reviewFiltersTemplate) {
+                        filtersContainer.innerHTML = reviewFiltersTemplate.innerHTML;
+                        initReviewFilters();
+                    }
+                    break;
+
+                default:
+                    filtersContainer.innerHTML = '<p class="text-muted">Seleziona un tipo di ricerca</p>';
+            }
+
+        } catch (error) {
+            console.error('Errore nel cambio filtri:', error);
+            filtersContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    Errore nel caricamento dei filtri
+                </div>
+            `;
+        }
+    };
+
+    // Inizializza i filtri per i film
+    const initFilmFilters = () => {
+        // Slider rating
+        initRatingSlider('minRating');
+
+        // Dropdown tipo ricerca film
+        const dropdownItems = filtersContainer.querySelectorAll('.dropdown-item');
+        const searchTypeLabel = filtersContainer.querySelector('#filmSearchTypeLabel');
+        const searchTypeInput = filtersContainer.querySelector('input[name="filmSearchType"]');
+
+        dropdownItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const value = e.target.getAttribute('data-value');
+                const text = e.target.textContent;
+                searchTypeLabel.textContent = text;
+                searchTypeInput.value = value;
+            });
+        });
+    };
+
+    // Inizializza i filtri per le recensioni
+    const initReviewFilters = () => {
+        initRatingSlider('reviewMinRating');
+    };
+
+    // Funzione helper per inizializzare gli slider di rating
+    const initRatingSlider = (name) => {
+        const slider = filtersContainer.querySelector(`input[name="${name}"]`);
+        const valueDisplay = filtersContainer.querySelector(`input[name="${name}"]`).closest('.star-rating-slider').querySelector('.rating-value-display span');
+
+        if (slider && valueDisplay) {
+            // Aggiorna il valore iniziale
+            valueDisplay.textContent = slider.value;
+
+            // Aggiorna al cambiare del valore
+            slider.addEventListener('input', (e) => {
+                valueDisplay.textContent = e.target.value;
+            });
+        }
+    };
+
+    // Esegue la ricerca avanzata
+    const executeAdvancedSearch = async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(searchForm);
+        const params = {
+            searchType: formData.get('searchType'), // 'films' o 'reviews'
+            sortBy: formData.get('sortBy') || 'rating_desc'
+        };
+
+        if (params.searchType === 'films') {
+            params.filmQuery = formData.get('filmQuery');
+            params.searchQuery = formData.get('filmSearchQuery');
+            params.filmSearchType = formData.get('filmSearchType'); // <-- Cambiato da searchType a filmSearchType
+            params.minRating = formData.get('minRating');
+            params.oscarStatus = formData.get('oscarStatus');
+            params.yearFrom = formData.get('yearFrom');
+            params.yearTo = formData.get('yearTo');
+
+            const genres = [];
+            document.querySelectorAll('input[name="genres"]:checked').forEach(checkbox => {
+                genres.push(checkbox.value);
+            });
+            if (genres.length > 0) params.genres = genres.join(',');
+
+            console.log('Client - Filtri film:', {
+                filmQuery: params.filmQuery,
+                searchQuery: params.searchQuery,
+                genres: params.genres
+            });
+
+        } else if (params.searchType === 'reviews') {
+            params.filmQuery = formData.get('reviewFilmQuery');
+            params.criticQuery = formData.get('reviewCriticQuery');
+            params.minRating = formData.get('reviewMinRating');
+            params.topCriticsOnly = formData.get('topCriticsOnly') === 'on';
+
+            console.log('Client - Filtri recensioni:', {
+                filmQuery: params.filmQuery,
+                criticQuery: params.criticQuery
+            });
+        }
+
+        try {
+            console.log('Client - Invio richiesta al Main Server...');
+            const response = await axios.get('/search/advanced', { params });
+
+            console.log('Client - Risposta ricevuta:', response.data);
+            renderAdvancedSearchResults(response.data);
+
+        } catch (error) {
+            console.error('Client - Errore:', {
+                message: error.message,
+                config: error.config,
+                response: error.response
+            });
+
+            document.getElementById('advancedSearchResults').innerHTML = `
+            <div class="alert alert-danger">
+                Errore durante la ricerca: ${error.message}
+                ${error.response?.data ? `<br><small>${JSON.stringify(error.response.data)}</small>` : ''}
+            </div>
+        `;
+        }
+    };
+
+    // Gestione eventi
+    searchTypeSelect.addEventListener('change', (e) => {
+        updateFilters(e.target.value);
+    });
+
+    searchForm.addEventListener('submit', executeAdvancedSearch);
+
+    // Inizializzazione
+    updateFilters(searchTypeSelect.value);
+}
+
+// Funzione per renderizzare i risultati (da implementare)
+function renderAdvancedSearchResults(data) {
+    const resultsContainer = document.getElementById('advancedSearchResults');
+    // Implementa la visualizzazione dei risultati qui
+    resultsContainer.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
 }
 // =============================================
 // STATO DELL'APPLICAZIONE E GESTIONE VISTE
@@ -1635,12 +1986,26 @@ const AppState = {
             case 'chat':
                 this.showChat();
                 break;
+            case 'advancedSearch': // Aggiungi questo caso
+                this.showAdvancedSearch();
+                break;
         }
 
         this.updateHistory(view, params, replace);
     },
 
-    showChat: async function() {
+    showAdvancedSearch: async function() {
+        // Nascondi tutte le altre sezioni
+        document.getElementById('carouselSection').classList.add('d-none');
+        document.getElementById('filmDetailSection').style.display = 'none';
+        document.getElementById('searchResultsSection').classList.add('d-none');
+        document.getElementById('chatSection').classList.add('d-none');
+        // Mostra la sezione di ricerca avanzata
+        document.getElementById('advancedSearchSection').classList.remove('d-none');
+        // Inizializza se non è già stato fatto
+    },
+
+    showChat: async function () {
         // Nascondi tutte le altre view prima
         document.getElementById('carouselSection').classList.add('d-none');
         document.getElementById('filmDetailSection').style.display = 'none';
@@ -1726,7 +2091,7 @@ const AppState = {
     },
 
 
-    updateHistory: function(view, params, replace = false) {
+    updateHistory: function (view, params, replace = false) {
         // Validazione minima
         if (view === 'searchResults' && !params.query) {
             console.error('Search navigation requires query');
@@ -1779,6 +2144,17 @@ const AppState = {
                     }
                 };
                 break;
+            case 'advancedSearch':
+                url = '/advanced-search';
+                state = {
+                    view: 'advancedSearch',
+                    previousState: this.currentView === 'searchResults' ? {
+                        view: 'searchResults',
+                        query: this.searchQuery,
+                        page: this.currentPage
+                    } : null
+                };
+                break;
         }
 
         if (url && state) {
@@ -1790,7 +2166,7 @@ const AppState = {
         }
     },
 
-    handlePopState: function(event) {
+    handlePopState: function (event) {
         if (this._isHandlingPopstate) return;
         this._isHandlingPopstate = true;
 
@@ -1808,7 +2184,7 @@ const AppState = {
                 if (event.state?.previousState) {
                     // Usa lo stato precedente salvato
                     const prev = event.state.previousState;
-                    switch(prev.view) {
+                    switch (prev.view) {
                         case 'carousel':
                             this._navigateToCarousel();
                             break;
@@ -1829,7 +2205,7 @@ const AppState = {
 
             // Gestione normale degli stati
             if (event.state) {
-                switch(event.state.view) {
+                switch (event.state.view) {
                     case 'carousel':
                         this._navigateToCarousel();
                         break;
@@ -1841,6 +2217,9 @@ const AppState = {
                         break;
                     case 'chat':
                         this._navigateToChat();
+                        break;
+                    case 'advancedSearch':
+                        this._navigateToAdvancedSearch();
                         break;
                 }
             } else {
@@ -1854,6 +2233,8 @@ const AppState = {
                     this._navigateToSearchResults(query, page);
                 } else if (url.pathname === '/sio/chat') {
                     this._navigateToChat();
+                } else if (url.pathname === '/advanced-search') {
+                        this._navigateToAdvancedSearch();
                 } else {
                     this._navigateToCarousel();
                 }
@@ -1866,8 +2247,15 @@ const AppState = {
         }
     },
 
+    _navigateToAdvancedSearch: function() {
+        if (this.currentView === 'advancedSearch') return;
+
+        this.currentView = 'advancedSearch';
+        this.showAdvancedSearch();
+    },
+
     //helper per la navigazione alla chat
-    _navigateToChat: function() {
+    _navigateToChat: function () {
         if (this.currentView === 'chat') return;
 
         this.currentView = 'chat';
@@ -1875,7 +2263,7 @@ const AppState = {
     },
 
 // Aggiungi queste funzioni helper a AppState:
-    _navigateToFilmDetails: function(filmId) {
+    _navigateToFilmDetails: function (filmId) {
         if (this.currentView === 'filmDetails' && this.currentFilmId === filmId) {
             return;
         }
@@ -1885,7 +2273,7 @@ const AppState = {
         this.showFilmDetails(filmId);
     },
 
-    _navigateToSearchResults: function(query, page) {
+    _navigateToSearchResults: function (query, page) {
         if (this.currentView === 'searchResults' &&
             this.searchQuery === query &&
             this.currentPage === page) return;
@@ -1896,7 +2284,7 @@ const AppState = {
         this.showSearchResults(query, page);
     },
 
-    _navigateToCarousel: function() {
+    _navigateToCarousel: function () {
         if (this.currentView === 'carousel') return;
 
         this.currentView = 'carousel';
@@ -1934,12 +2322,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Salva lo stato iniziale nella history
             if (window.location.pathname === '/' && !history.state) {
-                history.replaceState({ view: 'carousel' }, '', '/');
+                history.replaceState({view: 'carousel'}, '', '/');
             }
 
             // Determina la vista iniziale in base all'URL
             if (window.location.pathname === '/sio/chat') {
                 AppState.navigateTo('chat', {}, true); // ora è valido
+            } else if (window.location.pathname === '/advanced-search') {
+                AppState.navigateTo('advancedSearch', {}, true); // Aggiungi questo caso
             } else if (window.location.pathname.startsWith('/film/')) {
                 const filmId = window.location.pathname.split('/')[2];
                 AppState.navigateTo('filmDetails', {filmId}, true);

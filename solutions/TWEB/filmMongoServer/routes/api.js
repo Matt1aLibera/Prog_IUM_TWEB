@@ -4,8 +4,41 @@ const { connectDB } = require('../databases/filmDB');
 const { uploadRatings, getFilmsByRatingRange, getFilmRating } = require('../controllers/filmRating');
 const path = require('path');
 const fs = require('fs');
-const uploadRTReviews = require('../controllers/RTReview');
+const {getFilmReviews, uploadRTReviews} = require('../controllers/RTReview');
 //usa curl "http://localhost:3002/api/films/ratings"
+
+router.get('/films/:title/reviews', async (req, res) => {
+    try {
+        const movieTitle = decodeURIComponent(req.params.title);
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = parseInt(req.query.offset) || 0;
+        const minRating = req.query.minRating ? parseFloat(req.query.minRating) : null;
+        const maxRating = req.query.maxRating ? parseFloat(req.query.maxRating) : null;
+
+        const result = await getFilmReviews(movieTitle, limit, offset, minRating, maxRating);
+
+        if (!result.success) {
+            return res.status(500).json({
+                error: result.error
+            });
+        }
+
+        res.json({
+            reviews: result.data,
+            pagination: {
+                limit: result.limit,
+                offset: result.offset,
+                total: result.total
+            },
+            stats: result.stats
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: "Errore interno del server",
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
 router.get('/films/ratings', async (req, res) => {
     try {
         const minRating = parseFloat(req.query.minRating) || 0;
@@ -60,6 +93,47 @@ router.get('/films/:id', async (req, res) => {
     }
 })
 
+router.post('/ratings/batch', async (req, res) => {
+    try {
+        const { filmIds } = req.body;
+
+        if (!filmIds || !Array.isArray(filmIds)) {
+            return res.status(400).json({
+                error: "Il campo 'filmIds' è obbligatorio e deve essere un array"
+            });
+        }
+
+        const connection = await connectDB();
+        const FilmRating = connection.model('FilmRating');
+
+        const numericIds = filmIds.map(id => parseInt(id)).filter(id => !isNaN(id));
+
+        const ratings = await FilmRating.find({
+            movie_id: { $in: numericIds }
+        })
+            .select('movie_id rating -_id')
+            .lean();
+
+        // Creiamo una mappa per tutti gli ID richiesti
+        const response = filmIds.map(id => {
+            const found = ratings.find(r => r.movie_id === parseInt(id));
+            return {
+                id: parseInt(id),
+                rating: found ? found.rating : null
+            };
+        });
+
+        res.json(response);
+    } catch (error) {
+        console.error('Errore in /ratings/batch:', error);
+        res.status(500).json({
+            error: "Errore interno del server",
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+
 router.post('/upload-db', async (req, res) => {
     try {
         // Caricamento Ratings
@@ -75,7 +149,7 @@ router.post('/upload-db', async (req, res) => {
             : { success: false, message: "File rt_reviews.csv non trovato" };
 
         res.json({
-            ratings: ratingsResult,
+            //ratings: ratingsResult,
             reviews: reviewsResult
         });
     } catch (error) {

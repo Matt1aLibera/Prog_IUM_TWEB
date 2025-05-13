@@ -108,10 +108,42 @@ const getFilmRating = async (movie_id) => {
     }
 };
 
+const getRatingsBatch = async (filmIds) => {
+    const connection = await connectDB();
+    const FilmRating = connection.model('FilmRating');
+
+    try {
+        // Converti gli ID a numeri per sicurezza
+        const numericIds = filmIds.map(id => parseInt(id)).filter(id => !isNaN(id));
+
+        const ratings = await FilmRating.find({
+            movie_id: { $in: numericIds }
+        })
+            .select('movie_id rating -_id')
+            .lean();
+
+        // Creiamo una mappa per accesso veloce
+        const ratingMap = {};
+        ratings.forEach(r => {
+            ratingMap[r.movie_id] = r.rating;
+        });
+
+        // Restituiamo un array con tutti gli ID richiesti, anche quelli senza rating
+        return filmIds.map(id => ({
+            id: parseInt(id),
+            rating: ratingMap[parseInt(id)] || null
+        }));
+    } catch (error) {
+        console.error('Errore in getRatingsBatch:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     upsertRating,
     getRating,
     uploadRatings, // Aggiungi la nuova funzione
     getFilmsByRatingRange,
     getFilmRating,
+    getRatingsBatch
 };

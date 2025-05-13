@@ -44,6 +44,10 @@
     <div id="chatSection" class="{{#unless showChat}}d-none{{/unless}}">
         {{{chatContent}}}
     </div>
+    <!--  pagina ricerca avanzata -->
+    <div id="advancedSearchSection" class="{{#unless showAdvancedSearch}}d-none{{/unless}}">
+        {{{advancedSearchContent}}}
+    </div>
 </div>
 <!-- Sezione dettaglio film - inizialmente nascosta -->
 <div id="filmDetailSection" class="film-detail-section d-none">
@@ -224,6 +228,60 @@
                                         {{/each}}
                                     {{/if}}
                                 </ul>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+                <!-- Sezione Recensioni - In fondo alla pagina -->
+                <div class="row mt-5">
+                    <div class="col-12">
+                        <section id="reviewsSection">
+                            <h2 class="mb-4 border-bottom pb-2"><i class="bi bi-newspaper me-2"></i>Recensioni della Critica</h2>
+
+                            <!-- Spinner di caricamento -->
+                            <div id="reviewsLoading" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Caricamento recensioni...</p>
+                            </div>
+
+                            <!-- Filtri (da implementare successivamente) -->
+                            <div id="reviewsFilters" class="row mb-3 d-none">
+                                <div class="col-md-6">
+                                    <label for="ratingFilter" class="form-label">Filtra per valutazione</label>
+                                    <select id="ratingFilter" class="form-select">
+                                        <option value="all">Tutte le valutazioni</option>
+                                        <option value="4">⭐ 4+ stelle</option>
+                                        <option value="3">⭐ 3+ stelle</option>
+                                        <option value="2">⭐ 2+ stelle</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mt-4 pt-2">
+                                        <input class="form-check-input" type="checkbox" id="topCriticsOnly">
+                                        <label class="form-check-label" for="topCriticsOnly">
+                                            Solo Top Critics
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Container recensioni -->
+                            <div id="reviewsList" class="row g-3">
+                                <!-- Popolato dinamicamente -->
+                            </div>
+
+                            <!-- Messaggio nessuna recensione -->
+                            <div id="noReviews" class="alert alert-light text-center d-none">
+                                Nessuna recensione disponibile per questo film
+                            </div>
+
+                            <!-- Pulsante "Carica più" -->
+                            <div class="text-center mt-4">
+                                <button id="loadMoreReviews" class="btn btn-outline-primary d-none">
+                                    <i class="bi bi-arrow-down-circle me-2"></i>Carica altre recensioni
+                                </button>
                             </div>
                         </section>
                     </div>
