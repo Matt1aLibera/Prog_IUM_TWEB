@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { connectDB } = require('../databases/filmDB');
-const { uploadRatings, getFilmsByRatingRange, getFilmRating } = require('../controllers/filmRating');
+const {getRatingsBatch, uploadRatings, getFilmsByRatingRange, getFilmRating } = require('../controllers/filmRating');
 const path = require('path');
 const fs = require('fs');
 const {getFilmReviews, uploadRTReviews} = require('../controllers/RTReview');
@@ -103,27 +103,10 @@ router.post('/ratings/batch', async (req, res) => {
             });
         }
 
-        const connection = await connectDB();
-        const FilmRating = connection.model('FilmRating');
+        // Utilizza il controller invece della logica diretta
+        const ratings = await getRatingsBatch(filmIds);
 
-        const numericIds = filmIds.map(id => parseInt(id)).filter(id => !isNaN(id));
-
-        const ratings = await FilmRating.find({
-            movie_id: { $in: numericIds }
-        })
-            .select('movie_id rating -_id')
-            .lean();
-
-        // Creiamo una mappa per tutti gli ID richiesti
-        const response = filmIds.map(id => {
-            const found = ratings.find(r => r.movie_id === parseInt(id));
-            return {
-                id: parseInt(id),
-                rating: found ? found.rating : null
-            };
-        });
-
-        res.json(response);
+        res.json(ratings);
     } catch (error) {
         console.error('Errore in /ratings/batch:', error);
         res.status(500).json({

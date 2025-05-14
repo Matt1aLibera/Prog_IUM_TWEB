@@ -31,12 +31,6 @@ public interface MovieRepo extends JpaRepository<Movie, Long>, JpaSpecificationE
     @Query("SELECT m FROM Movie m WHERE LOWER(m.name) LIKE LOWER(CONCAT('%', :query, '%')) AND LOWER(m.name) NOT LIKE LOWER(CONCAT(:query, '%')) ORDER BY m.name ASC, m.id ASC")
     Page<Movie> findByNameContainingButNotStartingWith(@Param("query") String query, Pageable pageable);
 
-    public interface MovieProjection {
-        Long getId();
-        String getName();
-        Integer getDate();
-        String getPoster_link();
-    }
     @Query(value = """
             SELECT 
                 m.id as id,

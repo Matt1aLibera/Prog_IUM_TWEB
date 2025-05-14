@@ -1432,7 +1432,7 @@ function setupUIEvents() {
         }
     });
 
-    // ---------- AGGIUNGI QUI TUTTA LA GESTIONE DEI MODAL ----------
+    // ---------- GESTIONE DEI MODAL ----------
 
     // Chiudi modali quando si clicca sulla X
     document.querySelectorAll('.close-modal').forEach(btn => {

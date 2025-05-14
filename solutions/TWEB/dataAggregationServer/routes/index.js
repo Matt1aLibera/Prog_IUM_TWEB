@@ -273,38 +273,44 @@ router.get('/advanced-search', async (req, res) => {
         timeout: 10000
       });
 
-      // 2. Recupera i rating in batch
-      const filmIds = postgresResponse.data.content.map(film => film.id);
-      console.log('DAS - Richiesta rating per film IDs:', filmIds);
+      let enrichedFilms = postgresResponse.data.content;
 
-      const ratingsResponse = await axios.post(`${SERVICES.mongodb}/api/ratings/batch`, {
-        filmIds
-      }, { timeout: 5000 });
+      // 2. Recupera i rating SOLO se necessario
+      const needsRatings = sortBy?.startsWith('rating_') || minRatingNum > 0;
+      let ratingsMap = {};
 
-      // 3. Combina i risultati
-      const ratingsMap = ratingsResponse.data.reduce((acc, item) => {
-        acc[item.id] = item.rating;
-        return acc;
-      }, {});
+      if (needsRatings) {
+        const filmIds = postgresResponse.data.content.map(film => film.id);
+        console.log('DAS - Richiesta rating per film IDs:', filmIds);
 
-      let enrichedFilms = postgresResponse.data.content.map(film => ({
-        ...film,
-        rating: ratingsMap[film.id] ?? null
-      }));
+        const ratingsResponse = await axios.post(`${SERVICES.mongo}/api/ratings/batch`, {
+          filmIds
+        }, { timeout: 5000 });
 
-      // 4. Filtra per rating minimo (escludi solo se rating è presente e < min)
+        ratingsMap = ratingsResponse.data.reduce((acc, item) => {
+          acc[item.id] = item.rating;
+          return acc;
+        }, {});
+
+        enrichedFilms = enrichedFilms.map(film => ({
+          ...film,
+          rating: ratingsMap[film.id] ?? null
+        }));
+      }
+
+      // 3. Filtra per rating minimo (se richiesto)
       if (minRatingNum > 0) {
         enrichedFilms = enrichedFilms.filter(film =>
-            film.rating === null || film.rating >= minRatingNum
+            film.rating !== null && film.rating >= minRatingNum
         );
       }
 
-      // 5. Ordina se specificato
+      // 4. Ordina se specificato
       if (sortBy) {
         enrichedFilms = sortFilms(enrichedFilms, sortBy);
       }
 
-      // 6. Gestione paginazione
+      // 5. Gestione paginazione
       const pageable = postgresResponse.data.pageable;
       const totalElements = enrichedFilms.length;
       const totalPages = Math.ceil(totalElements / pageable.pageSize);
@@ -363,8 +369,10 @@ function sortFilms(films, sortBy) {
 
     if (field === 'rating') {
       return (a.rating - b.rating) * sortOrder;
-    } else if (field === 'date') {
+    } else if (field === 'year') {
       return (a.year - b.year) * sortOrder;
+    } else if (field === 'name') {
+      return a.name.localeCompare(b.name) * sortOrder;
     }
     return 0;
   });
