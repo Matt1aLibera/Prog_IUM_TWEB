@@ -437,8 +437,8 @@ async function handleAdvancedSearchClick(button) {
     }
 
     // Toggle behavior
-    if (section.classList.contains('show-section')) {
-        section.classList.replace('show-section', 'hidden-section');
+    if (section.classList.contains('d-none')) {
+        section.classList.remove('d-none');
         button.innerHTML = originalHtml;
         return;
     }
@@ -1204,15 +1204,20 @@ async function updateSearchResults(query, page) {
             </div>
         `;
 
-        const response = await axios.get(
-            `/films/search/full?q=${encodeURIComponent(query)}&page=${page}`,
-            {
-                headers: {
-                    'Accept': 'application/json, text/html',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+        let apiUrl;
+        if (query.startsWith('advanced:')) {
+            const params = query.replace('advanced:', '');
+            apiUrl = `/search/advanced?${params}&page=${page}`;
+        } else {
+            apiUrl = `/films/search/full?q=${encodeURIComponent(query)}&page=${page}`;
+        }
+
+        const response = await axios.get(apiUrl, {
+            headers: {
+                'Accept': 'application/json, text/html',
+                'X-Requested-With': 'XMLHttpRequest'
             }
-        );
+        });
 
         searchResultsSection.innerHTML = response.data;
         setupFilmCardClickHandlers();
@@ -1778,7 +1783,11 @@ function initAdvancedSearch() {
         console.error('Elementi principali non trovati');
         return;
     }
-
+    // Controllo se già inizializzato
+    if (searchForm.dataset.initialized === 'true') {
+        return;
+    }
+    searchForm.dataset.initialized = 'true';
     // Templates
     const filmFiltersTemplate = document.getElementById('filmFiltersTemplate');
     const reviewFiltersTemplate = document.getElementById('reviewFiltersTemplate');
@@ -1791,14 +1800,16 @@ function initAdvancedSearch() {
             switch(type) {
                 case 'films':
                     if (filmFiltersTemplate) {
-                        filtersContainer.innerHTML = filmFiltersTemplate.innerHTML;
-                        initFilmFilters();
+                        const content = document.importNode(filmFiltersTemplate.content, true);
+                        filtersContainer.appendChild(content);
+                        initFilmFilters()
                     }
                     break;
 
                 case 'reviews':
                     if (reviewFiltersTemplate) {
-                        filtersContainer.innerHTML = reviewFiltersTemplate.innerHTML;
+                        const content = document.importNode(reviewFiltersTemplate.content, true);
+                        filtersContainer.appendChild(content);
                         initReviewFilters();
                     }
                     break;
@@ -1902,7 +1913,14 @@ function initAdvancedSearch() {
             });
         }
 
-        try {
+        // Converti i parametri in una stringa query serializzata
+        const queryString = new URLSearchParams(params).toString();
+        // Usa lo stesso meccanismo della ricerca full
+        AppState.navigateTo('searchResults', {
+            query: `advanced:${queryString}`,
+            page: 0
+        });
+        /*try {
             console.log('Client - Invio richiesta al Main Server...');
             const response = await axios.get('/search/advanced', { params });
 
@@ -1922,7 +1940,7 @@ function initAdvancedSearch() {
                 ${error.response?.data ? `<br><small>${JSON.stringify(error.response.data)}</small>` : ''}
             </div>
         `;
-        }
+        }*/
     };
 
     // Gestione eventi
@@ -1930,7 +1948,15 @@ function initAdvancedSearch() {
         updateFilters(e.target.value);
     });
 
-    searchForm.addEventListener('submit', executeAdvancedSearch);
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!this.searchExecuted) {
+            this.searchExecuted = true;
+            executeAdvancedSearch(e).finally(() => {
+                this.searchExecuted = false;
+            });
+        }
+    });
 
     // Inizializzazione
     updateFilters(searchTypeSelect.value);
@@ -2002,7 +2028,6 @@ const AppState = {
         document.getElementById('chatSection').classList.add('d-none');
         // Mostra la sezione di ricerca avanzata
         document.getElementById('advancedSearchSection').classList.remove('d-none');
-        // Inizializza se non è già stato fatto
     },
 
     showChat: async function () {
@@ -2077,7 +2102,7 @@ const AppState = {
         document.getElementById('searchResultsSection').classList.add('d-none');
         document.getElementById('filmDetailSection').style.display = 'block';
         document.getElementById('chatSection').classList.add('d-none');
-
+        document.getElementById('advancedSearchSection').classList.add('d-none');
         await showFilmDetails(filmId);
     },
 
@@ -2086,7 +2111,7 @@ const AppState = {
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.remove('d-none');
         document.getElementById('chatSection').classList.add('d-none');
-
+        document.getElementById('advancedSearchSection').classList.add('d-none');
         updateSearchResults(query, page);
     },
 

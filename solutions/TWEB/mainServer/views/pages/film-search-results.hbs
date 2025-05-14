@@ -1,3 +1,11 @@
+{{#if isAdvancedSearch}}
+    <div class="alert alert-info mb-3">
+        <i class="bi bi-filter-circle"></i> Ricerca avanzata attiva
+        <a href="/advanced-search" class="float-end btn btn-sm btn-outline-info">
+            Modifica filtri
+        </a>
+    </div>
+{{/if}}
 {{! views/pages/film-search-results.hbs }}
 <div class="search-results-container">
     <div class="container mt-4">

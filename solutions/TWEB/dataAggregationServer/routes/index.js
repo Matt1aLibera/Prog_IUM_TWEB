@@ -245,7 +245,6 @@ router.get('/films/:title/reviews', async (req, res, next) => {
     }
   }
 });
-
 router.get('/advanced-search', async (req, res) => {
   console.log('DAS - Parametri ricevuti:', req.query);
 
@@ -254,17 +253,17 @@ router.get('/advanced-search', async (req, res) => {
     const minRatingNum = parseFloat(minRating);
 
     if (searchType === 'films') {
-      // 1. Recupera i film da Postgres
+      // 1. Recupera i film da Postgres (con paginazione originale)
       const postgresParams = {
+        ...params,
         title: params.filmQuery,
         actor: params.searchType === 'actor' ? params.searchQuery : undefined,
         character: params.searchType === 'character' ? params.searchQuery : undefined,
         crew: params.searchType === 'crew' ? params.searchQuery : undefined,
         studio: params.searchType === 'studio' ? params.searchQuery : undefined,
         genres: params.genres?.split(','),
-        yearFrom: params.yearFrom,
-        yearTo: params.yearTo,
-        oscarStatus: params.oscarStatus
+        page: req.query.page || 0,
+        size: req.query.size || 15
       };
 
       console.log('DAS - Invio a Postgres:', postgresParams);
@@ -273,12 +272,17 @@ router.get('/advanced-search', async (req, res) => {
         timeout: 10000
       });
 
+      // 2. Mantieni la struttura originale di paginazione
+      const originalPagination = {
+        ...postgresResponse.data.pageable,
+        totalElements: postgresResponse.data.totalElements,
+        totalPages: postgresResponse.data.totalPages
+      };
+
       let enrichedFilms = postgresResponse.data.content;
 
-      // 2. Recupera i rating SOLO se necessario
+      // 3. Recupera i rating SOLO se necessario (senza modificare paginazione)
       const needsRatings = sortBy?.startsWith('rating_') || minRatingNum > 0;
-      let ratingsMap = {};
-
       if (needsRatings) {
         const filmIds = postgresResponse.data.content.map(film => film.id);
         console.log('DAS - Richiesta rating per film IDs:', filmIds);
@@ -287,7 +291,7 @@ router.get('/advanced-search', async (req, res) => {
           filmIds
         }, { timeout: 5000 });
 
-        ratingsMap = ratingsResponse.data.reduce((acc, item) => {
+        const ratingsMap = ratingsResponse.data.reduce((acc, item) => {
           acc[item.id] = item.rating;
           return acc;
         }, {});
@@ -298,39 +302,27 @@ router.get('/advanced-search', async (req, res) => {
         }));
       }
 
-      // 3. Filtra per rating minimo (se richiesto)
+      // 4. Filtra e ordina (applicato solo alla pagina corrente)
       if (minRatingNum > 0) {
         enrichedFilms = enrichedFilms.filter(film =>
             film.rating !== null && film.rating >= minRatingNum
         );
       }
 
-      // 4. Ordina se specificato
       if (sortBy) {
         enrichedFilms = sortFilms(enrichedFilms, sortBy);
       }
 
-      // 5. Gestione paginazione
-      const pageable = postgresResponse.data.pageable;
-      const totalElements = enrichedFilms.length;
-      const totalPages = Math.ceil(totalElements / pageable.pageSize);
-
-      const start = pageable.pageNumber * pageable.pageSize;
-      const end = start + pageable.pageSize;
-      const paginatedContent = enrichedFilms.slice(start, end);
-
+      // 5. Restituisci con la paginazione originale del Postgres
       res.json({
-        content: paginatedContent,
-        pageable: {
-          ...pageable,
-          offset: start
-        },
-        totalElements,
-        totalPages,
-        last: end >= totalElements,
-        first: pageable.pageNumber === 0,
-        numberOfElements: paginatedContent.length,
-        empty: paginatedContent.length === 0,
+        content: enrichedFilms,
+        pageable: originalPagination,
+        totalElements: originalPagination.totalElements,
+        totalPages: originalPagination.totalPages,
+        last: postgresResponse.data.last,
+        first: postgresResponse.data.first,
+        numberOfElements: enrichedFilms.length,
+        empty: enrichedFilms.length === 0,
         sorted: !!sortBy
       });
 
@@ -345,12 +337,7 @@ router.get('/advanced-search', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('DAS - Errore:', {
-      message: error.message,
-      url: error.config?.url,
-      response: error.response?.data
-    });
-
+    console.error('DAS - Errore:', error.message);
     res.status(500).json({
       error: 'Errore durante la ricerca',
       details: error.response?.data || error.message

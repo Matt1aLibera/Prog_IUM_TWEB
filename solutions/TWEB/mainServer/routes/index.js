@@ -283,43 +283,103 @@ router.get('/advanced-search', async (req, res) => {
 });
 
 router.get('/search/advanced', async (req, res) => {
-    // Stampa debug dei parametri ricevuti
-    console.log('Parametri ricevuti dal client:', req.query);
+    console.log('══════════════════════════════════════════════════════════════');
+    console.log('⏳ [1/6] Ricevuta richiesta ricerca avanzata');
+    console.log('📋 Parametri query:', JSON.stringify(req.query, null, 2));
 
     try {
-        // Stampa la struttura completa della query
-        console.log('Query completa:', {
-            url: req.originalUrl,
-            method: req.method,
-            headers: req.headers,
-            params: req.params,
-            query: req.query
-        });
+        // 1. Inoltra la richiesta al DAS con parametri di paginazione
+        const page = parseInt(req.query.page) || 0;
+        const size = parseInt(req.query.size) || 15;
 
-        // Inoltra la richiesta al DAS
+        console.log('\n⏳ [2/6] Preparazione parametri paginazione');
+        console.log(`📊 Pagina: ${page}, Dimensione pagina: ${size}`);
+
+        console.log('\n⏳ [3/6] Invio richiesta al DAS...');
         const dasResponse = await axios.get('http://localhost:3003/api/advanced-search', {
-            params: req.query,
+            params: {
+                ...req.query,
+                page: page,
+                size: size
+            },
             headers: {
-                'X-API-Key': process.env.DAS_API_KEY // Autenticazione tra servizi
+                'X-API-Key': process.env.DAS_API_KEY
             }
         });
 
-        // Stampa debug risposta dal DAS
-        console.log('Risposta dal DAS:', dasResponse.data);
+        console.log('\n✅ [4/6] Risposta ricevuta dal DAS');
+        console.log('🔢 Status Code:', dasResponse.status);
+        console.log('📦 Dati ricevuti:', {
+            content: `[${dasResponse.data.content?.length || 0} elementi]`,
+            totalElements: dasResponse.data.totalElements,
+            totalPages: dasResponse.data.totalPages,
+            pageable: dasResponse.data.pageable
+        });
 
-        res.json(dasResponse.data);
+        // 2. Adatta la risposta al formato atteso dal template
+        const responseData = {
+            content: dasResponse.data.content || [],
+            totalElements: dasResponse.data.totalElements || 0,
+            totalPages: dasResponse.data.totalPages || 0,
+            pageable: {
+                pageNumber: page,
+                pageSize: size,
+                offset: page * size
+            }
+        };
+
+        // 3. Prepara i dati per il template
+        const displayQuery = req.query.filmQuery || req.query.searchQuery || 'Ricerca avanzata';
+
+        console.log('\n⏳ [5/6] Preparazione dati per il template');
+        console.log('🔍 Query da visualizzare:', displayQuery);
+        console.log('📊 Dati paginazione:', {
+            currentPage: page,
+            totalPages: responseData.totalPages,
+            totalElements: responseData.totalElements
+        });
+
+        // 4. Renderizza il template
+        console.log('\n⏳ [6/6] Renderizzazione template Handlebars...');
+        const searchResultsHtml = await new Promise((resolve, reject) => {
+            res.app.render('pages/film-search-results', {
+                content: responseData.content,
+                query: displayQuery,
+                currentPage: page,
+                totalPages: responseData.totalPages,
+                totalElements: responseData.totalElements,
+                pageable: responseData.pageable,
+                isAdvancedSearch: true,
+                layout: false
+            }, (err, html) => {
+                if (err) {
+                    console.error('❌ Errore durante il rendering:', err);
+                    reject(err);
+                } else {
+                    console.log('✅ Template renderizzato con successo');
+                    resolve(html);
+                }
+            });
+        });
+
+        console.log('\n🚀 Invio risposta al client');
+        console.log('══════════════════════════════════════════════════════════════\n');
+        res.send(searchResultsHtml);
+
     } catch (error) {
-        console.error('Errore durante la ricerca avanzata:', {
-            message: error.message,
-            stack: error.stack,
-            response: error.response?.data
-        });
+        console.error('\n❌❌❌ ERRORE CRITICO ❌❌❌');
+        console.error('🔴 Messaggio:', error.message);
+        console.error('🔧 Stack:', error.stack);
+        console.error('📡 Risposta API:', error.response?.data);
+        console.error('══════════════════════════════════════════════════════════════\n');
 
-        res.status(500).json({
-            error: 'Errore durante la ricerca',
-            details: error.response?.data || error.message
-        });
+        const errorHtml = `
+            <div class="alert alert-danger">
+                ${error.message}
+                ${error.response?.data ? `<pre>${JSON.stringify(error.response.data)}</pre>` : ''}
+            </div>
+        `;
+        res.status(500).send(errorHtml);
     }
 });
-
 module.exports = router;

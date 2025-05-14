@@ -9,10 +9,7 @@ import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -222,10 +219,17 @@ public class FilmAggregationService {
         // 2. Aggiungi filtro relazionale (solo uno sarà attivo)
         spec = spec.and(createRelationSpec(actor, character, crew, studio, genres));
 
-        // 3. Esegui query paginata
-        Page<Movie> moviePage = movieRepo.findAll(spec, pageable);
+        // 3. Crea PageRequest con ordinamento deterministico
+        PageRequest stablePageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                pageable.getSort().and(Sort.by("id").ascending()) // Mantieni ordinamento originale + id
+        );
 
-        // 4. Filtra per Oscar se necessario
+        // 4. Esegui query paginata
+        Page<Movie> moviePage = movieRepo.findAll(spec, stablePageable);
+
+        // 5. Filtra per Oscar se necessario (mantenendo l'implementazione originale)
         if (oscarStatus != null && !oscarStatus.equals("any")) {
             List<Movie> filtered = moviePage.getContent().stream()
                     .filter(movie -> hasOscarMatch(movie, oscarStatus))
@@ -233,7 +237,7 @@ public class FilmAggregationService {
 
             return new PageImpl<>(
                     filtered.stream().map(this::mapToFilmSearchResponse).collect(Collectors.toList()),
-                    pageable,
+                    stablePageable, // Usa lo stesso pageable con ordinamento stabile
                     filtered.size()
             );
         }
@@ -252,36 +256,6 @@ public class FilmAggregationService {
                 ? awards.stream().anyMatch(OscarAward::getWinner)
                 : !awards.isEmpty();
     }
-
-// Metodi di supporto:
-
-    private Page<Movie> findExactMatches(String title, String actor, String character, String crew, String studio,
-                                         List<String> genres, Integer yearFrom, Integer yearTo, Pageable pageable) {
-        Specification<Movie> spec = Specification.where(createBaseSpec(title, yearFrom, yearTo))
-                .and(createRelationSpec(actor, character, crew, studio, genres));
-
-        return movieRepo.findAll(spec, pageable);
-    }
-
-    private Page<Movie> findAdditionalMatches(String title, String actor, String character, String crew, String studio,
-                                              List<String> genres, Integer yearFrom, Integer yearTo, int pageNumber,
-                                              int remaining, long totalExact) {
-        int subPage = calculateSubPage(pageNumber, totalExact, remaining);
-
-        Specification<Movie> spec = Specification.where(createBaseSpec(title, yearFrom, yearTo))
-                .and(createRelationSpec(actor, character, crew, studio, genres));
-
-        return movieRepo.findAll(spec, PageRequest.of(subPage, remaining));
-    }
-
-    private long calculateTotalMatches(String title, String actor, String character, String crew, String studio,
-                                       List<String> genres, Integer yearFrom, Integer yearTo) {
-        Specification<Movie> spec = Specification.where(createBaseSpec(title, yearFrom, yearTo))
-                .and(createRelationSpec(actor, character, crew, studio, genres));
-
-        return movieRepo.count(spec);
-    }
-
     private Specification<Movie> createBaseSpec(String title, Integer yearFrom, Integer yearTo) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -368,12 +342,5 @@ public class FilmAggregationService {
         posterRepo.findFirstByMovieId(movie.getId())
                 .ifPresent(poster -> response.setPosterLink(poster.getLink()));
         return response;
-    }
-
-    private int calculateSubPage(int pageNumber, long totalExact, int remaining) {
-        if (totalExact > 0) {
-            return (int) (pageNumber - (totalExact / remaining));
-        }
-        return 0;
     }
 }
