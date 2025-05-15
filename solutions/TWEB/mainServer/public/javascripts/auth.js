@@ -428,47 +428,44 @@ function setupNavbarEvents() {
 }
 
 async function handleAdvancedSearchClick(button) {
-    const originalHtml = button.innerHTML;
     const section = document.getElementById('advancedSearchSection');
+    if (!section) return;
 
-    if (!section) {
-        console.error('Sezione ricerca avanzata non trovata');
+    // Se il contenuto è già caricato e visibile, NON facciamo nulla
+    if (section.querySelector('.advanced-search-container') &&
+        !section.classList.contains('d-none') &&
+        !section.classList.contains('hidden-section')) {
         return;
     }
 
-    // Toggle behavior
-    if (section.classList.contains('d-none')) {
-        section.classList.remove('d-none');
-        button.innerHTML = originalHtml;
-        return;
-    }
-
-    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Caricamento...';
+    // Preparazione al caricamento
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
     button.disabled = true;
 
     try {
-        section.classList.replace('hidden-section', 'show-section');
+        // Rimuoviamo TUTTE le classi che potrebbero nascondere la sezione
+        section.classList.remove('d-none', 'hidden-section');
 
+        // Carichiamo solo se necessario
         if (!section.querySelector('.advanced-search-container')) {
             const response = await axios.get('/advanced-search');
             section.innerHTML = response.data;
         }
 
-        await new Promise(resolve => setTimeout(resolve, 50));
         initAdvancedSearch();
         AppState.navigateTo('advancedSearch');
 
     } catch (error) {
-        console.error('Advanced search error:', error);
+        console.error('Error:', error);
         section.innerHTML = `
             <div class="alert alert-danger">
-                Errore nel caricamento: ${error.message}
+                Errore: ${error.message}
                 <button onclick="handleAdvancedSearchClick(this)" 
                         class="btn btn-sm btn-outline-danger ms-2">
                     Riprova
                 </button>
-            </div>
-        `;
+            </div>`;
     } finally {
         button.innerHTML = originalHtml;
         button.disabled = false;
@@ -2035,7 +2032,7 @@ const AppState = {
         document.getElementById('carouselSection').classList.add('d-none');
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.add('d-none');
-
+        document.getElementById('advancedSearchSection').classList.add('d-none');
         // Mostra la chat
         document.getElementById('chatSection').classList.remove('d-none');
 
@@ -2062,7 +2059,7 @@ const AppState = {
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.add('d-none');
         document.getElementById('chatSection').classList.add('d-none');
-
+        document.getElementById('advancedSearchSection').classList.add('d-none');
         try {
             // Ricarica i film solo se necessario
             if (document.querySelectorAll('.film-poster-container').length === 0) {
