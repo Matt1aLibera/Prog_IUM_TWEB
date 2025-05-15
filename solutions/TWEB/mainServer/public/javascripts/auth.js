@@ -987,24 +987,27 @@ function createReviewElement(review) {
 // =============================================
 // Aggiungi questa funzione per gestire la paginazione
 function setupPaginationHandlers() {
-    document.addEventListener('click', function (e) {
-        const paginationLink = e.target.closest('.pagination-link');
-        if (paginationLink) {
-            e.preventDefault();
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('.pagination-link');
+        if (!link) return;
 
-            const page = parseInt(paginationLink.dataset.page);
-            const query = paginationLink.dataset.query;
+        e.preventDefault();
+        const page = parseInt(link.dataset.page);
+        const query = link.dataset.query;
 
-            if (!isNaN(page) && query) {
-                AppState.navigateTo('searchResults', {
-                    query: query,
-                    page: page
-                });
-            }
+        // Gestione separata per ricerche full e advanced
+        if (query.startsWith('advanced:')) {
+            const params = new URLSearchParams(query.replace('advanced:', ''));
+            params.set('page', page);
+            window.history.pushState({}, '', `?${params.toString()}`);
+        } else {
+            // Per ricerche full, la query è direttamente il termine di ricerca
+            window.history.pushState({}, '', `?q=${encodeURIComponent(query)}&page=${page}`);
         }
+
+        updateSearchResults(query, page);
     });
 }
-
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
     const searchButton = document.getElementById('searchButton');
@@ -1192,44 +1195,56 @@ async function updateSearchResults(query, page) {
     const searchResultsSection = document.getElementById('searchResultsSection');
 
     try {
+        // Mostra loader
         searchResultsSection.innerHTML = `
             <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Caricamento...</span>
-                </div>
-                <p class="mt-2">Caricamento risultati...</p>
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2">Caricamento...</p>
             </div>
         `;
 
+        // Costruisci URL corretto
         let apiUrl;
         if (query.startsWith('advanced:')) {
-            const params = query.replace('advanced:', '');
-            apiUrl = `/search/advanced?${params}&page=${page}`;
+            const params = new URLSearchParams(query.replace('advanced:', ''));
+            params.set('page', page);
+            apiUrl = `/search/advanced?${params}`;
         } else {
+            // Per ricerche full, la query è direttamente il termine di ricerca
             apiUrl = `/films/search/full?q=${encodeURIComponent(query)}&page=${page}`;
         }
 
-        const response = await axios.get(apiUrl, {
-            headers: {
-                'Accept': 'application/json, text/html',
-                'X-Requested-With': 'XMLHttpRequest'
+        // Esegui richiesta
+        const response = await axios.get(apiUrl);
+        searchResultsSection.innerHTML = response.data;
+
+        // Aggiorna stato paginazione
+        document.querySelectorAll('.page-item').forEach(item => {
+            item.classList.remove('active', 'disabled');
+            const itemPage = parseInt(item.querySelector('a')?.dataset.page);
+
+            if (itemPage === page) {
+                item.classList.add('active');
+            }
+            if (item.querySelector('a')?.ariaLabel === 'Previous' && page === 0) {
+                item.classList.add('disabled');
+            }
+            if (item.querySelector('a')?.ariaLabel === 'Next' && page === parseInt(response.data.totalPages) - 1) {
+                item.classList.add('disabled');
             }
         });
 
-        searchResultsSection.innerHTML = response.data;
-        setupFilmCardClickHandlers();
-
     } catch (error) {
-        console.error('Error updating search results:', error);
         searchResultsSection.innerHTML = `
             <div class="alert alert-danger">
-                Errore durante il caricamento dei risultati
-                <button onclick="AppState.navigateTo('searchResults', { query: '${query}', page: ${page} })" 
+                Errore durante il caricamento
+                <button onclick="updateSearchResults('${query}', ${page})" 
                         class="btn btn-sm btn-outline-danger ms-2">
                     Riprova
                 </button>
             </div>
         `;
+        console.error('Search error:', error);
     }
 }
 
@@ -1771,7 +1786,7 @@ function roomIcon(type) {
 // =============================================
 // SEZIONE RICERCA AVANZATA
 // =============================================
-function initAdvancedSearch() {
+window.initAdvancedSearch = function() {
     const searchTypeSelect = document.getElementById('searchTypeSelect');
     const searchForm = document.getElementById('advancedSearchForm');
     const filtersContainer = document.getElementById('dynamicFilters');
@@ -1917,27 +1932,6 @@ function initAdvancedSearch() {
             query: `advanced:${queryString}`,
             page: 0
         });
-        /*try {
-            console.log('Client - Invio richiesta al Main Server...');
-            const response = await axios.get('/search/advanced', { params });
-
-            console.log('Client - Risposta ricevuta:', response.data);
-            renderAdvancedSearchResults(response.data);
-
-        } catch (error) {
-            console.error('Client - Errore:', {
-                message: error.message,
-                config: error.config,
-                response: error.response
-            });
-
-            document.getElementById('advancedSearchResults').innerHTML = `
-            <div class="alert alert-danger">
-                Errore durante la ricerca: ${error.message}
-                ${error.response?.data ? `<br><small>${JSON.stringify(error.response.data)}</small>` : ''}
-            </div>
-        `;
-        }*/
     };
 
     // Gestione eventi
@@ -1957,13 +1951,6 @@ function initAdvancedSearch() {
 
     // Inizializzazione
     updateFilters(searchTypeSelect.value);
-}
-
-// Funzione per renderizzare i risultati (da implementare)
-function renderAdvancedSearchResults(data) {
-    const resultsContainer = document.getElementById('advancedSearchResults');
-    // Implementa la visualizzazione dei risultati qui
-    resultsContainer.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
 }
 // =============================================
 // STATO DELL'APPLICAZIONE E GESTIONE VISTE

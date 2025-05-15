@@ -26,6 +26,13 @@ const hbs = engine({
     allowProtoMethodsByDefault: true
   },
   helpers: {
+    assign: function(varName, varValue, options) {
+      if (!options.data.root) {
+        options.data.root = {};
+      }
+      options.data.root[varName] = varValue;
+    },
+
     // Helper esistente per la serializzazione JSON
     json: function(context) {
       return JSON.stringify(context).replace(/"/g, '&quot;');

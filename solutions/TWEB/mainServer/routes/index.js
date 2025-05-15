@@ -141,6 +141,7 @@ router.get('/films/search/full', async (req, res) => {
                 currentPage: pageInt,
                 totalPages: totalPages,
                 totalElements: totalElements,
+                isAdvancedSearch: false,
                 layout: false // Importante: non usare il layout
             }, (err, html) => {
                 if (err) reject(err);
@@ -245,17 +246,7 @@ router.get('/advanced-search', async (req, res) => {
         }
         // 3. Gestione per richieste normali (refresh pagina)
         else {
-            res.render('pages/index', {
-                showCarousel: false,
-                showSearchResults: false,
-                showChat: false,
-                showAdvancedSearch: true,  // Mostra solo la sezione avanzata
-                advancedSearchContent: searchHtml,
-                user: req.user || null,    // Mantieni i dati utente
-                pageTitle: "Ricerca Avanzata",
-                // Aggiungi altre variabili necessarie al tuo layout
-                currentYear: new Date().getFullYear()
-            });
+            res.redirect('/');
         }
 
     } catch (error) {
@@ -288,23 +279,32 @@ router.get('/search/advanced', async (req, res) => {
     console.log('📋 Parametri query:', JSON.stringify(req.query, null, 2));
 
     try {
-        // 1. Inoltra la richiesta al DAS con parametri di paginazione
-        const page = parseInt(req.query.page) || 0;
+        // 1. Gestione parametri di paginazione
+        const page = Array.isArray(req.query.page)
+            ? parseInt(req.query.page[req.query.page.length - 1]) || 0
+            : parseInt(req.query.page) || 0;
         const size = parseInt(req.query.size) || 15;
+
+        // 2. Pulisci i parametri per la query persistente
+        const cleanQuery = {...req.query};
+        delete cleanQuery.page;
+        delete cleanQuery.size;
 
         console.log('\n⏳ [2/6] Preparazione parametri paginazione');
         console.log(`📊 Pagina: ${page}, Dimensione pagina: ${size}`);
 
+        // 3. Chiamata al DAS
         console.log('\n⏳ [3/6] Invio richiesta al DAS...');
         const dasResponse = await axios.get('http://localhost:3003/api/advanced-search', {
             params: {
-                ...req.query,
-                page: page,
-                size: size
+                ...cleanQuery,
+                page,
+                size
             },
             headers: {
                 'X-API-Key': process.env.DAS_API_KEY
-            }
+            },
+            timeout: 20000
         });
 
         console.log('\n✅ [4/6] Risposta ricevuta dal DAS');
@@ -312,74 +312,66 @@ router.get('/search/advanced', async (req, res) => {
         console.log('📦 Dati ricevuti:', {
             content: `[${dasResponse.data.content?.length || 0} elementi]`,
             totalElements: dasResponse.data.totalElements,
-            totalPages: dasResponse.data.totalPages,
-            pageable: dasResponse.data.pageable
+            totalPages: dasResponse.data.totalPages
         });
 
-        // 2. Adatta la risposta al formato atteso dal template
-        const responseData = {
-            content: dasResponse.data.content || [],
-            totalElements: dasResponse.data.totalElements || 0,
-            totalPages: dasResponse.data.totalPages || 0,
-            pageable: {
-                pageNumber: page,
-                pageSize: size,
-                offset: page * size
-            }
-        };
-
-        // 3. Prepara i dati per il template
-        const displayQuery = req.query.filmQuery || req.query.searchQuery || 'Ricerca avanzata';
+        // 4. Prepara i dati per il template
+        const displayQuery = cleanQuery.filmQuery || 'Ricerca avanzata';
+        const paginationQuery = new URLSearchParams(cleanQuery).toString();
+        const fullQuery = `advanced:${paginationQuery}`;
 
         console.log('\n⏳ [5/6] Preparazione dati per il template');
         console.log('🔍 Query da visualizzare:', displayQuery);
         console.log('📊 Dati paginazione:', {
             currentPage: page,
-            totalPages: responseData.totalPages,
-            totalElements: responseData.totalElements
+            totalPages: dasResponse.data.totalPages,
+            totalElements: dasResponse.data.totalElements
         });
 
-        // 4. Renderizza il template
+        // 5. Renderizza il template (versione compatibile)
         console.log('\n⏳ [6/6] Renderizzazione template Handlebars...');
-        const searchResultsHtml = await new Promise((resolve, reject) => {
-            res.app.render('pages/film-search-results', {
-                content: responseData.content,
-                query: displayQuery,
-                currentPage: page,
-                totalPages: responseData.totalPages,
-                totalElements: responseData.totalElements,
-                pageable: responseData.pageable,
-                isAdvancedSearch: true,
-                layout: false
-            }, (err, html) => {
-                if (err) {
-                    console.error('❌ Errore durante il rendering:', err);
-                    reject(err);
-                } else {
-                    console.log('✅ Template renderizzato con successo');
-                    resolve(html);
-                }
-            });
-        });
+        const templateData = {
+            content: dasResponse.data.content || [],
+            query: displayQuery,
+            fullQuery: fullQuery,
+            currentPage: page,
+            totalPages: dasResponse.data.totalPages || 1,
+            totalElements: dasResponse.data.totalElements || 0,
+            isAdvancedSearch: true,
+            layout: false
+        };
 
-        console.log('\n🚀 Invio risposta al client');
-        console.log('══════════════════════════════════════════════════════════════\n');
-        res.send(searchResultsHtml);
+        // Utilizza il metodo di rendering standard di Express
+        res.render('pages/film-search-results', templateData, (err, html) => {
+            if (err) {
+                console.error('❌ Errore durante il rendering:', err);
+                throw err;
+            }
+
+            console.log('✅ Template renderizzato con successo');
+            console.log('\n🚀 Invio risposta al client');
+            console.log('══════════════════════════════════════════════════════════════\n');
+            res.send(html);
+        });
 
     } catch (error) {
         console.error('\n❌❌❌ ERRORE CRITICO ❌❌❌');
         console.error('🔴 Messaggio:', error.message);
         console.error('🔧 Stack:', error.stack);
         console.error('📡 Risposta API:', error.response?.data);
-        console.error('══════════════════════════════════════════════════════════════\n');
 
         const errorHtml = `
             <div class="alert alert-danger">
                 ${error.message}
-                ${error.response?.data ? `<pre>${JSON.stringify(error.response.data)}</pre>` : ''}
+                ${error.response?.data ? `<pre>${JSON.stringify(error.response.data, null, 2)}</pre>` : ''}
+                <button onclick="window.location.reload()" class="btn btn-sm btn-outline-danger ms-2">
+                    Riprova
+                </button>
             </div>
         `;
+
         res.status(500).send(errorHtml);
+        console.error('══════════════════════════════════════════════════════════════\n');
     }
 });
 module.exports = router;

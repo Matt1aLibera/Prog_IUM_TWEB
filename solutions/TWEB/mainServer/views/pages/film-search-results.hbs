@@ -6,6 +6,10 @@
         </a>
     </div>
 {{/if}}
+
+{{#unless isAdvancedSearch}}
+    {{assign "fullQuery" query}}
+{{/unless}}
 {{! views/pages/film-search-results.hbs }}
 <div class="search-results-container">
     <div class="container mt-4">
@@ -53,77 +57,75 @@
                 {{/each}}
             </div>
 
-            {{! Paginazione migliorata }}
             {{#if (gt totalPages 1)}}
-                <nav class="mt-4" aria-label="Paginazione risultati">
-                    <ul class="pagination justify-content-center flex-wrap">
-                        {{!-- Freccia indietro --}}
-                        <li class="page-item {{#if (eq currentPage 0)}}disabled{{/if}}">
-                            <a class="page-link pagination-link"
-                               href="#"
-                               data-page="{{sub currentPage 1}}"
-                               data-query="{{query}}"
-                               aria-label="Previous">
-                                <i class="bi bi-chevron-left"></i>
-                                <span class="visually-hidden">Precedente</span>
-                            </a>
-                        </li>
-
-                        {{!-- Prima pagina con ellissi --}}
-                        {{#if (gt currentPage 3)}}
-                            <li class="page-item">
+                    <nav class="mt-4" aria-label="Paginazione risultati">
+                        <ul class="pagination justify-content-center flex-wrap">
+                            {{!-- Freccia indietro --}}
+                            <li class="page-item {{#if (eq currentPage 0)}}disabled{{/if}}">
                                 <a class="page-link pagination-link"
                                    href="#"
-                                   data-page="0"
-                                   data-query="{{query}}">1</a>
+                                   data-page="{{sub currentPage 1}}"
+                                   data-query="{{fullQuery}}"
+                                   aria-label="Previous">
+                                    <i class="bi bi-chevron-left"></i>
+                                    <span class="visually-hidden">Precedente</span>
+                                </a>
                             </li>
-                            <li class="page-item disabled">
-                                <span class="page-link">...</span>
-                            </li>
-                        {{/if}}
 
-                        {{!-- Pagine centrali --}}
-                        {{#each (range (max 0 (sub currentPage 2)) (min (sub totalPages 1) (add currentPage 2)))}}
-                            <li class="page-item {{#if (eq this ../currentPage)}}active{{/if}}">
+                            {{!-- Prima pagina --}}
+                            {{#if (gt currentPage 3)}}
+                                <li class="page-item">
+                                    <a class="page-link pagination-link"
+                                       href="#"
+                                       data-page="0"
+                                       data-query="{{fullQuery}}">1</a>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {{/if}}
+
+                            {{!-- Pagine centrali --}}
+                            {{#each (range (max 0 (sub currentPage 2)) (min (sub totalPages 1) (add currentPage 2)))}}
+                                <li class="page-item {{#if (eq this ../currentPage)}}active{{/if}}">
+                                    <a class="page-link pagination-link"
+                                       href="#"
+                                       data-page="{{this}}"
+                                       data-query="{{../fullQuery}}">{{add this 1}}</a>
+                                </li>
+                            {{/each}}
+
+                            {{!-- Ultima pagina --}}
+                            {{#if (lt currentPage (sub totalPages 4))}}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link pagination-link"
+                                       href="#"
+                                       data-page="{{sub totalPages 1}}"
+                                       data-query="{{fullQuery}}">{{totalPages}}</a>
+                                </li>
+                            {{/if}}
+
+                            {{!-- Freccia avanti --}}
+                            <li class="page-item {{#if (eq currentPage (sub totalPages 1))}}disabled{{/if}}">
                                 <a class="page-link pagination-link"
                                    href="#"
-                                   data-page="{{this}}"
-                                   data-query="{{../query}}">{{add this 1}}</a>
+                                   data-page="{{add currentPage 1}}"
+                                   data-query="{{fullQuery}}"
+                                   aria-label="Next">
+                                    <i class="bi bi-chevron-right"></i>
+                                    <span class="visually-hidden">Successiva</span>
+                                </a>
                             </li>
-                        {{/each}}
+                        </ul>
 
-                        {{!-- Ultima pagina con ellissi --}}
-                        {{#if (lt currentPage (sub totalPages 4))}}
-                            <li class="page-item disabled">
-                                <span class="page-link">...</span>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link pagination-link"
-                                   href="#"
-                                   data-page="{{sub totalPages 1}}"
-                                   data-query="{{query}}">{{totalPages}}</a>
-                            </li>
-                        {{/if}}
-
-                        {{!-- Freccia avanti --}}
-                        <li class="page-item {{#if (eq currentPage (sub totalPages 1))}}disabled{{/if}}">
-                            <a class="page-link pagination-link"
-                               href="#"
-                               data-page="{{add currentPage 1}}"
-                               data-query="{{query}}"
-                               aria-label="Next">
-                                <i class="bi bi-chevron-right"></i>
-                                <span class="visually-hidden">Successiva</span>
-                            </a>
-                        </li>
-                    </ul>
-
-                    {{!-- Informazioni pagina corrente --}}
-                    <div class="text-center mt-2 text-muted small">
-                        Pagina {{add currentPage 1}} di {{totalPages}} -
-                        {{totalElements}} risultati totali
-                    </div>
-                </nav>
+                        <div class="text-center mt-2 text-muted small">
+                            Pagina {{add currentPage 1}} di {{totalPages}} -
+                            {{totalElements}} risultati totali
+                        </div>
+                    </nav>
             {{/if}}
         {{else}}
             <div class="alert alert-info">
