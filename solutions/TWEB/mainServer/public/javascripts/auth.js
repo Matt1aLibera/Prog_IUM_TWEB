@@ -1190,6 +1190,20 @@ function performSearch() {
         window.location.href = `/search/actors?q=${encodeURIComponent(query)}`;
     }
 }
+function initAdvancedSearchHandlers() {
+    // Rimuovi eventuali handler esistenti
+    document.querySelectorAll('.modify-filters-btn').forEach(btn => {
+        btn.replaceWith(btn.cloneNode(true));
+    });
+
+    // Aggiungi i nuovi handler
+    document.querySelectorAll('.modify-filters-btn').forEach(btn => {
+        btn.addEventListener('click', handleAdvancedSearchClick);
+    });
+
+    console.log("Advanced search handlers initialized");
+}
+
 
 async function updateSearchResults(query, page) {
     const searchResultsSection = document.getElementById('searchResultsSection');
@@ -1233,7 +1247,7 @@ async function updateSearchResults(query, page) {
                 item.classList.add('disabled');
             }
         });
-
+        initAdvancedSearchHandlers();
     } catch (error) {
         searchResultsSection.innerHTML = `
             <div class="alert alert-danger">
@@ -1808,7 +1822,7 @@ window.initAdvancedSearch = function() {
     const updateFilters = (type) => {
         try {
             filtersContainer.innerHTML = '';
-
+            updateSortOptions(type);
             switch(type) {
                 case 'films':
                     if (filmFiltersTemplate) {
@@ -1837,6 +1851,28 @@ window.initAdvancedSearch = function() {
                     Errore nel caricamento dei filtri
                 </div>
             `;
+        }
+    };
+    const updateSortOptions = (searchType) => {
+        const sortBySelect = document.getElementById('sortBySelect');
+        if (!sortBySelect) return;
+
+        sortBySelect.innerHTML = '';
+
+        if (searchType === 'films') {
+            // Solo opzioni data per i film
+            sortBySelect.innerHTML = `
+            <option value="date_desc">Data rilascio (crescente)</option>
+            <option value="date_asc">Data rilascio (decrescente)</option>
+        `;
+        } else if (searchType === 'reviews') {
+            // Opzioni complete per le recensioni
+            sortBySelect.innerHTML = `
+            <option value="date_desc">Data (Più recenti prima)</option>
+            <option value="date_asc">Data (Più vecchi prima)</option>
+            <option value="rating_desc">Rating (Più alto prima)</option>
+            <option value="rating_asc">Rating (Più basso prima)</option>
+        `;
         }
     };
 
@@ -1887,9 +1923,10 @@ window.initAdvancedSearch = function() {
         e.preventDefault();
 
         const formData = new FormData(searchForm);
+        const searchType = formData.get('searchType');
         const params = {
-            searchType: formData.get('searchType'), // 'films' o 'reviews'
-            sortBy: formData.get('sortBy') || 'rating_desc'
+            searchType,
+            sortBy: formData.get('sortBy') || (searchType === 'films' ? 'date_desc' : 'rating_desc')
         };
 
         if (params.searchType === 'films') {
@@ -2324,6 +2361,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupSearch();
         setupFilmCardClickHandlers();
         setupPaginationHandlers();
+        initAdvancedSearchHandlers();
 
         const isAuthenticated = await checkAuthState();
         if (isAuthenticated) {

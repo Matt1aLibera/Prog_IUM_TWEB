@@ -1,5 +1,8 @@
 package com.example.springbootserver.services;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.example.springbootserver.dtos.FilmDetailsResponse;
 import com.example.springbootserver.dtos.FilmPosterResponse;
 import com.example.springbootserver.dtos.FilmSearchResponse;
@@ -21,6 +24,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class FilmAggregationService {
+    private static final Logger log = LoggerFactory.getLogger(FilmAggregationService.class); // per il logger
     private final OscarAwardRepo oscarAwardRepo;
     private final MovieRepo movieRepo;
     private final PosterRepo posterRepo;
@@ -211,6 +215,7 @@ public class FilmAggregationService {
             List<String> genres,
             Integer yearFrom, Integer yearTo,
             String oscarStatus,
+            String sort,
             Pageable pageable) {
 
         // 1. Crea la specification di base (titolo + anno)
@@ -220,11 +225,7 @@ public class FilmAggregationService {
         spec = spec.and(createRelationSpec(actor, character, crew, studio, genres));
 
         // 3. Crea PageRequest con ordinamento deterministico
-        PageRequest stablePageable = PageRequest.of(
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                pageable.getSort().and(Sort.by("id").ascending()) // Mantieni ordinamento originale + id
-        );
+        PageRequest stablePageable = buildStablePageable(pageable, sort);
 
         // 4. Esegui query paginata
         Page<Movie> moviePage = movieRepo.findAll(spec, stablePageable);
@@ -244,7 +245,39 @@ public class FilmAggregationService {
 
         return moviePage.map(this::mapToFilmSearchResponse);
     }
+    private PageRequest buildStablePageable(Pageable originalPageable, String sortParam) {
+        log.info("Building pageable with sort param: {}", sortParam);
 
+        Sort sort;
+        try {
+            // 1. Determina l'ordinamento primario (invertito rispetto a prima)
+            Sort.Direction direction = Sort.Direction.ASC; // Default ASC (più vecchi prima)
+            if (sortParam != null) {
+                // date_desc = più recenti prima (DESC)
+                // date_asc = più vecchi prima (ASC)
+                direction = sortParam.endsWith("_desc")
+                        ? Sort.Direction.ASC
+                        : Sort.Direction.DESC;
+            }
+
+            // 2. Crea l'ordinamento base (solo data + ID)
+            sort = Sort.by(direction, "date").and(Sort.by("id"));
+
+            log.info("Created base sort: {}", sort);
+
+        } catch (Exception e) {
+            log.error("Error creating sort, using fallback", e);
+            // Fallback sicuro
+            sort = Sort.by("id").ascending();
+        }
+
+        log.info("Final sort: {}", sort);
+        return PageRequest.of(
+                originalPageable.getPageNumber(),
+                originalPageable.getPageSize(),
+                sort
+        );
+    }
     private boolean hasOscarMatch(Movie movie, String oscarStatus) {
         List<OscarAward> awards = oscarAwardRepo.findByFilmContainingIgnoreCaseAndYearFilmBetween(
                 movie.getName(),

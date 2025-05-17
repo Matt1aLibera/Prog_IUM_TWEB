@@ -27,11 +27,8 @@
                     <div class="row mt-4">
                         <div class="col-md-12">
                             <label class="form-label">Ordinamento:</label>
-                            <select class="form-select" name="sortBy">
-                                <option value="rating_desc">Rating (Decrescente)</option>
-                                <option value="rating_asc">Rating (Crescente)</option>
-                                <option value="date_desc">Data (Decrescente)</option>
-                                <option value="date_asc">Data (Crescente)</option>
+                            <select class="form-select" name="sortBy" id="sortBySelect">
+                                <!-- Opzioni verranno popolate dinamicamente via JS -->
                             </select>
                         </div>
                     </div>
@@ -83,8 +80,8 @@
             <div class="col-md-6">
                 <label class="form-label">Anno di uscita:</label>
                 <div class="input-group">
-                    <input type="number" class="form-control" name="yearFrom" placeholder="Dal" min="1900" max="2023">
-                    <input type="number" class="form-control" name="yearTo" placeholder="Al" min="1900" max="2023">
+                    <input type="number" class="form-control" name="yearFrom" placeholder="Dal" min="1900" max="2025">
+                    <input type="number" class="form-control" name="yearTo" placeholder="Al" min="1900" max="2025">
                 </div>
             </div>
 

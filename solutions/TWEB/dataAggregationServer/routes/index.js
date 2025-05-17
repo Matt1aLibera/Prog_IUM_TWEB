@@ -253,23 +253,28 @@ router.get('/advanced-search', async (req, res) => {
     const minRatingNum = parseFloat(minRating);
 
     if (searchType === 'films') {
-      // 1. Recupera i film da Postgres (con paginazione originale)
+      // 1. Prepara i parametri per Postgres includendo l'ordinamento
       const postgresParams = {
-        ...params,
-        title: params.filmQuery,
-        actor: params.searchType === 'actor' ? params.searchQuery : undefined,
-        character: params.searchType === 'character' ? params.searchQuery : undefined,
-        crew: params.searchType === 'crew' ? params.searchQuery : undefined,
-        studio: params.searchType === 'studio' ? params.searchQuery : undefined,
+        title: params.filmQuery || null,
+        yearFrom: params.yearFrom || null,
+        yearTo: params.yearTo || null,
+        oscarStatus: params.oscarStatus || null,
         genres: params.genres?.split(','),
         page: req.query.page || 0,
-        size: req.query.size || 15
+        size: req.query.size || 15,
+        sort: translateSortParam(sortBy)
       };
+
+      // Aggiungi il filtro relazionale corretto
+      if (params.filmSearchType && params.searchQuery) {
+        postgresParams[params.filmSearchType] = params.searchQuery;
+        console.log(`Applying ${params.filmSearchType} filter: ${params.searchQuery}`);
+      }
 
       console.log('DAS - Invio a Postgres:', postgresParams);
       const postgresResponse = await axios.get(`${SERVICES.postgres}/api/films/advanced-search`, {
         params: postgresParams,
-        timeout: 10000
+        timeout: 20000
       });
 
       // 2. Mantieni la struttura originale di paginazione
@@ -281,8 +286,8 @@ router.get('/advanced-search', async (req, res) => {
 
       let enrichedFilms = postgresResponse.data.content;
 
-      // 3. Recupera i rating SOLO se necessario (senza modificare paginazione)
-      const needsRatings = sortBy?.startsWith('rating_') || minRatingNum > 0;
+      // 3. Recupera i rating SOLO se necessario (per filtraggio, non più per ordinamento)
+      const needsRatings = minRatingNum > 0; // Rimossa la condizione per sortBy rating
       if (needsRatings) {
         const filmIds = postgresResponse.data.content.map(film => film.id);
         console.log('DAS - Richiesta rating per film IDs:', filmIds);
@@ -302,17 +307,6 @@ router.get('/advanced-search', async (req, res) => {
         }));
       }
 
-      // 4. Filtra e ordina (applicato solo alla pagina corrente)
-      if (minRatingNum > 0) {
-        enrichedFilms = enrichedFilms.filter(film =>
-            film.rating !== null && film.rating >= minRatingNum
-        );
-      }
-
-      if (sortBy) {
-        enrichedFilms = sortFilms(enrichedFilms, sortBy);
-      }
-
       // 5. Restituisci con la paginazione originale del Postgres
       res.json({
         content: enrichedFilms,
@@ -327,11 +321,7 @@ router.get('/advanced-search', async (req, res) => {
       });
 
     } else if (searchType === 'reviews') {
-      res.json({
-        status: 'debug',
-        message: 'Ricerca recensioni ricevuta',
-        params: req.query
-      });
+      // ... (rimane invariato per il momento)
     } else {
       res.status(400).json({ error: 'Tipo di ricerca non valido' });
     }
@@ -345,25 +335,16 @@ router.get('/advanced-search', async (req, res) => {
   }
 });
 
-function sortFilms(films, sortBy) {
+// Aggiungi questa funzione helper per tradurre il parametro sortBy
+function translateSortParam(sortBy) {
+  if (!sortBy) return 'date_desc'; // Default: più recenti prima
+
   const [field, direction] = sortBy.split('_');
-  const sortOrder = direction === 'asc' ? 1 : -1;
 
-  return [...films].sort((a, b) => {
-    // Gestione valori null (mantenimento in fondo)
-    if (a[field] === null) return 1;
-    if (b[field] === null) return -1;
+  // Per i film accettiamo solo ordinamento per data
+  if (field !== 'date') return 'date_desc';
 
-    if (field === 'rating') {
-      return (a.rating - b.rating) * sortOrder;
-    } else if (field === 'year') {
-      return (a.year - b.year) * sortOrder;
-    } else if (field === 'name') {
-      return a.name.localeCompare(b.name) * sortOrder;
-    }
-    return 0;
-  });
+  return `${field}_${direction}`; // Es: date_desc o date_asc
 }
-
 
 module.exports = router;

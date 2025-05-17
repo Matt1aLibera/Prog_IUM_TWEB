@@ -74,17 +74,17 @@ public class FilmAggregationController {
             @RequestParam(required = false) Integer yearFrom,
             @RequestParam(required = false) Integer yearTo,
             @RequestParam(required = false) String oscarStatus,
+            @RequestParam(required = false) String sort,
             @PageableDefault(size = 15) Pageable pageable) {
 
         try {
-            // Validazione input
             if (Stream.of(actor, character, crew, studio).filter(Objects::nonNull).count() > 1) {
                 return ResponseEntity.badRequest().body("Puoi specificare solo un filtro tra attore, personaggio, crew e studio");
             }
 
             Page<FilmSearchResponse> results = filmAggregationService.advancedSearchFilms(
                     title, actor, character, crew, studio,
-                    genres, yearFrom, yearTo, oscarStatus,
+                    genres, yearFrom, yearTo, oscarStatus, sort,
                     pageable);
 
             return ResponseEntity.ok(results);
