@@ -259,7 +259,7 @@ router.get('/advanced-search', async (req, res) => {
         yearFrom: params.yearFrom || null,
         yearTo: params.yearTo || null,
         oscarStatus: params.oscarStatus || null,
-        genres: params.genres?.split(','),
+        genres: params.genres || null, // Non trasformare in array qui
         page: req.query.page || 0,
         size: req.query.size || 15,
         sort: translateSortParam(sortBy)
@@ -272,8 +272,22 @@ router.get('/advanced-search', async (req, res) => {
       }
 
       console.log('DAS - Invio a Postgres:', postgresParams);
+      // Chiamata axios con paramsSerializer
       const postgresResponse = await axios.get(`${SERVICES.postgres}/api/films/advanced-search`, {
         params: postgresParams,
+        paramsSerializer: (params) => {
+          const query = new URLSearchParams();
+          Object.entries(params).forEach(([key, value]) => {
+            if (value !== null) {
+              if (Array.isArray(value)) {
+                value.forEach(v => query.append(key, v)); // Genera genre=Horror&genre=Comedy
+              } else {
+                query.append(key, value);
+              }
+            }
+          });
+          return query.toString();
+        },
         timeout: 20000
       });
 
@@ -285,26 +299,40 @@ router.get('/advanced-search', async (req, res) => {
       };
 
       let enrichedFilms = postgresResponse.data.content;
+      const filmIds = postgresResponse.data.content.map(film => film.id);
+      console.log('DAS - Richiesta rating per film IDs:', filmIds);
 
-      // 3. Recupera i rating SOLO se necessario (per filtraggio, non più per ordinamento)
-      const needsRatings = minRatingNum > 0; // Rimossa la condizione per sortBy rating
-      if (needsRatings) {
-        const filmIds = postgresResponse.data.content.map(film => film.id);
-        console.log('DAS - Richiesta rating per film IDs:', filmIds);
+      const ratingsResponse = await axios.post(`${SERVICES.mongo}/api/ratings/batch`, {
+        filmIds
+      }, { timeout: 5000 });
 
-        const ratingsResponse = await axios.post(`${SERVICES.mongo}/api/ratings/batch`, {
-          filmIds
-        }, { timeout: 5000 });
+      const ratingsMap = ratingsResponse.data.reduce((acc, item) => {
+        acc[item.id] = item.rating;
+        return acc;
+      }, {});
 
-        const ratingsMap = ratingsResponse.data.reduce((acc, item) => {
-          acc[item.id] = item.rating;
-          return acc;
-        }, {});
+      enrichedFilms = enrichedFilms.map(film => ({
+        ...film,
+        rating: ratingsMap[film.id] ?? null
+      }));
 
-        enrichedFilms = enrichedFilms.map(film => ({
-          ...film,
-          rating: ratingsMap[film.id] ?? null
-        }));
+      // 3. Filtra per rating minimo se specificato
+      if (minRatingNum > 0) {
+        const filteredFilms = enrichedFilms.filter(film => {
+          return film.rating !== null && film.rating >= minRatingNum;
+        });
+
+        // Se dopo il filtro abbiamo ancora risultati, usiamoli
+        // Altrimenti mostriamo i film senza rating (con avviso)
+        if (filteredFilms.length > 0) {
+          enrichedFilms = filteredFilms;
+        } else {
+          // Mostriamo i film senza rating ma aggiungiamo un flag
+          enrichedFilms = enrichedFilms.filter(film => film.rating === null);
+          enrichedFilms.metadata = {
+            warning: "Nessun film soddisfa il rating minimo. Mostrati film senza rating disponibile"
+          };
+        }
       }
 
       // 5. Restituisci con la paginazione originale del Postgres

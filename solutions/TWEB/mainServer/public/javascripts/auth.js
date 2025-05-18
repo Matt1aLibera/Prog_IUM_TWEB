@@ -1924,6 +1924,31 @@ window.initAdvancedSearch = function() {
 
         const formData = new FormData(searchForm);
         const searchType = formData.get('searchType');
+        // Aggiunta: Controllo campi obbligatori per la ricerca film
+        if (searchType === 'films') {
+            const filmQuery = formData.get('filmQuery')?.trim();
+            const searchQuery = formData.get('filmSearchQuery')?.trim();
+
+            if (!filmQuery && !searchQuery) {
+                // Mostra alert di Bootstrap
+                const alertHTML = `
+                <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
+                    <strong>Attenzione!</strong> Specificare almeno uno tra il titolo del film e il termine di ricerca (attore, personaggio, etc.)
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+
+                // Rimuovi eventuali alert precedenti
+                const existingAlert = document.querySelector('#advancedSearchForm .alert');
+                if (existingAlert) existingAlert.remove();
+
+                // Inserisci il nuovo alert dopo il bottone di submit
+                const submitButton = searchForm.querySelector('button[type="submit"]');
+                submitButton.insertAdjacentHTML('afterend', alertHTML);
+
+                return; // Blocca l'esecuzione della ricerca
+            }
+        }
         const params = {
             searchType,
             sortBy: formData.get('sortBy') || (searchType === 'films' ? 'date_desc' : 'rating_desc')

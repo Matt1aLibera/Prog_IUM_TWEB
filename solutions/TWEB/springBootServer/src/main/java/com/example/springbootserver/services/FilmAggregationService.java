@@ -251,8 +251,8 @@ public class FilmAggregationService {
 
         String property = parts[0];
         Sort.Direction direction = parts[1].equalsIgnoreCase("desc")
-                ? Sort.Direction.DESC
-                : Sort.Direction.ASC;
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
 
         return Sort.by(direction, property).and(Sort.by("id"));
     }
@@ -300,39 +300,6 @@ public class FilmAggregationService {
                 pageContent.stream().map(this::mapToFilmSearchResponse).collect(Collectors.toList()),
                 PageRequest.of(currentPage, pageSize, sort),
                 totalElements
-        );
-    }
-    private PageRequest buildStablePageable(Pageable originalPageable, String sortParam) {
-        log.info("Building pageable with sort param: {}", sortParam);
-
-        Sort sort;
-        try {
-            // 1. Determina l'ordinamento primario (invertito rispetto a prima)
-            Sort.Direction direction = Sort.Direction.ASC; // Default ASC (più vecchi prima)
-            if (sortParam != null) {
-                // date_desc = più recenti prima (DESC)
-                // date_asc = più vecchi prima (ASC)
-                direction = sortParam.endsWith("_desc")
-                        ? Sort.Direction.ASC
-                        : Sort.Direction.DESC;
-            }
-
-            // 2. Crea l'ordinamento base (solo data + ID)
-            sort = Sort.by(direction, "date").and(Sort.by("id"));
-
-            log.info("Created base sort: {}", sort);
-
-        } catch (Exception e) {
-            log.error("Error creating sort, using fallback", e);
-            // Fallback sicuro
-            sort = Sort.by("id").ascending();
-        }
-
-        log.info("Final sort: {}", sort);
-        return PageRequest.of(
-                originalPageable.getPageNumber(),
-                originalPageable.getPageSize(),
-                sort
         );
     }
     private boolean hasOscarMatch(Movie movie, String oscarStatus) {
