@@ -16,10 +16,7 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -224,26 +221,86 @@ public class FilmAggregationService {
         // 2. Aggiungi filtro relazionale (solo uno sarà attivo)
         spec = spec.and(createRelationSpec(actor, character, crew, studio, genres));
 
-        // 3. Crea PageRequest con ordinamento deterministico
-        PageRequest stablePageable = buildStablePageable(pageable, sort);
+        // 3. Esegui query SENZA PAGINAZIONE prima
+        List<Movie> allMovies = movieRepo.findAll(spec);
 
-        // 4. Esegui query paginata
-        Page<Movie> moviePage = movieRepo.findAll(spec, stablePageable);
-
-        // 5. Filtra per Oscar se necessario (mantenendo l'implementazione originale)
+        // 4. Filtra per Oscar se necessario
         if (oscarStatus != null && !oscarStatus.equals("any")) {
-            List<Movie> filtered = moviePage.getContent().stream()
+            allMovies = allMovies.stream()
                     .filter(movie -> hasOscarMatch(movie, oscarStatus))
                     .collect(Collectors.toList());
-
-            return new PageImpl<>(
-                    filtered.stream().map(this::mapToFilmSearchResponse).collect(Collectors.toList()),
-                    stablePageable, // Usa lo stesso pageable con ordinamento stabile
-                    filtered.size()
-            );
         }
 
-        return moviePage.map(this::mapToFilmSearchResponse);
+        // 5. Ordina i risultati
+        Sort sortObj = buildSort(sort);
+        allMovies.sort(createMovieComparator(sortObj));
+
+        // 6. Applica paginazione MANUALE
+        return paginateList(allMovies, pageable, sortObj);
+    }
+    // Nuovo metodo per costruire l'oggetto Sort
+    private Sort buildSort(String sortParam) {
+        if (sortParam == null || sortParam.isEmpty()) {
+            return Sort.by(Sort.Direction.ASC, "id");
+        }
+
+        String[] parts = sortParam.split("_");
+        if (parts.length != 2) {
+            return Sort.by(Sort.Direction.ASC, "id");
+        }
+
+        String property = parts[0];
+        Sort.Direction direction = parts[1].equalsIgnoreCase("desc")
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+        return Sort.by(direction, property).and(Sort.by("id"));
+    }
+    // Helper per l'ordinamento
+    private Comparator<Movie> createMovieComparator(Sort sort) {
+        List<Comparator<Movie>> comparators = new ArrayList<>();
+
+        for (Sort.Order order : sort) {
+            Comparator<Movie> comparator = (m1, m2) -> {
+                switch (order.getProperty()) {
+                    case "date":
+                        return order.isAscending() ?
+                                m1.getDate().compareTo(m2.getDate()) :
+                                m2.getDate().compareTo(m1.getDate());
+                    case "id":
+                        return order.isAscending() ?
+                                m1.getId().compareTo(m2.getId()) :
+                                m2.getId().compareTo(m1.getId());
+                    default:
+                        return 0;
+                }
+            };
+            comparators.add(comparator);
+        }
+
+        return comparators.stream()
+                .reduce(Comparator::thenComparing)
+                .orElse((m1, m2) -> 0);
+    }
+    private Page<FilmSearchResponse> paginateList(List<Movie> movies, Pageable pageable, Sort sort) {
+        int totalElements = movies.size();
+        int pageSize = pageable.getPageSize();
+        int currentPage = pageable.getPageNumber();
+        int startItem = currentPage * pageSize;
+
+        List<Movie> pageContent;
+        if (startItem >= totalElements) {
+            pageContent = Collections.emptyList();
+        } else {
+            int endItem = Math.min(startItem + pageSize, totalElements);
+            pageContent = movies.subList(startItem, endItem);
+        }
+
+        return new PageImpl<>(
+                pageContent.stream().map(this::mapToFilmSearchResponse).collect(Collectors.toList()),
+                PageRequest.of(currentPage, pageSize, sort),
+                totalElements
+        );
     }
     private PageRequest buildStablePageable(Pageable originalPageable, String sortParam) {
         log.info("Building pageable with sort param: {}", sortParam);
