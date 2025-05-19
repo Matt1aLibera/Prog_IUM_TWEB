@@ -4,9 +4,57 @@ const { connectDB } = require('../databases/filmDB');
 const {getRatingsBatch, uploadRatings, getFilmsByRatingRange, getFilmRating } = require('../controllers/filmRating');
 const path = require('path');
 const fs = require('fs');
-const {getFilmReviews, uploadRTReviews} = require('../controllers/RTReview');
+const {advancedReviewsSearch, getFilmReviews, uploadRTReviews} = require('../controllers/RTReview');
 //usa curl "http://localhost:3002/api/films/ratings"
 
+router.post('/advanced-search/reviews', async (req, res) => {
+    try {
+        const { query = {}, sort = {}, page = 0, size = 15, topCriticsOnly = false } = req.body;
+
+        // Validazione di base
+        if (!query.movie_title && !query.critic_name) {
+            return res.status(400).json({
+                error: 'Specificare almeno il titolo del film o il nome del critico'
+            });
+        }
+
+        // Normalizzazione parametri numerici
+        const parsedPage = Math.max(0, parseInt(page));
+        const parsedSize = Math.min(Math.max(1, parseInt(size)), 100); // Limite a 100 risultati per pagina
+
+        // Conversione rating a numero se presente
+        if (query.normalized_score) {
+            query.normalized_score = parseFloat(query.normalized_score);
+        }
+
+        const result = await advancedReviewsSearch({
+            query,
+            sort,
+            page: parsedPage,
+            size: parsedSize,
+            topCriticsOnly
+        });
+
+        if (!result.success) {
+            return res.status(500).json({
+                error: result.error
+            });
+        }
+
+        res.json({
+            data: result.data,
+            pagination: result.pagination,
+            stats: result.stats
+        });
+
+    } catch (error) {
+        console.error('Error in advanced reviews search:', error);
+        res.status(500).json({
+            error: "Errore interno del server",
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
 router.get('/films/:title/reviews', async (req, res) => {
     try {
         const movieTitle = decodeURIComponent(req.params.title);

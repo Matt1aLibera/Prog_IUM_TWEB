@@ -245,6 +245,7 @@ router.get('/films/:title/reviews', async (req, res, next) => {
     }
   }
 });
+
 router.get('/advanced-search', async (req, res) => {
   console.log('DAS - Parametri ricevuti:', req.query);
 
@@ -349,7 +350,54 @@ router.get('/advanced-search', async (req, res) => {
       });
 
     } else if (searchType === 'reviews') {
-      // ... (rimane invariato per il momento)
+      const { filmQuery, criticQuery, minRating, topCriticsOnly, page = 0, size = 15 } = req.query;
+
+      // Validazione
+      if (!filmQuery && !criticQuery) {
+        return res.status(400).json({
+          error: 'Specificare almeno il titolo del film o il nome del critico'
+        });
+      }
+
+      // Costruzione query per MongoDB
+      const query = {};
+      if (filmQuery) query.movie_title = filmQuery;
+      if (criticQuery) query.critic_name = criticQuery;
+      if (minRating) query.normalized_score = { $gte: parseFloat(minRating) };
+
+      const mongoParams = {
+        query,
+        sort: buildReviewSortObject(sortBy),
+        page: Math.max(0, parseInt(page)),
+        size: Math.min(Math.max(1, parseInt(size)), 100),
+        topCriticsOnly: topCriticsOnly === 'true'
+      };
+
+      console.log('DAS - Invio a MongoDB:', mongoParams);
+
+      // Chiamata al MongoDB service
+      const response = await axios.post(`${SERVICES.mongo}/api/advanced-search/reviews`, mongoParams, {
+        timeout: 20000,
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      console.log('DAS - Risposta MongoDB:', {
+        dataLength: response.data.data?.length,
+        pagination: response.data.pagination,
+        stats: response.data.stats
+      });
+      return res.json({
+        content: response.data.data || [],
+        totalElements: response.data.pagination?.totalItems || 0,
+        totalPages: response.data.pagination?.totalPages || 1,
+        // Aggiungi stats se servono
+        stats: response.data.stats,
+        // Mantieni compatibilità con l'esistente
+        pageable: {
+          pageNumber: mongoParams.page,
+          pageSize: mongoParams.size
+        }
+      });
     } else {
       res.status(400).json({ error: 'Tipo di ricerca non valido' });
     }
@@ -361,7 +409,7 @@ router.get('/advanced-search', async (req, res) => {
       details: error.response?.data || error.message
     });
   }
-});
+})
 
 // Aggiungi questa funzione helper per tradurre il parametro sortBy
 function translateSortParam(sortBy) {
@@ -374,5 +422,20 @@ function translateSortParam(sortBy) {
 
   return `${field}_${direction}`; // Es: date_desc o date_asc
 }
+// helpers/reviewSortHelper.js
+function buildReviewSortObject(sortBy) {
+  if (!sortBy) return { review_date: -1 }; // Default: più recenti prima
 
+  const [field, direction] = sortBy.split('_');
+  const sortDirection = direction === 'asc' ? 1 : -1;
+
+  switch (field) {
+    case 'date':
+      return { review_date: sortDirection };
+    case 'rating':
+      return { normalized_score: sortDirection, review_date: -1 };
+    default:
+      return { review_date: -1 }; // Default per valori non riconosciuti
+  }
+}
 module.exports = router;

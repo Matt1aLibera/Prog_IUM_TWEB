@@ -22,7 +22,7 @@ const loadRTReviews = async (RTReviewModel, filePath, processRecord, batchSize =
                             rotten_tomatoes_link: row['rotten_tomatoes_link'],
                             movie_title: row['movie_title'],
                             critic_name: row['critic_name'] || 'Anonymous',
-                            top_critic: (row['top_critic'] || '').toUpperCase() === 'Y',
+                            top_critic: (row['top_critic'] || '').toLowerCase() === 'true',
                             publisher_name: row['publisher_name'] || null,
                             review_type: row['review_type'] || 'Rotten',
                             review_score: row['review_score'] || null,

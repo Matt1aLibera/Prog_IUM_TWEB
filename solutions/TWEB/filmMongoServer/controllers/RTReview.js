@@ -176,7 +176,96 @@ const getFilmReviews = async (movieTitle, limit = 10, offset = 0, minRating = nu
     }
 };
 
+const advancedReviewsSearch = async (params) => {
+    const connection = await connectDB();
+    const RTReview = connection.model('RTReview');
+
+    try {
+        // Destrutturazione corretta dei parametri
+        const { query = {}, sort = {}, page = 0, size = 15, topCriticsOnly = false } = params;
+        const { movie_title, critic_name, normalized_score } = query;
+
+        // Costruzione query con approccio più robusto
+        const mongoQuery = {};
+
+        if (movie_title) {
+            mongoQuery.movie_title = { $regex: movie_title, $options: 'i' };
+        }
+
+        if (critic_name) {
+            mongoQuery.critic_name = { $regex: critic_name, $options: 'i' };
+        }
+
+        if (normalized_score) {
+            mongoQuery.normalized_score = { $gte: parseFloat(normalized_score) };
+        }
+
+        if (topCriticsOnly) {
+            mongoQuery.top_critic = true;
+        }
+
+        // Gestione ordinamento per rating (esclude null)
+        if (sort.normalized_score) {
+            mongoQuery.normalized_score = mongoQuery.normalized_score || {};
+            mongoQuery.normalized_score.$ne = null;
+        }
+
+        // Esecuzione query
+        const [reviews, totalCount, ratingStats] = await Promise.all([
+            RTReview.find(mongoQuery)
+                .sort(sort)
+                .skip(page * size)
+                .limit(size)
+                .lean(),
+            RTReview.countDocuments(mongoQuery),
+            RTReview.aggregate([
+                { $match: mongoQuery },
+                { $group: {
+                        _id: null,
+                        avgRating: { $avg: "$normalized_score" },
+                        minRating: { $min: "$normalized_score" },
+                        maxRating: { $max: "$normalized_score" },
+                        topCriticsCount: {
+                            $sum: {
+                                $cond: [{ $eq: ["$top_critic", true] }, 1, 0]
+                            }
+                        }
+                    }}
+            ])
+        ]);
+
+        return {
+            success: true,
+            data: reviews,
+            pagination: {
+                page: parseInt(page),
+                size: parseInt(size),
+                totalItems: totalCount,
+                totalPages: Math.ceil(totalCount / size)
+            },
+            stats: {
+                avgRating: ratingStats[0]?.avgRating || 0,
+                minRating: ratingStats[0]?.minRating || 0,
+                maxRating: ratingStats[0]?.maxRating || 0,
+                topCriticsCount: ratingStats[0]?.topCriticsCount || 0
+            }
+        };
+
+    } catch (error) {
+        console.error('Error in advancedReviewsSearch:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    } finally {
+        if (connection && connection.readyState === 1) {
+            await connection.close();
+        }
+    }
+};
+
 module.exports = {
+    advancedReviewsSearch,
     uploadRTReviews,
     getFilmReviews
 };

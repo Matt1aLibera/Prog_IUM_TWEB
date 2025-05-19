@@ -1980,7 +1980,21 @@ window.initAdvancedSearch = function() {
             params.criticQuery = formData.get('reviewCriticQuery');
             params.minRating = formData.get('reviewMinRating');
             params.topCriticsOnly = formData.get('topCriticsOnly') === 'on';
+// Validazione campi obbligatori per le recensioni
+            if (!params.filmQuery && !params.criticQuery) {
+                const alertHTML = `
+        <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
+            <strong>Attenzione!</strong> Specificare almeno il titolo del film o il nome del critico
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>`;
 
+                const existingAlert = document.querySelector('#advancedSearchForm .alert');
+                if (existingAlert) existingAlert.remove();
+
+                const submitButton = searchForm.querySelector('button[type="submit"]');
+                submitButton.insertAdjacentHTML('afterend', alertHTML);
+                return;
+            }
             console.log('Client - Filtri recensioni:', {
                 filmQuery: params.filmQuery,
                 criticQuery: params.criticQuery

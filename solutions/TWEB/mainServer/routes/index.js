@@ -276,7 +276,8 @@ router.get('/advanced-search', async (req, res) => {
 router.get('/search/advanced', async (req, res) => {
     console.log('══════════════════════════════════════════════════════════════');
     console.log('⏳ [1/6] Ricevuta richiesta ricerca avanzata');
-    console.log('📋 Parametri query:', JSON.stringify(req.query, null, 2));
+    const { searchType, ...restQuery } = req.query;
+    console.log('📋 Parametri query:', JSON.stringify({ searchType, ...restQuery }, null, 2));
 
     try {
         // 1. Gestione parametri di paginazione
@@ -330,6 +331,9 @@ router.get('/search/advanced', async (req, res) => {
 
         // 5. Renderizza il template (versione compatibile)
         console.log('\n⏳ [6/6] Renderizzazione template Handlebars...');
+        const templateName = searchType === 'reviews'
+            ? 'pages/review-search-results'
+            : 'pages/film-search-results';
         const templateData = {
             content: dasResponse.data.content || [],
             query: displayQuery,
@@ -338,11 +342,13 @@ router.get('/search/advanced', async (req, res) => {
             totalPages: dasResponse.data.totalPages || 1,
             totalElements: dasResponse.data.totalElements || 0,
             isAdvancedSearch: true,
+            isReviewSearch: searchType === 'reviews', // Nuovo flag
+            stats: dasResponse.data.stats, // Stats per le recensioni
             layout: false
         };
 
         // Utilizza il metodo di rendering standard di Express
-        res.render('pages/film-search-results', templateData, (err, html) => {
+        res.render(templateName, templateData, (err, html) => {
             if (err) {
                 console.error('❌ Errore durante il rendering:', err);
                 throw err;
