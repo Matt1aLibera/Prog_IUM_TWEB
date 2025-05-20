@@ -860,3 +860,34 @@ h2:after {
   background-color: #f8f9fa;
   border-radius: 4px;
 }
+
+/* Stile card recensioni */
+.review-card {
+  transition: transform 0.2s;
+  border-left: 4px solid var(--bs-primary);
+}
+
+.review-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+/* Stile stelle */
+.star-rating {
+  color: var(--bs-warning);
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+}
+
+/* Adatta la paginazione */
+.pagination {
+  flex-wrap: wrap;
+}
+
+.hidden-section {
+  display: none !important;
+}
+
+.d-block {
+  display: block !important;
+}

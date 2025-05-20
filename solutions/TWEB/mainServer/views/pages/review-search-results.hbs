@@ -1,0 +1,122 @@
+{{#if isAdvancedSearch}}
+    <div class="alert alert-info mb-3">
+        <i class="bi bi-filter-circle"></i> Ricerca avanzata attiva
+        <a href="#" class="float-end btn btn-sm btn-outline-info modify-filters-btn">
+            Modifica filtri
+        </a>
+    </div>
+{{/if}}
+
+<div class="search-results-container">
+    <div class="container mt-4">
+        <h2 class="mb-4">Recensioni per "{{query}}"</h2>
+
+        {{#if content.length}}
+            <div class="row row-cols-1 g-4">
+                {{#each content}}
+                    <div class="col">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="card-title mb-0">{{this.movie_title}}</h5>
+                                    {{#if this.top_critic}}
+                                        <span class="badge bg-warning">Top Critic</span>
+                                    {{/if}}
+                                </div>
+
+                                <h6 class="card-subtitle mb-2 text-muted">
+                                    <i class="bi bi-person"></i> {{this.critic_name}}
+                                    <span class="ms-2"><i class="bi bi-building"></i> {{this.publisher_name}}</span>
+                                </h6>
+
+                                <div class="mb-3">
+                                    <span class="text-warning">
+                                        {{#repeat this.star_rating}}★{{/repeat}}
+                                        {{#repeat (sub 5 this.star_rating)}}☆{{/repeat}}
+                                    </span>
+                                    <span class="ms-2">{{this.review_score}}</span>
+                                    <small class="text-muted ms-2">{{this.review_date}}</small>
+                                </div>
+
+                                <p class="card-text">{{this.review_content}}</p>
+                            </div>
+                        </div>
+                    </div>
+                {{/each}}
+            </div>
+
+            {{#if (gt totalPages 1)}}
+                <nav class="mt-4" aria-label="Paginazione recensioni">
+                    <ul class="pagination justify-content-center flex-wrap">
+                        {{!-- Freccia indietro --}}
+                        <li class="page-item {{#if (eq currentPage 0)}}disabled{{/if}}">
+                            <a class="page-link review-pagination-link"
+                               href="#"
+                               data-page="{{sub currentPage 1}}"
+                               data-query="{{fullQuery}}"
+                               aria-label="Previous">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        {{!-- Prima pagina --}}
+                        {{#if (gt currentPage 3)}}
+                            <li class="page-item">
+                                <a class="page-link review-pagination-link"
+                                   href="#"
+                                   data-page="0"
+                                   data-query="{{fullQuery}}">1</a>
+                            </li>
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {{/if}}
+
+                        {{!-- Pagine centrali --}}
+                        {{#each (range (max 0 (sub currentPage 2)) (min (sub totalPages 1) (add currentPage 2)))}}
+                            <li class="page-item {{#if (eq this ../currentPage)}}active{{/if}}">
+                                <a class="page-link review-pagination-link"
+                                   href="#"
+                                   data-page="{{this}}"
+                                   data-query="{{../fullQuery}}">{{add this 1}}</a>
+                            </li>
+                        {{/each}}
+
+                        {{!-- Ultima pagina --}}
+                        {{#if (lt currentPage (sub totalPages 4))}}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link review-pagination-link"
+                                   href="#"
+                                   data-page="{{sub totalPages 1}}"
+                                   data-query="{{fullQuery}}">{{totalPages}}</a>
+                            </li>
+                        {{/if}}
+
+                        {{!-- Freccia avanti --}}
+                        <li class="page-item {{#if (eq currentPage (sub totalPages 1))}}disabled{{/if}}">
+                            <a class="page-link review-pagination-link"
+                               href="#"
+                               data-page="{{add currentPage 1}}"
+                               data-query="{{fullQuery}}"
+                               aria-label="Next">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <div class="text-center mt-2 text-muted small">
+                        Pagina {{add currentPage 1}} di {{totalPages}} - {{totalElements}} risultati
+                    </div>
+                </nav>
+            {{/if}}
+        {{else}}
+            <div class="alert alert-info">
+                Nessuna recensione trovata per "{{query}}"
+                <a href="/" class="alert-link">Torna alla home</a>
+            </div>
+        {{/if}}
+    </div>
+</div>

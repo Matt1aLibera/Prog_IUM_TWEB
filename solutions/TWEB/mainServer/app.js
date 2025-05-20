@@ -26,6 +26,49 @@ const hbs = engine({
     allowProtoMethodsByDefault: true
   },
   helpers: {
+    // Helper per le stelle (1-5)
+    stars: function(rating, options) {
+      const fullStars = Math.floor(rating);
+      const hasHalfStar = rating % 1 >= 0.5;
+      let stars = '';
+
+      for (let i = 0; i < fullStars; i++) {
+        stars += '<i class="bi bi-star-fill text-warning"></i>';
+      }
+
+      if (hasHalfStar) {
+        stars += '<i class="bi bi-star-half text-warning"></i>';
+      }
+
+      const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+      for (let i = 0; i < emptyStars; i++) {
+        stars += '<i class="bi bi-star text-warning"></i>';
+      }
+
+      return new Handlebars.SafeString(stars);
+    },
+
+
+
+    // Helper per formattare la data
+    formatDate: function(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('it-IT', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    },
+    // Helper per ripetere un blocco N volte (per le stelle delle recensioni)
+    repeat: function(n, options) {
+      if (n <= 0) return '';
+      let result = '';
+      for (let i = 0; i < n; i++) {
+        result += options.fn(this);
+      }
+      return result;
+    },
     assign: function(varName, varValue, options) {
       if (!options.data.root) {
         options.data.root = {};

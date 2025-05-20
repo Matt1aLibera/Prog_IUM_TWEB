@@ -280,13 +280,13 @@ router.get('/search/advanced', async (req, res) => {
     console.log('📋 Parametri query:', JSON.stringify({ searchType, ...restQuery }, null, 2));
 
     try {
-        // 1. Gestione parametri di paginazione
+        // 1. Gestione parametri di paginazione (INVARIATO)
         const page = Array.isArray(req.query.page)
             ? parseInt(req.query.page[req.query.page.length - 1]) || 0
             : parseInt(req.query.page) || 0;
-        const size = parseInt(req.query.size) || 15;
+        const size = parseInt(req.query.size) || (searchType === 'reviews' ? 10 : 15); // Default diverso per recensioni
 
-        // 2. Pulisci i parametri per la query persistente
+        // 2. Pulisci i parametri (INVARIATO)
         const cleanQuery = {...req.query};
         delete cleanQuery.page;
         delete cleanQuery.size;
@@ -294,7 +294,7 @@ router.get('/search/advanced', async (req, res) => {
         console.log('\n⏳ [2/6] Preparazione parametri paginazione');
         console.log(`📊 Pagina: ${page}, Dimensione pagina: ${size}`);
 
-        // 3. Chiamata al DAS
+        // 3. Chiamata al DAS (INVARIATO)
         console.log('\n⏳ [3/6] Invio richiesta al DAS...');
         const dasResponse = await axios.get('http://localhost:3003/api/advanced-search', {
             params: {
@@ -316,8 +316,8 @@ router.get('/search/advanced', async (req, res) => {
             totalPages: dasResponse.data.totalPages
         });
 
-        // 4. Prepara i dati per il template
-        const displayQuery = cleanQuery.filmQuery || 'Ricerca avanzata';
+        // 4. Prepara i dati per il template (MODIFICATO SOLO PER RECENSIONI)
+        const displayQuery = cleanQuery.filmQuery || cleanQuery.criticQuery || 'Ricerca avanzata';
         const paginationQuery = new URLSearchParams(cleanQuery).toString();
         const fullQuery = `advanced:${paginationQuery}`;
 
@@ -329,29 +329,48 @@ router.get('/search/advanced', async (req, res) => {
             totalElements: dasResponse.data.totalElements
         });
 
-        // 5. Renderizza il template (versione compatibile)
+        // 5. Preparazione dati specifici per recensioni (NUOVO)
+        const templateContent = searchType === 'reviews'
+            ? (dasResponse.data.content || []).map(review => ({
+                ...review,
+                // Formattazione aggiuntiva per le recensioni
+                review_date: review.review_date
+                    ? new Date(review.review_date).toLocaleDateString('it-IT')
+                    : 'N/D',
+                star_rating: Math.min(5, Math.max(1, Math.round(review.normalized_score || 0)))
+            }))
+            : dasResponse.data.content || [];
+
+        // 6. Renderizza il template (MODIFICATO SOLO PER SCELTA TEMPLATE)
         console.log('\n⏳ [6/6] Renderizzazione template Handlebars...');
-        const templateName = searchType === 'reviews'
-            ? 'pages/review-search-results'
-            : 'pages/film-search-results';
         const templateData = {
-            content: dasResponse.data.content || [],
+            content: templateContent,
             query: displayQuery,
             fullQuery: fullQuery,
             currentPage: page,
             totalPages: dasResponse.data.totalPages || 1,
             totalElements: dasResponse.data.totalElements || 0,
             isAdvancedSearch: true,
-            isReviewSearch: searchType === 'reviews', // Nuovo flag
-            stats: dasResponse.data.stats, // Stats per le recensioni
+            isReviewSearch: searchType === 'reviews',
+            stats: dasResponse.data.stats,
             layout: false
         };
 
-        // Utilizza il metodo di rendering standard di Express
+        const templateName = searchType === 'reviews'
+            ? 'pages/review-search-results'
+            : 'pages/film-search-results';
+
         res.render(templateName, templateData, (err, html) => {
             if (err) {
                 console.error('❌ Errore durante il rendering:', err);
-                throw err;
+                return res.status(500).send(`
+                    <div class="alert alert-danger">
+                        Errore durante il rendering: ${err.message}
+                        <button onclick="window.location.reload()" class="btn btn-sm btn-outline-danger ms-2">
+                            Riprova
+                        </button>
+                    </div>
+                `);
             }
 
             console.log('✅ Template renderizzato con successo');

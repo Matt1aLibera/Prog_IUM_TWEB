@@ -2003,11 +2003,18 @@ window.initAdvancedSearch = function() {
 
         // Converti i parametri in una stringa query serializzata
         const queryString = new URLSearchParams(params).toString();
-        // Usa lo stesso meccanismo della ricerca full
-        AppState.navigateTo('searchResults', {
-            query: `advanced:${queryString}`,
-            page: 0
-        });
+        if (searchType === 'films'){
+            // Usa lo stesso meccanismo della ricerca full
+            AppState.navigateTo('searchResults', {
+                query: `advanced:${queryString}`,
+                page: 0
+            });
+        }else{
+            AppState.navigateTo('reviewsResults', {
+                query: `advanced:${queryString}`,
+                page: 0
+            });
+        }
     };
 
     // Gestione eventi
@@ -2028,6 +2035,61 @@ window.initAdvancedSearch = function() {
     // Inizializzazione
     updateFilters(searchTypeSelect.value);
 }
+// =============================================
+// GESTIONE REVIEWS ADVANCED SEARCH
+// =============================================
+async function updateReviewResults(query, page) {
+    const container = document.getElementById('reviewResultsSection');
+
+    try {
+        // Mostra loader
+        container.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
+
+        // Costruisci URL
+        const params = new URLSearchParams(query.replace('advanced:', ''));
+        params.set('page', page);
+        const apiUrl = `/search/advanced?${params.toString()}`;
+
+        // Esegui richiesta
+        const response = await axios.get(apiUrl);
+
+        // Aggiorna l'URL
+        window.history.replaceState({}, '', `?${params.toString()}`);
+
+        // Inserisci il contenuto
+        container.innerHTML = response.data;
+
+        // Assicurati che sia visibile
+        container.classList.remove('hidden-section');
+        container.classList.add('d-block');
+
+        // Setup paginazione
+        setupReviewPagination();
+
+    } catch (error) {
+        container.innerHTML = `
+            <div class="alert alert-danger">
+                Errore durante il caricamento: ${error.message}
+                <button onclick="updateReviewResults('${query}', ${page})" 
+                        class="btn btn-sm btn-outline-danger ms-2">
+                    Riprova
+                </button>
+            </div>
+        `;
+    }
+}
+function setupReviewPagination() {
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('.review-pagination-link');
+        if (!link) return;
+
+        e.preventDefault();
+        const page = parseInt(link.dataset.page);
+        const query = link.dataset.query;
+        updateReviewResults(query, page);
+    });
+}
+
 // =============================================
 // STATO DELL'APPLICAZIONE E GESTIONE VISTE
 // =============================================
@@ -2075,10 +2137,32 @@ const AppState = {
             case 'advancedSearch': // Aggiungi questo caso
                 this.showAdvancedSearch();
                 break;
+            case 'reviewsResults':
+                this.searchQuery = params.query;
+                this.currentPage = params.page || 0;
+                this.showReviewResults(params.query, params.page);
+                break;
         }
 
         this.updateHistory(view, params, replace);
     },
+
+    showReviewResults: function(query, page = 0) {
+        // Nascondi tutte le altre sezioni
+        document.getElementById('carouselSection').classList.add('d-none');
+        document.getElementById('filmDetailSection').style.display = 'none';
+        document.getElementById('searchResultsSection').classList.add('d-none');
+        document.getElementById('chatSection').classList.add('d-none');
+
+        // Mostra la sezione recensioni
+        const reviewSection = document.getElementById('reviewResultsSection');
+        reviewSection.classList.remove('hidden-section'); // Rimuovi la classe nascosta
+        reviewSection.classList.add('d-block'); // Aggiungi classe visibile
+
+        // Carica i risultati
+        updateReviewResults(query, page);
+    },
+
 
     showAdvancedSearch: async function() {
         // Nascondi tutte le altre sezioni
@@ -2401,6 +2485,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupFilmCardClickHandlers();
         setupPaginationHandlers();
         initAdvancedSearchHandlers();
+        setupReviewPagination();
 
         const isAuthenticated = await checkAuthState();
         if (isAuthenticated) {
