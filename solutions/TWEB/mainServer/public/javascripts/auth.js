@@ -2153,11 +2153,12 @@ const AppState = {
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.add('d-none');
         document.getElementById('chatSection').classList.add('d-none');
-
+        document.getElementById('advancedSearchSection').classList.add('d-none');
         // Mostra la sezione recensioni
         const reviewSection = document.getElementById('reviewResultsSection');
         reviewSection.classList.remove('hidden-section'); // Rimuovi la classe nascosta
         reviewSection.classList.add('d-block'); // Aggiungi classe visibile
+
 
         // Carica i risultati
         updateReviewResults(query, page);
@@ -2166,6 +2167,7 @@ const AppState = {
 
     showAdvancedSearch: async function() {
         // Nascondi tutte le altre sezioni
+        document.getElementById('reviewResultsSection').classList.remove('d-block');
         document.getElementById('carouselSection').classList.add('d-none');
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.add('d-none');

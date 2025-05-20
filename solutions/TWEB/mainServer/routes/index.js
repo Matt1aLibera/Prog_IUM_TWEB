@@ -333,11 +333,10 @@ router.get('/search/advanced', async (req, res) => {
         const templateContent = searchType === 'reviews'
             ? (dasResponse.data.content || []).map(review => ({
                 ...review,
-                // Formattazione aggiuntiva per le recensioni
                 review_date: review.review_date
                     ? new Date(review.review_date).toLocaleDateString('it-IT')
                     : 'N/D',
-                star_rating: Math.min(5, Math.max(1, Math.round(review.normalized_score || 0)))
+                normalized_score: review.normalized_score || 0
             }))
             : dasResponse.data.content || [];
 

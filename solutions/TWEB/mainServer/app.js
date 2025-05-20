@@ -26,6 +26,17 @@ const hbs = engine({
     allowProtoMethodsByDefault: true
   },
   helpers: {
+    // Helper per arrotondare il rating normalizzato (1-5)
+    roundRating: function(normalizedScore) {
+      if (typeof normalizedScore !== 'number' || isNaN(normalizedScore)) return 0;
+      return Math.min(5, Math.max(1, Math.round(normalizedScore)));
+    },
+
+    // Helper per formattare il rating normalizzato (X.X/5)
+    formatRating: function(normalizedScore) {
+      if (typeof normalizedScore !== 'number' || isNaN(normalizedScore)) return 'N/A';
+      return `${normalizedScore.toFixed(1)}/5`;
+    },
     // Helper per le stelle (1-5)
     stars: function(rating, options) {
       const fullStars = Math.floor(rating);

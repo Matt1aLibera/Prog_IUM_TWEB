@@ -31,11 +31,11 @@
 
                                 <div class="mb-3">
                                     <span class="text-warning">
-                                        {{#repeat this.star_rating}}★{{/repeat}}
-                                        {{#repeat (sub 5 this.star_rating)}}☆{{/repeat}}
+                                         {{#repeat (roundRating normalized_score)}}★{{/repeat}}
+                                        {{#repeat (sub 5 (roundRating normalized_score))}}☆{{/repeat}}
                                     </span>
-                                    <span class="ms-2">{{this.review_score}}</span>
-                                    <small class="text-muted ms-2">{{this.review_date}}</small>
+                                    <span class="ms-2">{{formatRating normalized_score}}</span>
+                                    <small class="text-muted ms-2">{{formatDate review_date}}</small>
                                 </div>
 
                                 <p class="card-text">{{this.review_content}}</p>
