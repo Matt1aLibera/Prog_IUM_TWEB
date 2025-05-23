@@ -363,7 +363,7 @@ router.get('/advanced-search', async (req, res) => {
       const query = {};
       if (filmQuery) query.movie_title = filmQuery;
       if (criticQuery) query.critic_name = criticQuery;
-      if (minRating) query.normalized_score = { $gte: parseFloat(minRating) };
+      if (minRating) query.normalized_score = query.normalized_score = parseFloat(minRating);
 
       const mongoParams = {
         query,

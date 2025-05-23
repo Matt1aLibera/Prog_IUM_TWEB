@@ -280,13 +280,13 @@ router.get('/search/advanced', async (req, res) => {
     console.log('📋 Parametri query:', JSON.stringify({ searchType, ...restQuery }, null, 2));
 
     try {
-        // 1. Gestione parametri di paginazione (INVARIATO)
+        // 1. Gestione parametri di paginazione
         const page = Array.isArray(req.query.page)
             ? parseInt(req.query.page[req.query.page.length - 1]) || 0
             : parseInt(req.query.page) || 0;
-        const size = parseInt(req.query.size) || (searchType === 'reviews' ? 10 : 15); // Default diverso per recensioni
+        const size = parseInt(req.query.size) || (searchType === 'reviews' ? 10 : 15);
 
-        // 2. Pulisci i parametri (INVARIATO)
+        // 2. Pulisci i parametri
         const cleanQuery = {...req.query};
         delete cleanQuery.page;
         delete cleanQuery.size;
@@ -294,7 +294,7 @@ router.get('/search/advanced', async (req, res) => {
         console.log('\n⏳ [2/6] Preparazione parametri paginazione');
         console.log(`📊 Pagina: ${page}, Dimensione pagina: ${size}`);
 
-        // 3. Chiamata al DAS (INVARIATO)
+        // 3. Chiamata al DAS
         console.log('\n⏳ [3/6] Invio richiesta al DAS...');
         const dasResponse = await axios.get('http://localhost:3003/api/advanced-search', {
             params: {
@@ -316,7 +316,7 @@ router.get('/search/advanced', async (req, res) => {
             totalPages: dasResponse.data.totalPages
         });
 
-        // 4. Prepara i dati per il template (MODIFICATO SOLO PER RECENSIONI)
+        // 4. Prepara i dati per il template
         const displayQuery = cleanQuery.filmQuery || cleanQuery.criticQuery || 'Ricerca avanzata';
         const paginationQuery = new URLSearchParams(cleanQuery).toString();
         const fullQuery = `advanced:${paginationQuery}`;
@@ -329,7 +329,7 @@ router.get('/search/advanced', async (req, res) => {
             totalElements: dasResponse.data.totalElements
         });
 
-        // 5. Preparazione dati specifici per recensioni (NUOVO)
+        // 5. Preparazione dati specifici per recensioni
         const templateContent = searchType === 'reviews'
             ? (dasResponse.data.content || []).map(review => ({
                 ...review,
@@ -340,7 +340,7 @@ router.get('/search/advanced', async (req, res) => {
             }))
             : dasResponse.data.content || [];
 
-        // 6. Renderizza il template (MODIFICATO SOLO PER SCELTA TEMPLATE)
+        // 6. Renderizza i risultati come stringa HTML
         console.log('\n⏳ [6/6] Renderizzazione template Handlebars...');
         const templateData = {
             content: templateContent,
@@ -352,31 +352,44 @@ router.get('/search/advanced', async (req, res) => {
             isAdvancedSearch: true,
             isReviewSearch: searchType === 'reviews',
             stats: dasResponse.data.stats,
-            layout: false
+            layout: false // Importante: non usare il layout
         };
 
         const templateName = searchType === 'reviews'
             ? 'pages/review-search-results'
             : 'pages/film-search-results';
 
-        res.render(templateName, templateData, (err, html) => {
-            if (err) {
-                console.error('❌ Errore durante il rendering:', err);
-                return res.status(500).send(`
-                    <div class="alert alert-danger">
-                        Errore durante il rendering: ${err.message}
-                        <button onclick="window.location.reload()" class="btn btn-sm btn-outline-danger ms-2">
-                            Riprova
-                        </button>
-                    </div>
-                `);
-            }
-
-            console.log('✅ Template renderizzato con successo');
-            console.log('\n🚀 Invio risposta al client');
-            console.log('══════════════════════════════════════════════════════════════\n');
-            res.send(html);
+        // Renderizza i risultati come stringa HTML
+        const searchResultsHtml = await new Promise((resolve, reject) => {
+            res.app.render(templateName, templateData, (err, html) => {
+                if (err) {
+                    console.error('❌ Errore durante il rendering:', err);
+                    reject(err);
+                } else {
+                    console.log('✅ Template renderizzato con successo');
+                    resolve(html);
+                }
+            });
         });
+
+        // Prepara i dati per la pagina index
+        const indexData = {
+            showCarousel: false,
+            showSearchResults: searchType !== 'reviews',
+            searchResults: searchType !== 'reviews' ? searchResultsHtml : '',
+            reviewResultsInitial: searchType === 'reviews' ? searchResultsHtml : '',
+            isReviewSearch: searchType === 'reviews'
+        };
+
+        // Invia i risultati come HTML o come JSON in base alla richiesta
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+            res.send(searchResultsHtml);
+        } else {
+            res.render('pages/index', indexData);
+        }
+
+        console.log('\n🚀 Invio risposta al client');
+        console.log('══════════════════════════════════════════════════════════════\n');
 
     } catch (error) {
         console.error('\n❌❌❌ ERRORE CRITICO ❌❌❌');
@@ -394,7 +407,17 @@ router.get('/search/advanced', async (req, res) => {
             </div>
         `;
 
-        res.status(500).send(errorHtml);
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+            res.status(500).send(errorHtml);
+        } else {
+            res.render('pages/index', {
+                showCarousel: false,
+                showSearchResults: true,
+                searchResults: errorHtml,
+                isReviewSearch: req.query.searchType === 'reviews'
+            });
+        }
+
         console.error('══════════════════════════════════════════════════════════════\n');
     }
 });

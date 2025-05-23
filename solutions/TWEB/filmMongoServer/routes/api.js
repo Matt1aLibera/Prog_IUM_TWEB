@@ -18,20 +18,19 @@ router.post('/advanced-search/reviews', async (req, res) => {
             });
         }
 
-        // Normalizzazione parametri numerici
-        const parsedPage = Math.max(0, parseInt(page));
-        const parsedSize = Math.min(Math.max(1, parseInt(size)), 100); // Limite a 100 risultati per pagina
-
-        // Conversione rating a numero se presente
-        if (query.normalized_score) {
-            query.normalized_score = parseFloat(query.normalized_score);
-        }
+        console.log('Richiesta ricerca avanzata:', {
+            query,
+            sort,
+            page,
+            size,
+            topCriticsOnly
+        });
 
         const result = await advancedReviewsSearch({
             query,
             sort,
-            page: parsedPage,
-            size: parsedSize,
+            page: Math.max(0, parseInt(page)),
+            size: Math.min(Math.max(1, parseInt(size)), 100),
             topCriticsOnly
         });
 

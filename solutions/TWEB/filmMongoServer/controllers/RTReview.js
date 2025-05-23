@@ -181,7 +181,6 @@ const advancedReviewsSearch = async (params) => {
     const RTReview = connection.model('RTReview');
 
     try {
-        // Destrutturazione corretta dei parametri
         const { query = {}, sort = {}, page = 0, size = 15, topCriticsOnly = false } = params;
         const { movie_title, critic_name, normalized_score } = query;
 
@@ -196,18 +195,24 @@ const advancedReviewsSearch = async (params) => {
             mongoQuery.critic_name = { $regex: critic_name, $options: 'i' };
         }
 
-        if (normalized_score) {
-            mongoQuery.normalized_score = { $gte: parseFloat(normalized_score) };
+        // Gestione del rating - ora riceviamo direttamente il numero
+        if (normalized_score !== undefined) {
+            const minRating = parseFloat(normalized_score);
+            if (!isNaN(minRating)) {
+                mongoQuery.normalized_score = {
+                    $gte: minRating,
+                    $ne: null,
+                    $exists: true
+                };
+            } else {
+                console.warn(`Valore di rating non valido: ${normalized_score}`);
+                // Se il rating non è valido, mostra solo recensioni con rating valido
+                mongoQuery.normalized_score = { $ne: null, $exists: true };
+            }
         }
 
         if (topCriticsOnly) {
             mongoQuery.top_critic = true;
-        }
-
-        // Gestione ordinamento per rating (esclude null)
-        if (sort.normalized_score) {
-            mongoQuery.normalized_score = mongoQuery.normalized_score || {};
-            mongoQuery.normalized_score.$ne = null;
         }
 
         // Esecuzione query

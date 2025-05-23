@@ -64,7 +64,19 @@ const hbs = engine({
     // Helper per formattare la data
     formatDate: function(dateString) {
       if (!dateString) return '';
-      const date = new Date(dateString);
+
+      // Estrai manualmente le parti della data ISO
+      const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!match) return dateString; // Fallback se il formato non è riconosciuto
+
+      const year = match[1];
+      const month = match[2];
+      const day = match[3];
+
+      // Crea la data in modo esplicito (YYYY, MM-1, DD)
+      const date = new Date(year, month - 1, day);
+
+      // Formatta in italiano
       return date.toLocaleDateString('it-IT', {
         year: 'numeric',
         month: 'long',

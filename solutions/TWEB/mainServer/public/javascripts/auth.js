@@ -16,12 +16,12 @@ if (window.location.pathname === '/films/search' && window.location.search) {
     window.history.replaceState(null, '', newUrl);
 }
 // Patch critica per il bug del browser
-window.addEventListener('popstate', function (event) {
+/*window.addEventListener('popstate', function (event) {
     // Ignora il popstate iniziale su alcuni browser
     if (event.state === null && window.location.pathname === '/') return;
 
     AppState.handlePopState(event);
-});
+});*/
 // =============================================
 // FUNZIONI DI UTILITÀ GENERALI
 // =============================================
@@ -987,7 +987,7 @@ function createReviewElement(review) {
 // =============================================
 // Aggiungi questa funzione per gestire la paginazione
 function setupPaginationHandlers() {
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         const link = e.target.closest('.pagination-link');
         if (!link) return;
 
@@ -999,15 +999,14 @@ function setupPaginationHandlers() {
         if (query.startsWith('advanced:')) {
             const params = new URLSearchParams(query.replace('advanced:', ''));
             params.set('page', page);
-            window.history.pushState({}, '', `?${params.toString()}`);
+            AppState.navigateTo('searchResults', {query, page});
         } else {
-            // Per ricerche full, la query è direttamente il termine di ricerca
-            window.history.pushState({}, '', `?q=${encodeURIComponent(query)}&page=${page}`);
-        }
 
-        updateSearchResults(query, page);
+            AppState.navigateTo('searchResults', {query, page});
+        }
     });
 }
+
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
     const searchButton = document.getElementById('searchButton');
@@ -1190,6 +1189,7 @@ function performSearch() {
         window.location.href = `/search/actors?q=${encodeURIComponent(query)}`;
     }
 }
+
 function initAdvancedSearchHandlers() {
     // Rimuovi eventuali handler esistenti
     document.querySelectorAll('.modify-filters-btn').forEach(btn => {
@@ -1207,7 +1207,20 @@ function initAdvancedSearchHandlers() {
 
 async function updateSearchResults(query, page) {
     const searchResultsSection = document.getElementById('searchResultsSection');
-
+    // Validazione iniziale
+    if (!query) {
+        console.error('Query parameter is required');
+        searchResultsSection.innerHTML = `
+            <div class="alert alert-danger">
+                Parametro di ricerca mancante
+                <button onclick="AppState.navigateTo('carousel')" 
+                        class="btn btn-sm btn-outline-danger ms-2">
+                    Torna alla home
+                </button>
+            </div>
+        `;
+        return;
+    }
     try {
         // Mostra loader
         searchResultsSection.innerHTML = `
@@ -1217,21 +1230,20 @@ async function updateSearchResults(query, page) {
             </div>
         `;
 
-        // Costruisci URL corretto
+        // Costruisci URL corretto con validazione
+
         let apiUrl;
-        if (query.startsWith('advanced:')) {
+        if (typeof query === 'string' && query.startsWith('advanced:')) {
             const params = new URLSearchParams(query.replace('advanced:', ''));
             params.set('page', page);
+            params.set('searchType', 'films'); // Aggiungi esplicitamente
             apiUrl = `/search/advanced?${params}`;
         } else {
-            // Per ricerche full, la query è direttamente il termine di ricerca
-            apiUrl = `/films/search/full?q=${encodeURIComponent(query)}&page=${page}`;
+            apiUrl = `/films/search/full?q=${encodeURIComponent(query || '')}&page=${page}`;
         }
 
-        // Esegui richiesta
         const response = await axios.get(apiUrl);
         searchResultsSection.innerHTML = response.data;
-
         // Aggiorna stato paginazione
         document.querySelectorAll('.page-item').forEach(item => {
             item.classList.remove('active', 'disabled');
@@ -1247,7 +1259,7 @@ async function updateSearchResults(query, page) {
                 item.classList.add('disabled');
             }
         });
-        initAdvancedSearchHandlers();
+        //initAdvancedSearchHandlers();
     } catch (error) {
         searchResultsSection.innerHTML = `
             <div class="alert alert-danger">
@@ -1797,10 +1809,11 @@ function roomIcon(type) {
     };
     return icons[type] || 'chat';
 }
+
 // =============================================
 // SEZIONE RICERCA AVANZATA
 // =============================================
-window.initAdvancedSearch = function() {
+window.initAdvancedSearch = function () {
     const searchTypeSelect = document.getElementById('searchTypeSelect');
     const searchForm = document.getElementById('advancedSearchForm');
     const filtersContainer = document.getElementById('dynamicFilters');
@@ -1823,7 +1836,7 @@ window.initAdvancedSearch = function() {
         try {
             filtersContainer.innerHTML = '';
             updateSortOptions(type);
-            switch(type) {
+            switch (type) {
                 case 'films':
                     if (filmFiltersTemplate) {
                         const content = document.importNode(filmFiltersTemplate.content, true);
@@ -2003,13 +2016,13 @@ window.initAdvancedSearch = function() {
 
         // Converti i parametri in una stringa query serializzata
         const queryString = new URLSearchParams(params).toString();
-        if (searchType === 'films'){
+        if (searchType === 'films') {
             // Usa lo stesso meccanismo della ricerca full
             AppState.navigateTo('searchResults', {
                 query: `advanced:${queryString}`,
                 page: 0
             });
-        }else{
+        } else {
             AppState.navigateTo('reviewsResults', {
                 query: `advanced:${queryString}`,
                 page: 0
@@ -2022,7 +2035,7 @@ window.initAdvancedSearch = function() {
         updateFilters(e.target.value);
     });
 
-    searchForm.addEventListener('submit', function(e) {
+    searchForm.addEventListener('submit', function (e) {
         e.preventDefault();
         if (!this.searchExecuted) {
             this.searchExecuted = true;
@@ -2040,36 +2053,25 @@ window.initAdvancedSearch = function() {
 // =============================================
 async function updateReviewResults(query, page) {
     const container = document.getElementById('reviewResultsSection');
+    if (!container) return;
 
     try {
-        // Mostra loader
-        container.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
+        container.classList.remove('d-none');
+        container.innerHTML = `<div class="spinner-border text-primary"></div>`;
 
-        // Costruisci URL
         const params = new URLSearchParams(query.replace('advanced:', ''));
         params.set('page', page);
-        const apiUrl = `/search/advanced?${params.toString()}`;
 
-        // Esegui richiesta
-        const response = await axios.get(apiUrl);
+        // Chiamata identica a quella dei film
+        const response = await axios.get(`/search/advanced?${params.toString()}`);
 
-        // Aggiorna l'URL
-        window.history.replaceState({}, '', `?${params.toString()}`);
-
-        // Inserisci il contenuto
         container.innerHTML = response.data;
-
-        // Assicurati che sia visibile
-        container.classList.remove('hidden-section');
-        container.classList.add('d-block');
-
-        // Setup paginazione
-        setupReviewPagination();
+        updatePaginationState(page, response.data.totalPages);
 
     } catch (error) {
         container.innerHTML = `
             <div class="alert alert-danger">
-                Errore durante il caricamento: ${error.message}
+                ${error.response?.data || error.message}
                 <button onclick="updateReviewResults('${query}', ${page})" 
                         class="btn btn-sm btn-outline-danger ms-2">
                     Riprova
@@ -2078,15 +2080,38 @@ async function updateReviewResults(query, page) {
         `;
     }
 }
-function setupReviewPagination() {
-    document.addEventListener('click', function(e) {
+
+// Funzione helper per la paginazione
+function updatePaginationState(page, totalPages) {
+    document.querySelectorAll('.page-item').forEach(item => {
+        item.classList.remove('active', 'disabled');
+        const itemPage = parseInt(item.querySelector('a')?.dataset.page);
+
+        if (itemPage === page) item.classList.add('active');
+        if (item.querySelector('a')?.ariaLabel === 'Previous' && page === 0) {
+            item.classList.add('disabled');
+        }
+        if (item.querySelector('a')?.ariaLabel === 'Next' && page === (totalPages - 1)) {
+            item.classList.add('disabled');
+        }
+    });
+}
+
+// Gestione della paginazione con event delegation
+function setupReviewPaginationHandlers() {
+    document.addEventListener('click', function (e) {
         const link = e.target.closest('.review-pagination-link');
         if (!link) return;
 
         e.preventDefault();
         const page = parseInt(link.dataset.page);
         const query = link.dataset.query;
-        updateReviewResults(query, page);
+
+        // Gestione URL come nella paginazione dei film
+        AppState.navigateTo('reviewsResults', {
+            query: query,
+            page: page
+        });
     });
 }
 
@@ -2115,8 +2140,13 @@ const AppState = {
     },
 
     navigateTo: function (view, params = {}, replace = false) {
+        if (this.currentView === view &&
+            JSON.stringify(params) === JSON.stringify(this.currentParams)) {
+            return;
+        }
         this.previousView = this.currentView;
         this.currentView = view;
+        this.currentParams = params;
 
         switch (view) {
             case 'carousel':
@@ -2147,7 +2177,7 @@ const AppState = {
         this.updateHistory(view, params, replace);
     },
 
-    showReviewResults: function(query, page = 0) {
+    showReviewResults: function (query, page = 0) {
         // Nascondi tutte le altre sezioni
         document.getElementById('carouselSection').classList.add('d-none');
         document.getElementById('filmDetailSection').style.display = 'none';
@@ -2156,8 +2186,9 @@ const AppState = {
         document.getElementById('advancedSearchSection').classList.add('d-none');
         // Mostra la sezione recensioni
         const reviewSection = document.getElementById('reviewResultsSection');
-        reviewSection.classList.remove('hidden-section'); // Rimuovi la classe nascosta
-        reviewSection.classList.add('d-block'); // Aggiungi classe visibile
+        reviewSection.classList.remove('d-none');
+       // reviewSection.classList.remove('hidden-section'); // Rimuovi la classe nascosta
+       // reviewSection.classList.add('d-block'); // Aggiungi classe visibile
 
 
         // Carica i risultati
@@ -2165,7 +2196,7 @@ const AppState = {
     },
 
 
-    showAdvancedSearch: async function() {
+    showAdvancedSearch: async function () {
         // Nascondi tutte le altre sezioni
         document.getElementById('reviewResultsSection').classList.remove('d-block');
         document.getElementById('carouselSection').classList.add('d-none');
@@ -2264,12 +2295,20 @@ const AppState = {
 
     updateHistory: function (view, params, replace = false) {
         // Validazione minima
-        if (view === 'searchResults' && !params.query) {
-            console.error('Search navigation requires query');
-            return;
+        if (view === 'searchResults') {
+            if (!params || !params.query) {
+                console.error('Search navigation requires query parameter');
+                // Fallback alla home se la query manca
+                this.navigateTo('carousel', {}, true);
+                return;
+            }
         }
         if (view === 'filmDetails' && !params.filmId) {
             console.error('Film details navigation requires filmId');
+            return;
+        }
+        if (view === 'reviewsResults' && !params.query) {
+            console.error('Review search navigation requires query');
             return;
         }
 
@@ -2292,11 +2331,32 @@ const AppState = {
                 };
                 break;
             case 'searchResults':
-                url = `/films/search/full?q=${encodeURIComponent(params.query)}&page=${params.page || 0}`;
+                if (params.query.startsWith('advanced:')) {
+                    const queryParams = new URLSearchParams(params.query.replace('advanced:', ''));
+                    queryParams.set('page', params.page || 0);
+                    queryParams.set('searchType', 'films'); // Aggiungi esplicitamente
+                    url = `/search/advanced?${queryParams.toString()}`;
+                } else {
+                    url = `/films/search/full?q=${encodeURIComponent(params.query)}&page=${params.page || 0}`;
+                }
                 state = {
                     view: 'searchResults',
                     query: params.query,
                     page: params.page || 0
+                };
+                break;
+            case 'reviewsResults':
+                // Per le ricerche avanzate di recensioni
+                const queryParams = new URLSearchParams(params.query.replace('advanced:', ''));
+                queryParams.set('page', params.page || 0);
+                url = `/search/advanced?${queryParams.toString()}`;
+                state = {
+                    view: 'reviewsResults',
+                    query: params.query,
+                    page: params.page || 0,
+                    previousState: this.currentView === 'advancedSearch' ? {
+                        view: 'advancedSearch'
+                    } : null
                 };
                 break;
             case 'chat':
@@ -2343,6 +2403,12 @@ const AppState = {
 
         try {
             const url = new URL(window.location.href);
+            // Debug: log dello stato corrente
+            console.log('Popstate triggered:', {
+                path: url.pathname,
+                searchParams: Object.fromEntries(url.searchParams.entries()),
+                eventState: event.state
+            });
 
             // Caso speciale: tornando alla home
             if (url.pathname === '/') {
@@ -2365,6 +2431,9 @@ const AppState = {
                         case 'filmDetails':
                             this._navigateToFilmDetails(prev.filmId);
                             break;
+                        case 'reviewResults':
+                            this._navigateToReviewsResults(prev.query, prev.page);
+                            break;
                         default:
                             this._navigateToCarousel();
                     }
@@ -2381,16 +2450,19 @@ const AppState = {
                         this._navigateToCarousel();
                         break;
                     case 'filmDetails':
-                        this._navigateToFilmDetails(event.state.filmId);
+                        this._navigateToFilmDetails(event.state.filmId, true);
                         break;
                     case 'searchResults':
-                        this._navigateToSearchResults(event.state.query, event.state.page);
+                        this._navigateToSearchResults(event.state.query, event.state.page, false);
                         break;
                     case 'chat':
                         this._navigateToChat();
                         break;
                     case 'advancedSearch':
                         this._navigateToAdvancedSearch();
+                        break;
+                    case 'reviewsResults':  // Aggiungi questo caso
+                        this._navigateToReviewsResults(event.state.query, event.state.page, true);
                         break;
                 }
             } else {
@@ -2405,7 +2477,25 @@ const AppState = {
                 } else if (url.pathname === '/sio/chat') {
                     this._navigateToChat();
                 } else if (url.pathname === '/advanced-search') {
-                        this._navigateToAdvancedSearch();
+                    this._navigateToAdvancedSearch();
+                } else if (url.pathname.startsWith('/search/advanced')) {
+                    const searchType = url.searchParams.get('searchType');
+                    const queryParams = new URLSearchParams(url.searchParams);
+
+                    // Ricostruisci la query nel formato 'advanced:params'
+                    queryParams.delete('page'); // Il page va separato
+                    const query = 'advanced:' + queryParams.toString();
+                    const page = parseInt(url.searchParams.get('page')) || 0;
+
+                    if (searchType === 'reviews') {
+                        this._navigateToReviewsResults(query, page);
+                    } else {
+                        // Default a 'films' se searchType mancante ma ci sono parametri film
+                        if (!searchType && (url.searchParams.has('filmQuery') || url.searchParams.has('filmSearchType'))) {
+                            queryParams.set('searchType', 'films');
+                        }
+                        this._navigateToSearchResults(query, page);
+                    }
                 } else {
                     this._navigateToCarousel();
                 }
@@ -2418,7 +2508,22 @@ const AppState = {
         }
     },
 
-    _navigateToAdvancedSearch: function() {
+    _navigateToReviewsResults: function (query, page, forceReload = false) {
+        // Correggi il nome della view e aggiungi forceReload
+        if (!forceReload &&
+            this.currentView === 'reviewsResults' &&  // Modificato da reviewResults
+            this.searchQuery === query &&
+            this.currentPage === page) {
+            return;
+        }
+
+        this.currentView = 'reviewsResults';  // Modificato da reviewSearch
+        this.searchQuery = query;
+        this.currentPage = page;
+        this.showReviewResults(query, page);
+    },
+
+    _navigateToAdvancedSearch: function () {
         if (this.currentView === 'advancedSearch') return;
 
         this.currentView = 'advancedSearch';
@@ -2444,10 +2549,13 @@ const AppState = {
         this.showFilmDetails(filmId);
     },
 
-    _navigateToSearchResults: function (query, page) {
-        if (this.currentView === 'searchResults' &&
+    _navigateToSearchResults: function (query, page, forceReload = false) {
+        if (!forceReload &&
+            this.currentView === 'searchResults' &&
             this.searchQuery === query &&
-            this.currentPage === page) return;
+            this.currentPage === page) {
+            return;
+        }
 
         this.currentView = 'searchResults';
         this.searchQuery = query;
@@ -2462,7 +2570,6 @@ const AppState = {
         this.showCarousel();
     },
 };
-
 // Inizializzazione
 window.addEventListener('popstate', (event) => {
     AppState.handlePopState(event);
@@ -2487,7 +2594,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupFilmCardClickHandlers();
         setupPaginationHandlers();
         initAdvancedSearchHandlers();
-        setupReviewPagination();
+        setupReviewPaginationHandlers();
 
         const isAuthenticated = await checkAuthState();
         if (isAuthenticated) {
@@ -2506,12 +2613,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (window.location.pathname.startsWith('/film/')) {
                 const filmId = window.location.pathname.split('/')[2];
                 AppState.navigateTo('filmDetails', {filmId}, true);
-            } else if (window.location.pathname.startsWith('/films/search')) {
+            }else if (window.location.pathname.startsWith('/films/search')) {
                 const urlParams = new URLSearchParams(window.location.search);
+                const query = urlParams.get('q');
+
+                if (!query) {
+                    console.warn('Missing search query, redirecting to home');
+                    AppState.navigateTo('carousel', {}, true);
+                    return;
+                }
+
+                // Solo ricerche full-text, niente gestione "advanced:" qui
                 AppState.navigateTo('searchResults', {
-                    query: urlParams.get('q'),
+                    query: query,
                     page: parseInt(urlParams.get('page')) || 0
                 }, true);
+
+            }  else if (window.location.pathname.startsWith('/search/advanced')) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const searchType = urlParams.get('searchType');
+                const page = parseInt(urlParams.get('page')) || 0;
+                const query = `advanced:${urlParams.toString()}`;
+
+                // Auto-rilevamento se searchType mancante
+                const finalSearchType = searchType ||
+                    (urlParams.has('filmQuery') ? 'films' : null);
+
+                if (finalSearchType === 'reviews') {
+                    AppState.navigateTo('reviewsResults', { query, page }, true);
+                } else if (finalSearchType === 'films' || urlParams.has('filmQuery')) {
+                    AppState.navigateTo('searchResults', { query, page }, true);
+                } else {
+                    console.error('Invalid search type, redirecting to home');
+                    AppState.navigateTo('carousel', {}, true);
+                }
             } else {
                 AppState.navigateTo('carousel', {}, true);
             }
