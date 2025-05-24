@@ -15,13 +15,6 @@ if (window.location.pathname === '/films/search' && window.location.search) {
     const newUrl = `/films/search/full${window.location.search}`;
     window.history.replaceState(null, '', newUrl);
 }
-// Patch critica per il bug del browser
-/*window.addEventListener('popstate', function (event) {
-    // Ignora il popstate iniziale su alcuni browser
-    if (event.state === null && window.location.pathname === '/') return;
-
-    AppState.handlePopState(event);
-});*/
 // =============================================
 // FUNZIONI DI UTILITÀ GENERALI
 // =============================================
@@ -428,27 +421,33 @@ function setupNavbarEvents() {
 }
 
 async function handleAdvancedSearchClick(button) {
-    const section = document.getElementById('advancedSearchSection');
-    if (!section) return;
+    console.log(`Handling click for button: ${button.id}`); // Debug
 
-    // Se il contenuto è già caricato e visibile, NON facciamo nulla
-    if (section.querySelector('.advanced-search-container') &&
-        !section.classList.contains('d-none') &&
-        !section.classList.contains('hidden-section')) {
+    const section = document.getElementById('advancedSearchSection');
+    if (!section) {
+        console.error("advancedSearchSection non trovato!");
         return;
     }
 
-    // Preparazione al caricamento
+    // Se il contenuto è già visibile, non fare nulla
+    if (section.querySelector('.advanced-search-container') &&
+        !section.classList.contains('d-none') &&
+        !section.classList.contains('hidden-section')) {
+        console.log("La sezione è già visibile, ignorando...");
+        return;
+    }
+
+    // Mostra lo spinner
     const originalHtml = button.innerHTML;
     button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
     button.disabled = true;
 
     try {
-        // Rimuoviamo TUTTE le classi che potrebbero nascondere la sezione
         section.classList.remove('d-none', 'hidden-section');
 
-        // Carichiamo solo se necessario
+        // Carica il form solo se non è già presente
         if (!section.querySelector('.advanced-search-container')) {
+            console.log("Caricamento form avanzato...");
             const response = await axios.get('/advanced-search');
             section.innerHTML = response.data;
         }
@@ -457,7 +456,7 @@ async function handleAdvancedSearchClick(button) {
         AppState.navigateTo('advancedSearch');
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Errore:', error);
         section.innerHTML = `
             <div class="alert alert-danger">
                 Errore: ${error.message}
@@ -471,7 +470,6 @@ async function handleAdvancedSearchClick(button) {
         button.disabled = false;
     }
 }
-
 async function handleChatClick(button) {
     const originalHtml = button.innerHTML;
     button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Caricamento...';
@@ -739,7 +737,6 @@ function populateFilmData(film) {
         `).join('') || '<li class="list-group-item">Nessuna data di uscita disponibile</li>';
     }
     loadFilmOscars(film.movie?.name, film.movie?.date || film.movie?.year);
-    loadFilmReviews(film.movie?.name || film.title);
 }
 
 async function loadFilmOscars(filmName, filmYear) {
@@ -846,12 +843,21 @@ async function loadFilmOscars(filmName, filmYear) {
 function renderOscars(oscars) {
     const container = document.getElementById('oscarsList');
     const noOscars = document.getElementById('noOscars');
+    const loadingElement = document.getElementById('oscarsLoading');
 
-    if (!container) return;
+    // Nascondi sempre il loader prima di procedere
+    if (loadingElement) loadingElement.classList.add('d-none');
 
+    if (!container || !noOscars) {
+        console.error('Elementi del DOM non trovati');
+        return;
+    }
+
+    // Pulisci la lista esistente
     container.innerHTML = '';
 
-    if (oscars.length > 0) {
+    if (oscars && oscars.length > 0) {
+        // Ci sono Oscar da mostrare
         oscars.forEach(oscar => {
             const item = document.createElement('li');
             item.className = `list-group-item ${oscar.isWinner ? 'oscar-winner' : ''}`;
@@ -866,122 +872,17 @@ function renderOscars(oscars) {
             `;
             container.appendChild(item);
         });
+
         container.classList.remove('d-none');
         noOscars.classList.add('d-none');
     } else {
+        // Nessun Oscar trovato
         container.classList.add('d-none');
         noOscars.classList.remove('d-none');
+        // Aggiorna eventualmente il messaggio
+        noOscars.textContent = 'Nessun premio Oscar trovato';
     }
 }
-
-function showReviewsLoading(show) {
-    const loadingElement = document.getElementById('reviewsLoading');
-    const contentElement = document.getElementById('reviewsList');
-    const noReviewsElement = document.getElementById('noReviews');
-
-    if (show) {
-        loadingElement.classList.remove('d-none');
-        contentElement.classList.add('d-none');
-        noReviewsElement.classList.add('d-none');
-    } else {
-        loadingElement.classList.add('d-none');
-        contentElement.classList.remove('d-none');
-    }
-}
-
-function showReviewsError(error) {
-    const noReviewsElement = document.getElementById('noReviews');
-    noReviewsElement.classList.remove('d-none');
-
-    // Mostra messaggio di errore appropriato
-    if (error.response) {
-        noReviewsElement.textContent = `Errore: ${error.response.data.error || 'Errore nel caricamento delle recensioni'}`;
-    } else if (error.request) {
-        noReviewsElement.textContent = 'Impossibile connettersi al server';
-    } else {
-        noReviewsElement.textContent = `Errore: ${error.message}`;
-    }
-
-    // Log dettagliato per debug
-    console.error('Errore caricamento recensioni:', {
-        error: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-    });
-}
-
-function updateReviewStats(stats) {
-    // Puoi implementare questa funzione se vuoi mostrare statistiche
-    // Ad esempio, la valutazione media delle recensioni
-    console.log('Statistiche recensioni:', stats);
-}
-
-async function loadFilmReviews(movieTitle, limit = 5, offset = 0) {
-    try {
-        showReviewsLoading(true);
-
-        // Pulisci le recensioni esistenti
-        document.getElementById('reviewsList').innerHTML = '';
-
-        const response = await axios.get(`http://localhost:3003/api/films/${encodeURIComponent(movieTitle)}/reviews`, {
-            params: {limit, offset}
-        });
-
-        if (response.data.reviews.length === 0) {
-            document.getElementById('noReviews').classList.remove('d-none');
-            document.getElementById('noReviews').textContent = 'Nessuna recensione disponibile per questo film';
-        } else {
-            renderReviews(response.data.reviews);
-            updateReviewStats(response.data.stats);
-
-            // Mostra il pulsante "Carica più" se ci sono altre recensioni
-            if (response.data.pagination.total > offset + limit) {
-                document.getElementById('loadMoreReviews').classList.remove('d-none');
-            }
-        }
-    } catch (error) {
-        showReviewsError(error);
-    } finally {
-        showReviewsLoading(false);
-    }
-}
-
-function renderReviews(reviews) {
-    const container = document.getElementById('reviewsList');
-    const noReviewsElement = document.getElementById('noReviews');
-
-    if (!reviews || reviews.length === 0) {
-        noReviewsElement.classList.remove('d-none');
-        return;
-    }
-
-    container.innerHTML = ''; // Pulisci il container
-
-    reviews.forEach(review => {
-        const reviewEl = createReviewElement(review);
-        container.appendChild(reviewEl);
-    });
-
-    // Mostra il container delle recensioni
-    container.classList.remove('d-none');
-    noReviewsElement.classList.add('d-none');
-}
-
-function createReviewElement(review) {
-    const el = document.createElement('div');
-    el.className = `review-card ${review.isFresh ? 'fresh' : 'rotten'}`;
-    el.innerHTML = `
-        <div class="review-header">
-            <span class="review-score">${review.score}/5</span>
-            <span class="review-critic">${review.critic}</span>
-            <span class="review-publisher">${review.publisher}</span>
-        </div>
-        <div class="review-content">${review.content}</div>
-        <div class="review-date">${new Date(review.date).toLocaleDateString()}</div>
-    `;
-    return el;
-}
-
 // =============================================
 // GESTIONE RICERCA E AUTOCOMPLETE
 // =============================================
@@ -1190,18 +1091,16 @@ function performSearch() {
     }
 }
 
-function initAdvancedSearchHandlers() {
-    // Rimuovi eventuali handler esistenti
-    document.querySelectorAll('.modify-filters-btn').forEach(btn => {
-        btn.replaceWith(btn.cloneNode(true));
-    });
+function setupAdvancedSearchButtons() {
+    console.log("Setting up advanced search buttons...");
 
-    // Aggiungi i nuovi handler
-    document.querySelectorAll('.modify-filters-btn').forEach(btn => {
-        btn.addEventListener('click', handleAdvancedSearchClick);
+    // Delegazione degli eventi per gestire i click
+    document.addEventListener('click', async (e) => {
+        if (e.target.id === 'modifyFilmFiltersBtn' || e.target.id === 'modifyReviewFiltersBtn') {
+            console.log(`Button ${e.target.id} clicked`); // Debug
+            await handleAdvancedSearchClick(e.target); // Passa il bottone cliccato
+        }
     });
-
-    console.log("Advanced search handlers initialized");
 }
 
 
@@ -1575,7 +1474,6 @@ function hideModal(modalId) {
 // Mostra modal per creazione stanza
 // Funzioni specifiche per la chat
 function showCreateModal() {
-    const modal = document.getElementById('createRoomModal');
     const nameInput = document.getElementById('roomNameInput');
     const topicSelect = document.getElementById('roomTopicSelect');
     const codeInput = document.getElementById('roomCodeInput');
@@ -2185,12 +2083,7 @@ const AppState = {
         document.getElementById('chatSection').classList.add('d-none');
         document.getElementById('advancedSearchSection').classList.add('d-none');
         // Mostra la sezione recensioni
-        const reviewSection = document.getElementById('reviewResultsSection');
-        reviewSection.classList.remove('d-none');
-       // reviewSection.classList.remove('hidden-section'); // Rimuovi la classe nascosta
-       // reviewSection.classList.add('d-block'); // Aggiungi classe visibile
-
-
+        document.getElementById('reviewResultsSection').classList.remove('d-none');
         // Carica i risultati
         updateReviewResults(query, page);
     },
@@ -2203,6 +2096,7 @@ const AppState = {
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.add('d-none');
         document.getElementById('chatSection').classList.add('d-none');
+        document.getElementById('reviewResultsSection').classList.add('d-none');
         // Mostra la sezione di ricerca avanzata
         document.getElementById('advancedSearchSection').classList.remove('d-none');
     },
@@ -2213,6 +2107,7 @@ const AppState = {
         document.getElementById('filmDetailSection').style.display = 'none';
         document.getElementById('searchResultsSection').classList.add('d-none');
         document.getElementById('advancedSearchSection').classList.add('d-none');
+        document.getElementById('reviewResultsSection').classList.add('d-none');
         // Mostra la chat
         document.getElementById('chatSection').classList.remove('d-none');
 
@@ -2240,6 +2135,7 @@ const AppState = {
         document.getElementById('searchResultsSection').classList.add('d-none');
         document.getElementById('chatSection').classList.add('d-none');
         document.getElementById('advancedSearchSection').classList.add('d-none');
+        document.getElementById('reviewResultsSection').classList.add('d-none');
         try {
             // Ricarica i film solo se necessario
             if (document.querySelectorAll('.film-poster-container').length === 0) {
@@ -2280,6 +2176,7 @@ const AppState = {
         document.getElementById('filmDetailSection').style.display = 'block';
         document.getElementById('chatSection').classList.add('d-none');
         document.getElementById('advancedSearchSection').classList.add('d-none');
+        document.getElementById('reviewResultsSection').classList.add('d-none');
         await showFilmDetails(filmId);
     },
 
@@ -2289,6 +2186,7 @@ const AppState = {
         document.getElementById('searchResultsSection').classList.remove('d-none');
         document.getElementById('chatSection').classList.add('d-none');
         document.getElementById('advancedSearchSection').classList.add('d-none');
+        document.getElementById('reviewResultsSection').classList.add('d-none');
         updateSearchResults(query, page);
     },
 
@@ -2593,7 +2491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupSearch();
         setupFilmCardClickHandlers();
         setupPaginationHandlers();
-        initAdvancedSearchHandlers();
+        setupAdvancedSearchButtons();
         setupReviewPaginationHandlers();
 
         const isAuthenticated = await checkAuthState();
