@@ -1,11 +1,9 @@
 package com.example.springbootserver.services;
 
+import com.example.springbootserver.dtos.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.example.springbootserver.dtos.FilmDetailsResponse;
-import com.example.springbootserver.dtos.FilmPosterResponse;
-import com.example.springbootserver.dtos.FilmSearchResponse;
 import com.example.springbootserver.models.*;
 import com.example.springbootserver.repositories.*;
 import jakarta.persistence.TypedQuery;
@@ -17,6 +15,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -400,4 +400,152 @@ public class FilmAggregationService {
                 .ifPresent(poster -> response.setPosterLink(poster.getLink()));
         return response;
     }
+
+   /* public List<OscarFilmResponse> getFilmsByGenreWithOscars(String genre, int limit) {
+        // 1. Trova tutti i film del genere specificato
+        List<Long> movieIds = genreRepo.findMovieIdsByGenre(genre);
+
+        if (movieIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. Recupera i film completi (non solo projection)
+        List<Movie> movies = movieRepo.findByIdIn(movieIds);
+
+        // 3. Mappa per nome+anno per matching con gli Oscar
+        Map<String, Movie> movieMap = new HashMap<>();
+        for (Movie movie : movies) {
+            String key = movie.getName().toLowerCase() + "|" + movie.getDate();
+            movieMap.putIfAbsent(key, movie);
+        }
+
+        // 4. Recupera TUTTI gli Oscar che potrebbero corrispondere ai film
+        List<OscarAward> allAwards = oscarAwardRepo.findAll();
+
+        // 5. Mappa per film (id) con lista di award corrispondenti
+        Map<Long, List<OscarAward>> awardsByMovieId = new HashMap<>();
+
+        for (OscarAward award : allAwards) {
+            String awardKey = award.getFilm().toLowerCase() + "|" + award.getYearFilm();
+
+            // Cerca corrispondenza esatta o nell'anno ±1
+            for (int yearOffset = 0; yearOffset <= 1; yearOffset++) {
+                String key1 = award.getFilm().toLowerCase() + "|" + (award.getYearFilm() + yearOffset);
+                String key2 = award.getFilm().toLowerCase() + "|" + (award.getYearFilm() - yearOffset);
+
+                if (movieMap.containsKey(key1)) {
+                    Movie matchedMovie = movieMap.get(key1);
+                    awardsByMovieId.computeIfAbsent(matchedMovie.getId(), k -> new ArrayList<>()).add(award);
+                    break;
+                }
+                if (movieMap.containsKey(key2)) {
+                    Movie matchedMovie = movieMap.get(key2);
+                    awardsByMovieId.computeIfAbsent(matchedMovie.getId(), k -> new ArrayList<>()).add(award);
+                    break;
+                }
+            }
+        }
+
+        // 6. Recupera i poster in batch
+        Map<Long, String> posterMap = posterRepo.findByMovieIdIn(movieIds).stream()
+                .collect(Collectors.toMap(Poster::getMovieId, Poster::getLink));
+
+        // 7. Costruisci la lista di risultati
+        List<OscarFilmResponse> results = new ArrayList<>();
+
+        for (Movie movie : movies) {
+            List<OscarAward> awards = awardsByMovieId.getOrDefault(movie.getId(), Collections.emptyList());
+
+            if (!awards.isEmpty()) {
+                int wins = (int) awards.stream().filter(OscarAward::getWinner).count();
+                int nominations = awards.size();
+
+                results.add(new OscarFilmResponse(
+                        movie.getId(),
+                        movie.getName(),
+                        movie.getDate(),
+                        posterMap.get(movie.getId()),
+                        wins,
+                        nominations
+                ));
+            }
+        }
+
+        // 8. Ordina prima per vittorie (DESC), poi per nomination (DESC)
+        results.sort((a, b) -> {
+            if (b.getOscarWins() != a.getOscarWins()) {
+                return Integer.compare(b.getOscarWins(), a.getOscarWins());
+            }
+            return Integer.compare(b.getOscarNominations(), a.getOscarNominations());
+        });
+
+        // 9. Limita i risultati
+        return results.stream().limit(limit).collect(Collectors.toList());
+    }*/
+   public List<OscarFilmResponse> getFilmsByGenreWithOscars(String genre, int limit) {
+       // 1. Carica tutti gli Oscar in memoria
+       List<OscarAward> allAwards = oscarAwardRepo.findAll();
+
+       // 2. Prepara struttura per matching veloce
+       Map<String, List<OscarAward>> awardsMap = new HashMap<>();
+       for (OscarAward award : allAwards) {
+           String key = award.getFilm().toLowerCase() + "|" + award.getYearFilm();
+           awardsMap.computeIfAbsent(key, k -> new ArrayList<>()).add(award);
+       }
+
+       // 3. Trova tutti gli ID dei film del genere
+       List<Long> allMovieIds = genreRepo.findMovieIdsByGenre(genre);
+       if (allMovieIds.isEmpty()) {
+           return Collections.emptyList();
+       }
+
+       // 4. Processa a batch per evitare limiti di parametri
+       Map<Long, OscarFilmResponse> resultsMap = new HashMap<>();
+       int batchSize = 30000;
+
+       for (int i = 0; i < allMovieIds.size(); i += batchSize) {
+           List<Long> batchIds = allMovieIds.subList(i, Math.min(i + batchSize, allMovieIds.size()));
+
+           // 5. Carica film e poster del batch corrente
+           List<Movie> batchMovies = movieRepo.findByIdIn(batchIds);
+           Map<Long, String> posterMap = posterRepo.findByMovieIdIn(batchIds).stream()
+                   .collect(Collectors.toMap(Poster::getMovieId, Poster::getLink));
+
+           // 6. Per ogni film nel batch
+           for (Movie movie : batchMovies) {
+               int wins = 0;
+               int nominations = 0;
+
+               // 7. Cerca corrispondenze con gli Oscar
+               for (int yearOffset = -1; yearOffset <= 1; yearOffset++) {
+                   String key = movie.getName().toLowerCase() + "|" + (movie.getDate() + yearOffset);
+                   List<OscarAward> matched = awardsMap.getOrDefault(key, Collections.emptyList());
+                   nominations += matched.size();
+                   wins += (int) matched.stream().filter(OscarAward::getWinner).count();
+               }
+
+               if (nominations > 0) {
+                   resultsMap.put(movie.getId(), new OscarFilmResponse(
+                           movie.getId(),
+                           movie.getName(),
+                           movie.getDate(),
+                           posterMap.get(movie.getId()),
+                           wins,
+                           nominations
+                   ));
+               }
+           }
+       }
+
+       // 8. Ordina i risultati globali
+       List<OscarFilmResponse> sortedResults = new ArrayList<>(resultsMap.values());
+       sortedResults.sort((a, b) -> {
+           int winCompare = Integer.compare(b.getOscarWins(), a.getOscarWins());
+           return winCompare != 0 ? winCompare :
+                   Integer.compare(b.getOscarNominations(), a.getOscarNominations());
+       });
+
+       // 9. Limita i risultati
+       return sortedResults.stream().limit(limit).collect(Collectors.toList());
+   }
 }

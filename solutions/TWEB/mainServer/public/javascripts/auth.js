@@ -36,6 +36,13 @@ function showDashboard() {
     hideAllSections();
     document.getElementById('dashboardSection').classList.remove('hidden-section');
     updateWelcomeMessage();
+
+    // Aspetta che la sezione sia renderizzata prima di inizializzare
+    /*if (document.getElementById('oscarFilmsSection')) {
+        initOscarGenreDropdown();
+        loadAndDisplayOscarFilms();
+    }*/
+    AppState.navigateTo('carousel');
 }
 
 function updateWelcomeMessage(username) {
@@ -2012,7 +2019,195 @@ function setupReviewPaginationHandlers() {
         });
     });
 }
+// =============================================
+// GESTIONE FILM PER GENERE E OSCAR
+// =============================================
+const OSCAR_FILMS_CONFIG = {
+    apiUrl: "http://localhost:3003/api/by-genre",
+    defaultGenre: "Horror",
+    limit: 12
+};
+async function loadAndDisplayOscarFilms(genre = OSCAR_FILMS_CONFIG.defaultGenre) {
+    try {
+        // Mostra lo stato di caricamento
+        document.getElementById('oscarFilmsGrid').innerHTML = `
+      <div class="col-12 text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    `;
 
+        // Carica i film dal backend usando Axios
+        const films = await fetchOscarFilms(genre);
+
+        // Popola la griglia
+        renderOscarFilms(films);
+
+        // Aggiungi gli event handlers
+        setupOscarFilmClickHandlers();
+
+    } catch (error) {
+        console.error("Errore nel caricamento film Oscar:", error);
+        showOscarError();
+    }
+}
+
+/**
+ * Fetch dei film con Oscar dal backend usando Axios
+ */
+async function fetchOscarFilms(genre) {
+    try {
+        const response = await axios.get(`${OSCAR_FILMS_CONFIG.apiUrl}`, {
+            params: {
+                genre: genre,
+                limit: OSCAR_FILMS_CONFIG.limit
+            },
+            timeout: 15000 // Timeout di 10 secondi
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error("Errore nella chiamata API Oscar:", {
+            url: error.config?.url,
+            params: error.config?.params,
+            status: error.response?.status,
+            data: error.response?.data
+        });
+        throw error;
+    }
+}
+
+/**
+ * Renderizza i film nella griglia
+ */
+function renderOscarFilms(films) {
+    const grid = document.getElementById('oscarFilmsGrid');
+    if (!films || films.length === 0) {
+        document.getElementById('noResults').classList.remove('d-none');
+        grid.innerHTML = '';
+        return;
+    }
+
+    document.getElementById('noResults').classList.add('d-none');
+
+    grid.innerHTML = films.map(film => `
+    <div class="col" data-film-id="${film.id}" data-genres='${JSON.stringify([film.genre] || [])}'>
+      <div class="card h-100 shadow-sm film-card">
+        <div class="poster-container" style="background-color: #f5f5f5; height: 450px; display: flex; align-items: center; justify-content: center;">
+          ${film.posterUrl ?
+        `<img src="${film.posterUrl}" class="card-img-top" alt="${film.title}" 
+                  onerror="this.parentElement.innerHTML = '<div class=\'no-poster\' style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#999;\'>Nessun poster</div>'">` :
+        `<div class="no-poster" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#999;">Nessun poster</div>`
+    }
+        </div>
+        <div class="card-body">
+          <h5 class="card-title fs-6">${film.title}</h5>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="badge bg-warning text-dark">
+              <i class="bi bi-trophy"></i> ${film.oscarWins}/${film.oscarNominations}
+            </span>
+            <small class="text-muted">${film.year}</small>
+          </div>
+        </div>
+        <div class="card-footer bg-white">
+          <span class="badge bg-light text-dark">${film.genre || 'N/A'}</span>
+        </div>
+      </div>
+    </div>
+    `).join('');
+}
+
+/**
+ * Mostra errore nella sezione Oscar
+ */
+function showOscarError() {
+    document.getElementById('oscarFilmsGrid').innerHTML = `
+    <div class="col-12">
+      <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle"></i> Errore nel caricamento dei dati
+        <button onclick="loadAndDisplayOscarFilms()" class="btn btn-sm btn-outline-danger ms-2">
+          Riprova
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Configura gli handler per il click sui film
+ */
+function setupOscarFilmClickHandlers() {
+    const grid = document.getElementById('oscarFilmsGrid');
+    if (!grid) return;
+
+    // Controlla se esiste già un handler e lo rimuove
+    if (grid._filmClickHandler) {
+        grid.removeEventListener('click', grid._filmClickHandler);
+    }
+
+    // Definisci il nuovo handler
+    grid._filmClickHandler = async (e) => {
+        const filmCard = e.target.closest('[data-film-id]');
+        if (!filmCard?.dataset?.filmId) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const filmId = filmCard.dataset.filmId;
+        if (!filmId) {
+            console.error('Invalid Film ID');
+            return;
+        }
+
+        // Debounce check
+        const now = Date.now();
+        if (AppState._lastFilmNavigation?.filmId === filmId &&
+            now - AppState._lastFilmNavigation?.timestamp < 500) {
+            return;
+        }
+
+        AppState._lastFilmNavigation = {
+            filmId: filmId,
+            timestamp: now
+        };
+
+        try {
+            await AppState.navigateTo('filmDetails', { filmId });
+        } catch (error) {
+            console.error('Navigation failed:', error);
+        }
+    };
+
+    // Aggiungi il nuovo listener
+    grid.addEventListener('click', grid._filmClickHandler);
+}
+
+/**
+ * Inizializza il dropdown dei generi
+ */
+function initOscarGenreDropdown() {
+    const dropdownMenu = document.querySelector('#genreDropdown + .dropdown-menu');
+    if (!dropdownMenu) return;
+
+    dropdownMenu.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A' && e.target.dataset.genre !== 'all') {
+            e.preventDefault();
+
+            // Aggiorna lo stato attivo nel dropdown
+            dropdownMenu.querySelector('.active').classList.remove('active');
+            e.target.classList.add('active');
+
+            // Aggiorna il testo del pulsante
+            document.getElementById('genreDropdown').innerHTML = `
+        <i class="bi bi-filter"></i> ${e.target.textContent}
+      `;
+
+            // Carica i film per il nuovo genere
+            loadAndDisplayOscarFilms(e.target.dataset.genre);
+        }
+    });
+}
 // =============================================
 // STATO DELL'APPLICAZIONE E GESTIONE VISTE
 // =============================================
@@ -2152,6 +2347,9 @@ const AppState = {
                 if (newCarousel) {
                     carouselSection.innerHTML = newCarousel.innerHTML;
                     setupFilmCardClickHandlers();
+                    // Inizializza la sezione Oscar
+                    initOscarGenreDropdown();
+                    loadAndDisplayOscarFilms();
                 } else {
                     carouselSection.innerHTML = previousContent;
                 }
@@ -2547,6 +2745,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } else {
                 AppState.navigateTo('carousel', {}, true);
+                initOscarGenreDropdown();
+                loadAndDisplayOscarFilms();
             }
         } else {
             await showAuthForms();

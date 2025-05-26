@@ -1,10 +1,8 @@
 package com.example.springbootserver.controllers;
 
-import com.example.springbootserver.dtos.FilmDetailsResponse;
-import com.example.springbootserver.dtos.FilmIdsRequest;
-import com.example.springbootserver.dtos.FilmPosterResponse;
-import com.example.springbootserver.dtos.FilmSearchResponse;
+import com.example.springbootserver.dtos.*;
 import com.example.springbootserver.services.FilmAggregationService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -92,6 +91,19 @@ public class FilmAggregationController {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    @GetMapping("/by-genre")
+    public ResponseEntity<?> getFilmsByGenre(
+            @RequestParam String genre,
+            @RequestParam(defaultValue = "15") int limit) {
+
+        try {
+            List<OscarFilmResponse> results = filmAggregationService.getFilmsByGenreWithOscars(genre, limit);
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body("Error processing request: " + e.getMessage());
         }
     }
 }

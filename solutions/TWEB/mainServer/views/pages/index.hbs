@@ -35,6 +35,76 @@
         {{else}}
             <div class="alert alert-warning">Nessun film disponibile al momento</div>
         {{/if}}
+
+        <!-- Sezione Oscar -->
+        <section class="container mt-5" id="oscarFilmsSection">
+            <!-- Titolo + Dropdown -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <i class="bi bi-trophy-fill text-warning"></i> Archivio Oscar
+                </h2>
+
+                <!-- Dropdown Generi -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-dark dropdown-toggle" type="button"
+                            id="genreDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-filter"></i> Filtra per genere
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-scrollable" aria-labelledby="genreDropdown">
+                        <li><a class="dropdown-item active" href="#" data-genre="all">Tutti i generi</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Action">Action</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Adventure">Adventure</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Animation">Animation</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Comedy">Comedy</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Crime">Crime</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Documentary">Documentary</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Drama">Drama</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Family">Family</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Fantasy">Fantasy</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="History">History</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Horror">Horror</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Music">Music</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Mystery">Mystery</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Romance">Romance</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Science Fiction">Science Fiction</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Thriller">Thriller</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="TV Movie">TV Movie</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="War">War</a></li>
+                        <li><a class="dropdown-item" href="#" data-genre="Western">Western</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Griglia Film -->
+            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4" id="oscarFilmsGrid">
+                {{#each oscarFilms}}
+                    <div class="col" data-genres="{{jsonStringify this.genres}}">
+                        <div class="card h-100 shadow-sm">
+                            <img src="{{this.posterUrl}}" class="card-img-top" alt="{{this.title}}">
+                            <div class="card-body">
+                                <h5 class="card-title fs-6">{{this.title}}</h5>
+                                <div class="d-flex justify-content-between align-items-center">
+            <span class="badge bg-warning text-dark">
+              <i class="bi bi-award"></i> {{this.awards}}/{{this.nominations}}
+            </span>
+                                    <small class="text-muted">{{this.year}}</small>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-white">
+                                {{#each this.genres}}
+                                    <span class="badge bg-light text-dark me-1">{{this}}</span>
+                                {{/each}}
+                            </div>
+                        </div>
+                    </div>
+                {{/each}}
+            </div>
+
+            <!-- Messaggio se nessun risultato -->
+            <div id="noResults" class="alert alert-info mt-4 d-none">
+                <i class="bi bi-info-circle"></i> Nessun film trovato per questo genere
+            </div>
+        </section>
     </div>
     <!-- Risultati ricerca - visibili solo durante la ricerca -->
     <div id="searchResultsSection" class="{{#unless showSearchResults}}d-none{{/unless}}">

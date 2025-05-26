@@ -438,4 +438,97 @@ function buildReviewSortObject(sortBy) {
       return { review_date: -1 }; // Default per valori non riconosciuti
   }
 }
+
+
+router.get('/by-genre', async (req, res) => {
+  const { genre, limit = 15 } = req.query;
+  console.log(`DAS - Ricerca film per genere: ${genre}, limit: ${limit}`);
+
+  try {
+    // 1. Log dei parametri inviati a Postgres
+    console.log('DAS - Invio richiesta a Postgres con parametri:', { genre, limit });
+
+    // 2. Chiamata al Postgres Server con logging completo
+    const postgresResponse = await axios.get(`${SERVICES.postgres}/api/films/by-genre`, {
+      params: { genre, limit },
+      timeout: 30000,
+      validateStatus: (status) => status < 500 // Accetta anche 400 per debug
+    }).catch(error => {
+      console.error('DAS - Errore nella chiamata a Postgres:', {
+        url: error.config?.url,
+        params: error.config?.params,
+        response: error.response?.data
+      });
+      throw error;
+    });
+
+    console.log('DAS - Risposta da Postgres:', {
+      status: postgresResponse.status,
+      data: postgresResponse.data
+    });
+
+    const filmsWithOscars = postgresResponse.data;
+    if (!filmsWithOscars?.length) {
+      console.log('DAS - Nessun film trovato per il genere:', genre);
+      return res.json([]);
+    }
+
+    // 3. Estrai ID con validazione rigorosa
+    const filmIds = filmsWithOscars
+        .map(film => {
+          const id = parseInt(film.id);
+          if (isNaN(id)) {
+            console.error('DAS - ID film non numerico:', film.id);
+            return null;
+          }
+          return id;
+        })
+        .filter(id => id !== null);
+
+    if (filmIds.length === 0) {
+      console.error('DAS - Nessun ID valido dopo il filtraggio');
+      return res.status(400).json({ error: "ID film non valido" });
+    }
+
+    console.log('DAS - ID validi per MongoDB:', filmIds);
+
+    // 4. Chiamata a MongoDB con logging
+    const ratingsResponse = await axios.post(`${SERVICES.mongo}/api/ratings/batch`, {
+      filmIds
+    }, {
+      timeout: 5000,
+      headers: { 'Content-Type': 'application/json' }
+    }).catch(error => {
+      console.error('DAS - Errore nella chiamata a MongoDB:', {
+        url: error.config?.url,
+        data: error.config?.data,
+        response: error.response?.data
+      });
+      throw error;
+    });
+
+    console.log('DAS - Risposta da MongoDB:', ratingsResponse.data);
+
+    // 5. Arricchisci i film
+    const enrichedFilms = filmsWithOscars.map(film => {
+      const rating = ratingsResponse.data.find(item => item.id === parseInt(film.id))?.rating || null;
+      return { ...film, rating };
+    });
+
+    // 6. Ordina e restituisci
+    const sortedFilms = enrichedFilms.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    res.json(sortedFilms);
+
+  } catch (error) {
+    console.error('DAS - Errore completo:', {
+      message: error.message,
+      stack: error.stack,
+      response: error.response?.data
+    });
+    res.status(500).json({
+      error: "Errore interno del server",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
 module.exports = router;
