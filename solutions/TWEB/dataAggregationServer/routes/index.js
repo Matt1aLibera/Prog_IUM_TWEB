@@ -451,7 +451,7 @@ router.get('/by-genre', async (req, res) => {
     // 2. Chiamata al Postgres Server con logging completo
     const postgresResponse = await axios.get(`${SERVICES.postgres}/api/films/by-genre`, {
       params: { genre, limit },
-      timeout: 30000,
+      timeout: 20000,
       validateStatus: (status) => status < 500 // Accetta anche 400 per debug
     }).catch(error => {
       console.error('DAS - Errore nella chiamata a Postgres:', {

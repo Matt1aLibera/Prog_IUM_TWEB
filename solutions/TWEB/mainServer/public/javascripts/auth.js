@@ -2092,7 +2092,7 @@ function renderOscarFilms(films) {
     document.getElementById('noResults').classList.add('d-none');
 
     grid.innerHTML = films.map(film => `
-    <div class="col" data-film-id="${film.id}" data-genres='${JSON.stringify([film.genre] || [])}'>
+    <div class="col" data-film-id="${film.id}">
       <div class="card h-100 shadow-sm film-card">
         <div class="poster-container" style="background-color: #f5f5f5; height: 450px; display: flex; align-items: center; justify-content: center;">
           ${film.posterUrl ?
@@ -2104,14 +2104,27 @@ function renderOscarFilms(films) {
         <div class="card-body">
           <h5 class="card-title fs-6">${film.title}</h5>
           <div class="d-flex justify-content-between align-items-center">
-            <span class="badge bg-warning text-dark">
-              <i class="bi bi-trophy"></i> ${film.oscarWins}/${film.oscarNominations}
-            </span>
-            <small class="text-muted">${film.year}</small>
+            <div>
+              <small class="text-muted">${film.year}</small>
+            </div>
+            <div class="text-end">
+              <div>
+                <small class="text-muted">Rating: ${film.rating !== null ? film.rating.toFixed(1)+' ★' : 'N/D'}</small>
+              </div>
+              <div class="mt-1">
+                <small class="me-2">
+                  <span class="badge bg-warning text-dark">
+                    <i class="bi bi-trophy-fill"></i> ${film.oscarWins || 0} vittorie
+                  </span>
+                </small>
+                <small>
+                  <span class="badge bg-secondary text-white">
+                    <i class="bi bi-star-fill"></i> ${film.oscarNominations || 0} nomination
+                  </span>
+                </small>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="card-footer bg-white">
-          <span class="badge bg-light text-dark">${film.genre || 'N/A'}</span>
         </div>
       </div>
     </div>
