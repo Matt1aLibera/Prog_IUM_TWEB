@@ -3,15 +3,6 @@ var router = express.Router();
 const DATA_AGGREGATION_SERVER = 'http://localhost:3003'; // URL auth-server
 const axios = require('axios');
 
-// Reindirizza /films/search?q=... a /films/search/full?q=...
-router.get('/films/search', (req, res) => {
-    if (req.query.q) {
-        // Reindirizza mantenendo i parametri
-        return res.redirect(308, `/films/search/full?q=${req.query.q}&page=${req.query.page || 0}`);
-    }
-    res.redirect('/'); // Fallback sicuro
-});
-
 /* GET home page. */
 router.get('/', async (req, res) => {
     console.log('--- NUOVA RICHIESTA A / ---');
@@ -51,11 +42,10 @@ router.get('/', async (req, res) => {
         }
 
         const baseData = {
-            title: 'Il mio Sito',
             user: user,
             // Mostra il carosello SOLO se:
             // 1. Non siamo in chat/non stiamo cercando, E
-            // 2. L'utente è loggato (se vuoi mostrarlo solo a utenti loggati)
+            // 2. L'utente è loggato
             showCarousel: !showChat && !req.query.search && !!user,
             showSearchResults: !!req.query.search,
             showChat: showChat,
@@ -73,7 +63,6 @@ router.get('/', async (req, res) => {
     } catch (error) {
         console.error('Errore generale in /:', error);
         res.render('pages/index', {
-            title: 'Il mio Sito',
             user: null,
             films: [],
             showCarousel: false, // Disabilita per evitare loop
@@ -175,13 +164,6 @@ router.get('/films/search/full', async (req, res) => {
         }
     }
 });
-// Route per la ricerca attori
-router.get('/search/actors', (req, res) => {
-    const query = req.query.q;
-    // Qui implementerai la logica per cercare gli attori nel DB
-    res.render('actor-search-results', {results: actorResults, query});
-});
-
 
 router.get('/film/:id', async (req, res) => {
     try {

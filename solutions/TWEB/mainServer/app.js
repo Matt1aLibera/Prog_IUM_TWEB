@@ -189,8 +189,10 @@ app.use('/admin', adminRouter);
 app.use('/', indexRouter);
 app.use('/auth', loginRouter);  // invece di '/login'
 app.use('/sio', chatRouter)
-
-
+app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
+  res.status(204).end(); // 204 = No Content
+});
+app.locals.Date = Date;
 // Gestione 404
 app.use(function(req, res, next) {
   next(createError(404));

@@ -5,18 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="27870a37-2061-4479-94f5-36de5b48f953" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/dtos/MovieProjection.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/dtos/OscarFilmResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/dataAggregationServer/routes/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/dataAggregationServer/routes/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TWEB/mainServer/app.js" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/mainServer/app.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/TWEB/mainServer/public/javascripts/auth.js" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/mainServer/public/javascripts/auth.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/mainServer/public/stylesheets/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/mainServer/public/stylesheets/style.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/mainServer/views/pages/index.hbs" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/mainServer/views/pages/index.hbs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/controllers/FilmAggregationController.java" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/controllers/FilmAggregationController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/repositories/GenreRepo.java" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/repositories/GenreRepo.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/repositories/MovieRepo.java" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/repositories/MovieRepo.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/repositories/OscarAwardRepo.java" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/repositories/OscarAwardRepo.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/repositories/PosterRepo.java" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/repositories/PosterRepo.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/services/FilmAggregationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/springBootServer/src/main/java/com/example/springbootserver/services/FilmAggregationService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TWEB/mainServer/routes/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/mainServer/routes/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TWEB/mainServer/views/layouts/layout.hbs" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/mainServer/views/layouts/layout.hbs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,20 +27,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "C:/3anno/ium-tweb/esameIumTweb/MattiaLiberatoreMainDirectory/solutions",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/3anno/ium-tweb/esameIumTweb/MattiaLiberatoreMainDirectory/solutions&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -66,6 +59,8 @@
       <updated>1746901106505</updated>
       <workItem from="1746901107643" duration="207000" />
       <workItem from="1748264530109" duration="587000" />
+      <workItem from="1748449720989" duration="13000" />
+      <workItem from="1748451180457" duration="24000" />
     </task>
     <servers />
   </component>

@@ -1,30 +1,33 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/">{{title}}</a>
+        <a class="navbar-brand" href="/">
+            <img src="/images/logo.png" alt="Logo del sito" width="90" height="60" class="d-inline-block align-top">
+        </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        <div class="collapse navbar-collapse" id="navbarContent">
-            <!-- Barra di ricerca -->
-            <div class="d-flex align-items-center me-3" style="width: 300px;">
-                <div class="input-group">
-                    <div class="input-group-prepend">
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
-                                data-bs-toggle="dropdown" aria-expanded="false" id="searchTypeDropdown">
-                            Film
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item search-option" href="#" data-type="film">Film</a></li>
-                        </ul>
-                    </div>
-                    <input type="text" class="form-control" placeholder="Cerca..." id="searchInput">
-                    <button class="btn btn-outline-success" type="button" id="searchButton">
-                        <i class="bi bi-search"></i>
+        <!-- Barra di ricerca -->
+        <div class="d-flex align-items-center me-3" style="width: 300px;">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false" id="searchTypeDropdown">
+                        Film
                     </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item search-option" href="#" data-type="film">Film</a></li>
+                    </ul>
                 </div>
+                <input type="text" class="form-control" placeholder="Cerca..." id="searchInput">
+                <button class="btn btn-outline-success" type="button" id="searchButton">
+                    <i class="bi bi-search"></i>
+                </button>
             </div>
+        </div>
+
+        <div class="collapse navbar-collapse" id="navbarContent">
 
             <button id="advancedSearchBtn" class="btn btn-outline-warning me-2">
                 <i class="bi bi-sliders"></i> Ricerca Avanzata

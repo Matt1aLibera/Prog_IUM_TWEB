@@ -35,23 +35,6 @@ function hideAllSections() {
 function showDashboard() {
     hideAllSections();
     document.getElementById('dashboardSection').classList.remove('hidden-section');
-    updateWelcomeMessage();
-
-    // Aspetta che la sezione sia renderizzata prima di inizializzare
-    /*if (document.getElementById('oscarFilmsSection')) {
-        initOscarGenreDropdown();
-        loadAndDisplayOscarFilms();
-    }*/
-    AppState.navigateTo('carousel');
-}
-
-function updateWelcomeMessage(username) {
-    const welcomeMsg = document.getElementById('welcomeMessage');
-    if (welcomeMsg) {
-        welcomeMsg.textContent = username
-            ? `Benvenuto, ${username}!`
-            : 'Benvenuto nella tua Dashboard';
-    }
 }
 
 function showAlert(message, type = 'info', duration = 5000) {
@@ -171,8 +154,6 @@ function updateUIForAuthenticatedUser(user) {
     // Update admin button
     updateAdminButton(user.role === 'admin');
 
-    // Update welcome message and show dashboard
-    updateWelcomeMessage(user.username);
     showDashboard();
     // MOSTRA IL CAROSELLO
     const carouselSection = document.getElementById('carouselSection');
@@ -2019,6 +2000,7 @@ function setupReviewPaginationHandlers() {
         });
     });
 }
+
 // =============================================
 // GESTIONE FILM PER GENERE E OSCAR
 // =============================================
@@ -2027,6 +2009,7 @@ const OSCAR_FILMS_CONFIG = {
     defaultGenre: "Horror",
     limit: 12
 };
+
 async function loadAndDisplayOscarFilms(genre = OSCAR_FILMS_CONFIG.defaultGenre) {
     try {
         // Mostra lo stato di caricamento
@@ -2109,7 +2092,7 @@ function renderOscarFilms(films) {
             </div>
             <div class="text-end">
               <div>
-                <small class="text-muted">Rating: ${film.rating !== null ? film.rating.toFixed(1)+' ★' : 'N/D'}</small>
+                <small class="text-muted">Rating: ${film.rating !== null ? film.rating.toFixed(1) + ' ★' : 'N/D'}</small>
               </div>
               <div class="mt-1">
                 <small class="me-2">
@@ -2186,7 +2169,7 @@ function setupOscarFilmClickHandlers() {
         };
 
         try {
-            await AppState.navigateTo('filmDetails', { filmId });
+            await AppState.navigateTo('filmDetails', {filmId});
         } catch (error) {
             console.error('Navigation failed:', error);
         }
@@ -2221,6 +2204,7 @@ function initOscarGenreDropdown() {
         }
     });
 }
+
 // =============================================
 // STATO DELL'APPLICAZIONE E GESTIONE VISTE
 // =============================================
@@ -2256,7 +2240,7 @@ const AppState = {
 
         switch (view) {
             case 'carousel':
-                this.showCarousel();
+                this.showCarousel(replace);
                 break;
             case 'filmDetails':
                 this.currentFilmId = params.filmId;
@@ -2325,7 +2309,11 @@ const AppState = {
         }
     },
 
-    showCarousel: async function () {
+    showCarousel: async function (replace) {
+        if(replace){
+            initOscarGenreDropdown();
+            loadAndDisplayOscarFilms();
+        }else{
         const carouselSection = document.getElementById('carouselSection');
         const previousContent = carouselSection.innerHTML;
         const tabId = sessionStorage.getItem('tabId'); // Recupera il tabId dallo storage
@@ -2347,6 +2335,7 @@ const AppState = {
         try {
             // Ricarica i film solo se necessario
             if (document.querySelectorAll('.film-poster-container').length === 0) {
+                console.log("sto per ricaricare il carosello")
                 const response = await axios.get('/', {
                     params: {
                         tabId: tabId,  // <-- Passa il tabId alla route /
@@ -2356,14 +2345,13 @@ const AppState = {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(response.data, 'text/html');
                 const newCarousel = doc.getElementById('carouselSection');
-
                 if (newCarousel) {
                     carouselSection.innerHTML = newCarousel.innerHTML;
                     setupFilmCardClickHandlers();
                     // Inizializza la sezione Oscar
                     initOscarGenreDropdown();
                     loadAndDisplayOscarFilms();
-                } else {
+                }else {
                     carouselSection.innerHTML = previousContent;
                 }
             }
@@ -2378,6 +2366,7 @@ const AppState = {
                 </button>
             </div>
         `;
+        }
         }
     },
 
@@ -2693,6 +2682,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const newTabId = crypto.randomUUID();
             sessionStorage.setItem('tabId', newTabId);
             console.log('Generato nuovo tabId:', newTabId); // Debug
+            AppState.navigateTo('carousel');
         }
         hideAllSections();
         document.getElementById('loaderSection').classList.remove('hidden-section');
@@ -2708,7 +2698,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isAuthenticated = await checkAuthState();
         if (isAuthenticated) {
             showDashboard();
-
             // Salva lo stato iniziale nella history
             if (window.location.pathname === '/' && !history.state) {
                 history.replaceState({view: 'carousel'}, '', '/');
@@ -2722,7 +2711,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (window.location.pathname.startsWith('/film/')) {
                 const filmId = window.location.pathname.split('/')[2];
                 AppState.navigateTo('filmDetails', {filmId}, true);
-            }else if (window.location.pathname.startsWith('/films/search')) {
+            } else if (window.location.pathname.startsWith('/films/search')) {
                 const urlParams = new URLSearchParams(window.location.search);
                 const query = urlParams.get('q');
 
@@ -2738,7 +2727,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     page: parseInt(urlParams.get('page')) || 0
                 }, true);
 
-            }  else if (window.location.pathname.startsWith('/search/advanced')) {
+            } else if (window.location.pathname.startsWith('/search/advanced')) {
                 const urlParams = new URLSearchParams(window.location.search);
                 const searchType = urlParams.get('searchType');
                 const page = parseInt(urlParams.get('page')) || 0;
@@ -2749,17 +2738,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     (urlParams.has('filmQuery') ? 'films' : null);
 
                 if (finalSearchType === 'reviews') {
-                    AppState.navigateTo('reviewsResults', { query, page }, true);
+                    AppState.navigateTo('reviewsResults', {query, page}, true);
                 } else if (finalSearchType === 'films' || urlParams.has('filmQuery')) {
-                    AppState.navigateTo('searchResults', { query, page }, true);
+                    AppState.navigateTo('searchResults', {query, page}, true);
                 } else {
                     console.error('Invalid search type, redirecting to home');
                     AppState.navigateTo('carousel', {}, true);
                 }
             } else {
                 AppState.navigateTo('carousel', {}, true);
-                initOscarGenreDropdown();
-                loadAndDisplayOscarFilms();
             }
         } else {
             await showAuthForms();
