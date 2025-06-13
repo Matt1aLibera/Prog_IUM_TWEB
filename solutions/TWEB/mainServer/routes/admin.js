@@ -6,12 +6,30 @@ const axios = require('axios');
 
 
 function requireAdmin(req, res, next) {
-    if (req.session.user?.isAuthenticated && req.session.user.role === 'admin') {
+    // 1. Verifica se esiste la sessione e il tabId
+    const tabId = req.query.tabId || req.body.tabId || req.headers['x-tab-id'];
+
+    if (!tabId || !req.session.tabSessions || !req.session.tabSessions[tabId]) {
+        console.warn('Accesso negato: tabId non valido o sessione non trovata', { tabId });
+        return res.status(403).redirect('/');
+    }
+
+    // 2. Recupera la sessione specifica per questo tab
+    const tabSession = req.session.tabSessions[tabId];
+
+    // 3. Verifica autenticazione e ruolo
+    if (tabSession.isAuthenticated && tabSession.role === 'admin') {
         return next();
     }
+
+    console.warn('Accesso negato: privilegi insufficienti', {
+        username: tabSession.username,
+        role: tabSession.role,
+        isAuthenticated: tabSession.isAuthenticated
+    });
+
     res.status(403).redirect('/');
 }
-
 
 
 // Avvia il caricamento dati sui database

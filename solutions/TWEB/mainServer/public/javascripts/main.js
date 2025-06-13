@@ -543,13 +543,36 @@ async function handleDbLoad(button) {
     showAlert('Operazione in corso...', 'info', 10000);
 
     try {
-        const {data} = await axios.post('/admin/upload-db', {}, {
-            withCredentials: true
-        });
+        // Recupera il tabId dallo sessionStorage
+        const tabId = sessionStorage.getItem('tabId');
+
+        const {data} = await axios.post('/admin/upload-db',
+            { tabId: tabId },  // Invia il tabId nel body
+            {
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
         showAlert(data.message || 'Database caricato!', 'success');
     } catch (error) {
-        console.error('DB load error:', error);
-        showAlert(error.response?.data?.message || 'Errore durante il caricamento', 'danger');
+        console.error('DB load error:', {
+            error: error,
+            response: error.response
+        });
+
+        let errorMessage = 'Errore durante il caricamento';
+        if (error.response) {
+            if (error.response.status === 403) {
+                errorMessage = 'Accesso negato: non hai i permessi necessari';
+            } else {
+                errorMessage = error.response.data?.message || errorMessage;
+            }
+        }
+
+        showAlert(errorMessage, 'danger');
     } finally {
         button.innerHTML = originalText;
         button.disabled = false;
