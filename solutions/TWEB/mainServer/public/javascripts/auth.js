@@ -814,13 +814,6 @@ async function loadFilmOscars(filmName, filmYear) {
                 headers: error.response.headers
             } : 'No response received'
         });
-
-        const noOscarsElement = document.getElementById('noOscars');
-        if (noOscarsElement) {
-            noOscarsElement.classList.remove('d-none');
-            noOscarsElement.textContent = error.response?.data?.error ||
-                `Errore tecnico: ${error.message}`;
-        }
     } finally {
         const loadingElement = document.getElementById('oscarsLoading');
         if (loadingElement) loadingElement.classList.add('d-none');
@@ -829,27 +822,37 @@ async function loadFilmOscars(filmName, filmYear) {
 }
 
 function renderOscars(oscars) {
+    // Cerca gli elementi nel filmDetailSection invece che globalmente
+    const filmSection = document.getElementById('filmDetailSection');
+    if (!filmSection) {
+        console.error('Sezione film non trovata');
+        return;
+    }
+
     const container = document.getElementById('oscarsList');
-    const noOscars = document.getElementById('noOscars');
     const loadingElement = document.getElementById('oscarsLoading');
 
     // Nascondi sempre il loader prima di procedere
     if (loadingElement) loadingElement.classList.add('d-none');
 
-    if (!container || !noOscars) {
-        console.error('Elementi del DOM non trovati');
+    if (!container) {
+        console.error('Elemento oscarsList non trovato', {
+            containerExists: !!container,
+            filmSectionHTML: filmSection.innerHTML
+        });
         return;
     }
 
     // Pulisci la lista esistente
     container.innerHTML = '';
 
-    if (oscars && oscars.length > 0) {
+    if (oscars?.length > 0) {
         // Ci sono Oscar da mostrare
+        container.classList.remove('d-none');
+
         oscars.forEach(oscar => {
             const item = document.createElement('li');
             item.className = `list-group-item ${oscar.isWinner ? 'oscar-winner' : ''}`;
-
             item.innerHTML = `
                 <strong>${oscar.category}</strong>
                 <div class="text-muted small">
@@ -860,15 +863,14 @@ function renderOscars(oscars) {
             `;
             container.appendChild(item);
         });
-
-        container.classList.remove('d-none');
-        noOscars.classList.add('d-none');
     } else {
-        // Nessun Oscar trovato
-        container.classList.add('d-none');
-        noOscars.classList.remove('d-none');
-        // Aggiorna eventualmente il messaggio
-        noOscars.textContent = 'Nessun premio Oscar trovato';
+        // Nessun Oscar trovato - mostra messaggio direttamente nella lista
+        container.classList.remove('d-none'); // Mostra il container
+
+        const noResultsItem = document.createElement('li');
+        noResultsItem.className = 'list-group-item text-muted';
+        noResultsItem.textContent = 'Nessun premio Oscar trovato';
+        container.appendChild(noResultsItem);
     }
 }
 // =============================================
