@@ -5,11 +5,25 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="27870a37-2061-4479-94f5-36de5b48f953" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/actors.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/countries.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/crew.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/genres.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/languages.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/movies.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/posters.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/releases.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/studios.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/themes.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/mainServer/app.js" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/mainServer/app.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/mainServer/public/javascripts/auth.js" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/mainServer/public/javascripts/auth.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/mainServer/routes/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/mainServer/routes/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/mainServer/views/layouts/layout.hbs" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/mainServer/views/layouts/layout.hbs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/.idea/IUM.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/.idea/workspace.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/MattiaLiberatoreIUMSolution.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/IUM/MattiaLiberatoreIUMSolution.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/toDoList.txt" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,20 +41,29 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/3anno/ium-tweb/esameIumTweb/MattiaLiberatoreMainDirectory/solutions&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "C:/3anno/ium-tweb/esameIumTweb/MattiaLiberatoreMainDirectory/solutions/IUM/dataSets/mainDataSet",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\3anno\ium-tweb\esameIumTweb\MattiaLiberatoreMainDirectory\solutions\IUM\dataSets\mainDataSet" />
+      <recent name="C:\3anno\ium-tweb\esameIumTweb\MattiaLiberatoreMainDirectory\solutions\IUM\.idea\dataSets\mainDataSet" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\3anno\ium-tweb\esameIumTweb\MattiaLiberatoreMainDirectory\solutions\IUM" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -61,6 +84,7 @@
       <workItem from="1748264530109" duration="587000" />
       <workItem from="1748449720989" duration="13000" />
       <workItem from="1748451180457" duration="24000" />
+      <workItem from="1749916865317" duration="3369000" />
     </task>
     <servers />
   </component>
