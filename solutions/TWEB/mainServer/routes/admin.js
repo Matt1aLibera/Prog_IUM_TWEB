@@ -34,61 +34,71 @@ function requireAdmin(req, res, next) {
 
 // Avvia il caricamento dati sui database
 router.post('/upload-db', requireAdmin, async (req, res) => {
-    // Configurazione comune per axios
+    // Configurazione axios con timeout disabilitato
     const axiosConfig = {
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
         },
-        timeout: 30000, // 10 secondi timeout
+        timeout: 0, // Timeout disabilitato (attesa infinita)
         validateStatus: function (status) {
-            // Considera come successo qualsiasi status code < 500
-            return status < 500;
+            // Accetta qualsiasi status code (gestiamo noi gli errori)
+            return true;
         }
     };
 
     try {
-        console.log('Inizio caricamento database...');
+        console.log('Avvio caricamento PARALLELO dei database...');
 
-        // 1. Invia a PostgreSQL (Spring Boot)
-        console.log('Invio richiesta a Spring Boot...');
-        const pgResponse = await axios.post(
-            'http://localhost:8082/api/upload-db',
-            {}, // corpo vuoto (o req.body se necessario)
-            axiosConfig
-        );
+        // Avvia entrambe le chiamate contemporaneamente
+        const [pgResponse, mongoResponse] = await Promise.all([
+            axios.post('http://localhost:8082/api/upload-db', {}, axiosConfig)
+                .then(response => {
+                    console.log('Spring Boot risposta ricevuta');
+                    return response;
+                })
+                .catch(error => {
+                    console.error('Errore Spring Boot:', error.message);
+                    return { data: { success: false, message: error.message } };
+                }),
 
+            axios.post('http://localhost:3002/api/upload-db', {}, axiosConfig)
+                .then(response => {
+                    console.log('MongoDB risposta ricevuta');
+                    return response;
+                })
+                .catch(error => {
+                    console.error('Errore MongoDB:', error.message);
+                    return { data: { success: false, message: error.message } };
+                })
+        ]);
 
-        // 2. Invia a MongoDB
-        console.log('Invio richiesta a MongoDB...');
-        const mongoResponse = await axios.post(
-            'http://localhost:3002/api/upload-db',
-            {}, // corpo vuoto (o req.body se necessario)
-            axiosConfig
-        );
+        // Analisi dei risultati
+        const allSuccess = pgResponse.data.success && mongoResponse.data.success;
 
-
-        // Risposta JSON invece di redirect
-        res.json({
-            success: true,
-            message: 'Caricamento completato con successo!',
-            details: {
-                postgres: pgResponse.data,
-                mongo: mongoResponse.data
-            }
-        });
+        res.status(allSuccess ? 200 : 207) // 207 Multi-Status se un servizio ha fallito
+            .json({
+                success: allSuccess,
+                message: allSuccess
+                    ? 'Caricamento completato con successo!'
+                    : 'Caricamento parzialmente riuscito',
+                details: {
+                    postgres: pgResponse.data,
+                    mongo: mongoResponse.data
+                }
+            });
 
     } catch (error) {
-        console.error('Errore durante il caricamento:', error);
+        // Questo catch intercetta solo errori nella gestione parallela
+        console.error('Errore nel coordinamento:', error);
 
         res.status(500).json({
             success: false,
-            message: error.response?.data?.message ||
-                'Errore durante il caricamento del database',
+            message: 'Errore durante il coordinamento del caricamento',
             error: {
-                code: error.code,
-                status: error.response?.status
+                name: error.name,
+                message: error.message
             }
         });
     }
