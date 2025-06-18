@@ -1,42 +1,29 @@
-// =============================================
-// CONFIGURAZIONE INIZIALE E VARIABILI GLOBALI
-// =============================================
-const API_BASE_URL = window.location.origin;
-axios.defaults.withCredentials = true;
-axios.defaults.baseURL = API_BASE_URL;
-axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+////////////////// UTILITIES //////////////////
+// These functions handle UI section visibility, alerts and mobile menu
 
-// Variabili globali per la ricerca
-let currentSearchType = 'film';
-let autocompleteTimeout;
-
-// Corregge la history del browser
-if (window.location.pathname === '/films/search' && window.location.search) {
-    const newUrl = `/films/search/full${window.location.search}`;
-    window.history.replaceState(null, '', newUrl);
-}
-// =============================================
-// FUNZIONI DI UTILITÀ GENERALI
-// =============================================
-
-// Funzione per tornare alla vista precedente
-function backToPreviousView() {
-    // Usa direttamente l'API del browser
-    window.history.go(-1);
-}
-
+/**
+ * Hides all main application sections by adding 'hidden-section' class
+ */
 function hideAllSections() {
     document.getElementById('authFormsSection')?.classList.add('hidden-section');
     document.getElementById('dashboardSection')?.classList.add('hidden-section');
     document.getElementById('loaderSection')?.classList.add('hidden-section');
     document.getElementById('advancedSearchSection').classList.add('hidden-section');
 }
-
+/**
+ * Shows only the dashboard section by hiding all others first
+ */
 function showDashboard() {
     hideAllSections();
     document.getElementById('dashboardSection').classList.remove('hidden-section');
 }
 
+/**
+ * Displays a dismissible Bootstrap alert message
+ * @param message - The text to display in the alert
+ * @param type - The alert type (changes color/style) - 'info'|'success'|'warning'|'danger'
+ * @param duration - How long the alert should be visible in milliseconds (0 = persistent)
+ */
 function showAlert(message, type = 'info', duration = 5000) {
     document.querySelectorAll('.global-alert, .alert').forEach(alert => alert.remove());
 
@@ -59,7 +46,9 @@ function showAlert(message, type = 'info', duration = 5000) {
         }, duration);
     }
 }
-
+/**
+ * Closes the mobile navigation menu if currently open
+ */
 function closeMobileMenu() {
     const navbarCollapse = document.querySelector('.navbar-collapse');
     if (navbarCollapse?.classList.contains('show')) {
@@ -67,9 +56,12 @@ function closeMobileMenu() {
     }
 }
 
-// =============================================
-// GESTIONE AUTENTICAZIONE E UTENTE
-// =============================================
+////////////////// AUTH MANAGEMENT //////////////////
+// These functions handle user authentication state and UI updates
+
+/**
+ * Checks the current authentication state with the server
+ */
 async function checkAuthState() {
     // 1. Recupera il tabId (DEVE esistere grazie all'init)
     const tabId = sessionStorage.getItem('tabId');
@@ -137,7 +129,10 @@ async function checkAuthState() {
         return false;
     }
 }
-
+/**
+ * Updates the UI to show authenticated user state
+ * @param user - The authenticated user object
+ */
 function updateUIForAuthenticatedUser(user) {
     // Update navbar
     const greeting = document.querySelector('#userGreeting');
@@ -161,7 +156,9 @@ function updateUIForAuthenticatedUser(user) {
         carouselSection.classList.remove('d-none'); // Rimuove la classe che nasconde il carosello
     }
 }
-
+/**
+ * Updates the UI to show unauthenticated state
+ */
 function updateUIForUnauthenticated() {
     document.querySelector('#userGreeting').classList.add('d-none');
     document.querySelector('#logoutBtn').classList.add('d-none');
@@ -171,7 +168,10 @@ function updateUIForUnauthenticated() {
     updateAdminButton(false);
     return showAuthForms();
 }
-
+/**
+ * Shows/hides admin button based on user role
+ * @param isAdmin - Boolean indicating admin status
+ */
 function updateAdminButton(isAdmin) {
     const adminBtn = document.getElementById('loadDbBtn');
     if (!adminBtn) return;
@@ -185,9 +185,12 @@ function updateAdminButton(isAdmin) {
     }
 }
 
-// =============================================
-// GESTIONE FORM DI AUTENTICAZIONE
-// =============================================
+////////////////// AUTH FORMS MANAGEMENT //////////////////
+// These functions handle authentication forms display and submission
+
+/**
+ * Shows authentication forms section and initializes forms
+ */
 async function showAuthForms() {
     hideAllSections();
     document.getElementById('authFormsSection').classList.remove('hidden-section');
@@ -195,6 +198,9 @@ async function showAuthForms() {
     await setupAuthForms();
 }
 
+/**
+ * Initializes login and registration forms with event handlers
+ */
 async function setupAuthForms() {
     toggleForms(true);
 
@@ -278,7 +284,14 @@ async function setupAuthForms() {
         });
     }
 }
-
+/**
+ * Handles authentication requests (login/registration)
+ * @param form - The HTML form element
+ * @param endpoint - The API endpoint to call
+ * @param data - The form data to send
+ * @param buttonText - The text to display on submit button
+ * @param onSuccess - Callback function on successful request
+ */
 async function handleAuthRequest(form, endpoint, data, buttonText, onSuccess) {
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalBtnText = submitBtn.innerHTML;
@@ -328,7 +341,10 @@ async function handleAuthRequest(form, endpoint, data, buttonText, onSuccess) {
         submitBtn.disabled = false;
     }
 }
-
+/**
+ * Toggles between login and registration forms
+ * @param showLogin - Boolean to show login (true) or registration (false) form
+ */
 function toggleForms(showLogin) {
     const loginFormContainer = document.getElementById('loginFormContainer');
     const registerFormContainer = document.getElementById('registerFormContainer');
@@ -346,7 +362,9 @@ function toggleForms(showLogin) {
         if (existingAlert) existingAlert.remove();
     }
 }
-
+/**
+ * Handles user logout process
+ */
 async function logout() {
     const logoutBtn = document.querySelector('#logoutBtn');
     if (logoutBtn) {
@@ -368,9 +386,12 @@ async function logout() {
     }
 }
 
-// =============================================
-// GESTIONE NAVBAR E PULSANTI
-// =============================================
+////////////////// NAVBAR AND BUTTONS MANAGEMENT //////////////////
+// Handles all navbar interactions and button click events
+
+/**
+ * Sets up event listeners for all navbar buttons
+ */
 function setupNavbarEvents() {
     document.addEventListener('click', async (e) => {
         const target = e.target.closest('#loginBtn, #registerBtn, #logoutBtn, #loadDbBtn, #chatBtn, #advancedSearchBtn');
@@ -407,7 +428,10 @@ function setupNavbarEvents() {
         }
     });
 }
-
+/**
+ * Handles advanced search button click
+ * @param button - The clicked button element
+ */
 async function handleAdvancedSearchClick(button) {
     console.log(`Handling click for button: ${button.id}`); // Debug
 
@@ -458,6 +482,10 @@ async function handleAdvancedSearchClick(button) {
         button.disabled = false;
     }
 }
+/**
+ * Handles chat button click and initializes chat system
+ * @param button - The clicked button element
+ */
 async function handleChatClick(button) {
     const originalHtml = button.innerHTML;
     button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Caricamento...';
@@ -501,7 +529,9 @@ async function handleChatClick(button) {
         button.disabled = false;
     }
 }
-
+/**
+ * Handles login button click and shows login form
+ */
 async function handleLoginClick() {
     if (document.getElementById('loginFormContainer').classList.contains('d-none')) {
         await showAuthForms();
@@ -509,7 +539,9 @@ async function handleLoginClick() {
     toggleForms(true);
     closeMobileMenu();
 }
-
+/**
+ * Handles register button click and shows registration form
+ */
 async function handleRegisterClick() {
     if (document.getElementById('registerFormContainer').classList.contains('d-none')) {
         await showAuthForms();
@@ -517,7 +549,10 @@ async function handleRegisterClick() {
     toggleForms(false);
     closeMobileMenu();
 }
-
+/**
+ * Handles logout process
+ * @param button - The clicked logout button element
+ */
 async function handleLogoutClick(button) {
     button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logout...';
     button.disabled = true;
@@ -529,7 +564,10 @@ async function handleLogoutClick(button) {
         button.disabled = false;
     }
 }
-
+/**
+ * Handles database load operation (admin only)
+ * @param button - The clicked database load button element
+ */
 async function handleDbLoad(button) {
     if (button.disabled) {
         showAlert('Accesso negato', 'warning');
@@ -579,9 +617,13 @@ async function handleDbLoad(button) {
     }
 }
 
-// =============================================
-// GESTIONE FILM E CAROSELLO
-// =============================================
+////////////////// FILM AND CAROUSEL MANAGEMENT //////////////////
+// Handles film details display, carousel and Oscar awards data
+
+/**
+ * Displays all the details and information for a specific film
+ * @param filmId - The ID of the film to display
+ */
 async function showFilmDetails(filmId) {
     // Se c'è già una richiesta attiva per questo film, ritorna la sua promise
     if (AppState._activeFilmRequests[filmId]) {
@@ -641,7 +683,10 @@ async function showFilmDetails(filmId) {
         delete AppState._activeFilmRequests[filmId];
     }
 }
-
+/**
+ * Populates the film detail section with data
+ * @param film - The film data object to display
+ */
 function populateFilmData(film) {
     // Dati base
     const posterContainer = document.getElementById('filmPosterContainer') ||
@@ -749,7 +794,11 @@ function populateFilmData(film) {
     }
     loadFilmOscars(film.movie?.name, film.movie?.date || film.movie?.year);
 }
-
+/**
+ * Loads Oscar awards data for a specific film
+ * @param filmName - The name of the film
+ * @param filmYear - The release year of the film
+ */
 async function loadFilmOscars(filmName, filmYear) {
     // Converti l'anno in modo robusto
     let year = null;
@@ -843,7 +892,10 @@ async function loadFilmOscars(filmName, filmYear) {
         console.log("[OSCARS DEBUG] Caricamento completato (con o senza successo)");
     }
 }
-
+/**
+ * Renders Oscar awards information in the UI
+ * @param oscars - Array of Oscar award data to display
+ */
 function renderOscars(oscars) {
     // Cerca gli elementi nel filmDetailSection invece che globalmente
     const filmSection = document.getElementById('filmDetailSection');
@@ -896,10 +948,12 @@ function renderOscars(oscars) {
         container.appendChild(noResultsItem);
     }
 }
-// =============================================
-// GESTIONE RICERCA E AUTOCOMPLETE
-// =============================================
-// Aggiungi questa funzione per gestire la paginazione
+////////////////// SEARCH AND AUTOCOMPLETE MANAGEMENT //////////////////
+// Handles search functionality, autocomplete and pagination
+
+/**
+ * Sets up pagination event handlers for search results
+ */
 function setupPaginationHandlers() {
     document.addEventListener('click', function (e) {
         const link = e.target.closest('.pagination-link');
@@ -920,26 +974,16 @@ function setupPaginationHandlers() {
         }
     });
 }
-
+/**
+ * Initializes search input with autocomplete suggestions functionality
+ */
 function setupSearch() {
+    let autocompleteTimeout;
     const searchInput = document.getElementById('searchInput');
     const searchButton = document.getElementById('searchButton');
-    const searchTypeDropdown = document.getElementById('searchTypeDropdown');
-    const searchOptions = document.querySelectorAll('.search-option');
-
-    // Gestione tipo di ricerca
-    searchOptions.forEach(option => {
-        option.addEventListener('click', function (e) {
-            e.preventDefault();
-            currentSearchType = this.dataset.type;
-            searchTypeDropdown.textContent = this.textContent;
-        });
-    });
 
     // Gestione input con debounce
-    searchInput.addEventListener('input', function () {
-        if (currentSearchType !== 'film') return;
-
+    searchInput.addEventListener('input', function() {
         clearTimeout(autocompleteTimeout);
 
         autocompleteTimeout = setTimeout(() => {
@@ -952,35 +996,45 @@ function setupSearch() {
         }, 300);
     });
 
-    // Mostra suggerimenti quando la searchbar riceve focus e ha già testo
-    searchInput.addEventListener('focus', function () {
+    // Mostra suggerimenti quando la searchbar riceve focus (se ha testo)
+    searchInput.addEventListener('focus', function() {
         const query = this.value.trim();
-        if (query.length >= 2 && currentSearchType === 'film') {
-            return fetchAutocompleteResults(query);
+        if (query.length >= 2) {
+            fetchAutocompleteResults(query);
         }
     });
 
-    // Gestione pulsante ricerca e invio
-    searchButton.addEventListener('click', function () {
-        hideAutocompleteDropdown();
-        performSearch();
-    });
+    // Funzione unificata per eseguire la ricerca
+    const performSearch = () => {
+        const query = searchInput.value.trim();
+        if (query.length === 0) return;
 
-    searchInput.addEventListener('keypress', function (e) {
+        hideAutocompleteDropdown();
+        AppState.navigateTo('searchResults', { query, page: 0 });
+    };
+
+    // Gestione pulsante ricerca
+    searchButton.addEventListener('click', performSearch);
+
+    // Gestione pressione Enter
+    searchInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
-            hideAutocompleteDropdown();
             performSearch();
         }
     });
 
     // Chiudi dropdown al click esterno
-    document.addEventListener('click', function (e) {
+    document.addEventListener('click', function(e) {
         if (!e.target.closest('.input-group')) {
             hideAutocompleteDropdown();
         }
     });
 }
 
+/**
+ * Fetches autocomplete suggestions from server
+ * @param query - The search query to get suggestions for
+ */
 async function fetchAutocompleteResults(query) {
     hideAutocompleteDropdown();
 
@@ -1013,7 +1067,10 @@ async function fetchAutocompleteResults(query) {
         document.querySelector('.input-group').appendChild(errorDropdown);
     }
 }
-
+/**
+ * Displays autocomplete dropdown with suggestions results
+ * @param results - Array of autocomplete results to display
+ */
 function showAutocompleteDropdown(results) {
     const existingDropdown = document.getElementById('autocompleteDropdown');
     const dropdown = existingDropdown || document.createElement('div');
@@ -1082,7 +1139,9 @@ function showAutocompleteDropdown(results) {
         document.querySelector('.input-group').appendChild(dropdown);
     }
 }
-
+/**
+ * Hides the autocomplete dropdown
+ */
 function hideAutocompleteDropdown() {
     const dropdown = document.getElementById('autocompleteDropdown');
     const loading = document.getElementById('autocompleteLoading');
@@ -1091,19 +1150,9 @@ function hideAutocompleteDropdown() {
     if (loading) loading.remove();
 }
 
-function performSearch() {
-    const query = document.getElementById('searchInput').value.trim();
-    if (query.length === 0) return;
-
-    hideAutocompleteDropdown();
-
-    if (currentSearchType === 'film') {
-        AppState.navigateTo('searchResults', {query, page: 0});
-    } else {
-        window.location.href = `/search/actors?q=${encodeURIComponent(query)}`;
-    }
-}
-
+/**
+ * Sets up advanced search buttons event handlers
+ */
 function setupAdvancedSearchButtons() {
     console.log("Setting up advanced search buttons...");
 
@@ -1117,6 +1166,11 @@ function setupAdvancedSearchButtons() {
 }
 
 
+/**
+ * Updates search results section with new data
+ * @param query - The search query
+ * @param page - The page number to display
+ */
 async function updateSearchResults(query, page) {
     const searchResultsSection = document.getElementById('searchResultsSection');
     // Validazione iniziale
@@ -1171,7 +1225,6 @@ async function updateSearchResults(query, page) {
                 item.classList.add('disabled');
             }
         });
-        //initAdvancedSearchHandlers();
     } catch (error) {
         searchResultsSection.innerHTML = `
             <div class="alert alert-danger">
@@ -1186,7 +1239,9 @@ async function updateSearchResults(query, page) {
     }
 }
 
-// Nuova funzione per gestire i click sulle card film
+/**
+ * Sets up click handlers for film cards
+ */
 function setupFilmCardClickHandlers() {
     const handleFilmClick = (filmId) => {
         // Usa AppState invece di this
@@ -1222,13 +1277,15 @@ function setupFilmCardClickHandlers() {
     });
 }
 
-// =============================================
-// CHAT SYSTEM CLIENT
-// =============================================
+////////////////// CHAT SYSTEM MANAGEMENT //////////////////
+// Handles all client-side chat functionality including rooms and messaging
+
 // Variabili globali per lo stato della chat
 let socket = null;
 let currentRoom = null;
-
+/**
+ * Initializes the chat system and socket connection
+ */
 function initChatSystem() {
     // Verifica che la sezione chat esista e sia visibile
     const chatSection = document.getElementById('chatSection');
@@ -1278,7 +1335,9 @@ function initChatSystem() {
     socket.on('chat:rooms_updated', refreshRoomsList);
     refreshRoomsList();
 }
-
+/**
+ * Configures socket.io event listeners
+ */
 function configureSocketEvents() {
     socket.on('connect', () => {
         console.log('Connesso al namespace /chat');
@@ -1325,7 +1384,11 @@ function configureSocketEvents() {
     });
 }
 
-// Nuova funzione helper
+/**
+ * Updates the room users list in the UI
+ * @param users - Array of usernames in the room
+ * @param count - Number of users in the room
+ */
 function updateRoomUsers(users, count) {
     const roomUsersElement = document.getElementById('roomUsers');
     if (!roomUsersElement) return;
@@ -1341,7 +1404,9 @@ function updateRoomUsers(users, count) {
     ).join('')}
     `;
 }
-
+/**
+ * Sets up all UI event listeners for chat functionality
+ */
 function setupUIEvents() {
     // Helper per aggiungere event listener con controllo null
     function safeAddListener(selector, event, handler) {
@@ -1433,8 +1498,11 @@ function setupUIEvents() {
     });
 }
 
-// Mostra modal per unione
-
+/**
+ * Shows the join room modal
+ * @param roomId - The ID of the room to join
+ * @param roomName - The name of the room to join
+ */
 function showJoinModal(roomId = '', roomName = '') {
     const joinCodeInput = document.getElementById('joinRoomCode');
     joinCodeInput.value = ''; // <-- Imposta il valore vuoto invece di roomId
@@ -1464,7 +1532,10 @@ function showJoinModal(roomId = '', roomName = '') {
     };
 }
 
-// Funzioni per gestire i modali
+/**
+ * Shows a modal dialog
+ * @param modalId - The ID of the modal to show
+ */
 function showModal(modalId) {
     const modal = document.getElementById(modalId);
     modal.style.display = 'flex';
@@ -1474,7 +1545,10 @@ function showModal(modalId) {
         if (input) input.focus();
     }, 10);
 }
-
+/**
+ * Hides a modal dialog
+ * @param modalId - The ID of the modal to hide
+ */
 function hideModal(modalId) {
     const modal = document.getElementById(modalId);
     modal.classList.remove('show');
@@ -1484,8 +1558,9 @@ function hideModal(modalId) {
 }
 
 
-// Mostra modal per creazione stanza
-// Funzioni specifiche per la chat
+/**
+ * Shows the create room modal
+ */
 function showCreateModal() {
     const nameInput = document.getElementById('roomNameInput');
     const topicSelect = document.getElementById('roomTopicSelect');
@@ -1524,7 +1599,10 @@ function showCreateModal() {
         hideModal('createRoomModal');
     });
 }
-
+/**
+ * Creates a new chat room
+ * @param roomData - Object containing room details (name, topic, code)
+ */
 async function createNewRoom(roomData) {
     try {
         // 1. Prima crea la stanza nel database
@@ -1555,12 +1633,17 @@ async function createNewRoom(roomData) {
         showAlert(`Errore: ${error.response?.data?.error || error.message}`, 'danger');
     }
 }
-
+/**
+ * Generates a random room code
+ * @returns {string} A 6-character room code
+ */
 function generateRoomCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-// Funzione per uscire da una stanza
+/**
+ * Leaves the current chat room
+ */
 async function leaveCurrentRoom() {
     if (!socket || !currentRoom) return;
 
@@ -1580,7 +1663,11 @@ async function leaveCurrentRoom() {
     });
 }
 
-// Unione o creazione stanza
+/**
+ * Joins or creates a chat room
+ * @param roomCode - The room code to join/create
+ * @param roomMeta - Additional room metadata (name, topic)
+ */
 function joinOrCreateRoom(roomCode, roomMeta = {}) {
     if (!socket) {
         console.error('Socket non inizializzato!');
@@ -1612,7 +1699,9 @@ function joinOrCreateRoom(roomCode, roomMeta = {}) {
         }
     });
 }
-
+/**
+ * Sends a chat message
+ */
 function sendMessage() {
     const input = document.getElementById('messageInput');
     const message = input.value.trim();
@@ -1631,7 +1720,11 @@ function sendMessage() {
     }
 }
 
-// Helper per aggiungere un messaggio all'UI
+/**
+ * Adds a user message to the UI
+ * @param username - The sender's username
+ * @param text - The message text
+ */
 function addMessageToUI(username, text) {
     const messagesDiv = document.getElementById('messagesContainer');
     messagesDiv.innerHTML += `
@@ -1641,14 +1734,19 @@ function addMessageToUI(username, text) {
     `;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
-
+/**
+ * Adds a system message to the UI
+ * @param text - The system message text
+ */
 function addSystemMessage(text) {
     const messagesDiv = document.getElementById('messagesContainer');
     messagesDiv.innerHTML += `
         <div class="system-message text-muted small">${text}</div>
     `;
 }
-
+/**
+ * Refreshes the list of available rooms
+ */
 async function refreshRoomsList() {
     try {
         const response = await axios.get('/sio/chat/active-rooms');
@@ -1674,7 +1772,10 @@ async function refreshRoomsList() {
     }
 }
 
-
+/**
+ * Updates the UI for the active room
+ * @param roomData - Data object for the current room
+ */
 function updateActiveRoomUI(roomData) {
     const leaveBtn = document.getElementById('leaveRoomBtn');
     const inputContainer = document.getElementById('messageInputContainer');
@@ -1710,7 +1811,11 @@ function updateActiveRoomUI(roomData) {
     }
 }
 
-// Helper per l'icona della stanza (da implementare in base alle tue esigenze)
+/**
+ * Gets the appropriate icon for a room type
+ * @param type - The room type (film, actor, crew, character)
+ * @returns {string} The icon class name
+ */
 function roomIcon(type) {
     const icons = {
         'film': 'film',
@@ -1721,9 +1826,13 @@ function roomIcon(type) {
     return icons[type] || 'chat';
 }
 
-// =============================================
-// SEZIONE RICERCA AVANZATA
-// =============================================
+////////////////// ADVANCED SEARCH SECTION //////////////////
+// Handles dynamic filters and validation for advanced searches
+
+/**
+ * Initializes advanced search form with dynamic filters
+ * Manages film/review switching and event handlers
+ */
 window.initAdvancedSearch = function () {
     const searchTypeSelect = document.getElementById('searchTypeSelect');
     const searchForm = document.getElementById('advancedSearchForm');
@@ -1742,7 +1851,10 @@ window.initAdvancedSearch = function () {
     const filmFiltersTemplate = document.getElementById('filmFiltersTemplate');
     const reviewFiltersTemplate = document.getElementById('reviewFiltersTemplate');
 
-    // Funzione per aggiornare i filtri
+    /**
+     * Updates UI filters based on selected search type
+     * Switches between film/review templates
+     */
     const updateFilters = (type) => {
         try {
             filtersContainer.innerHTML = '';
@@ -1777,6 +1889,11 @@ window.initAdvancedSearch = function () {
             `;
         }
     };
+
+    /**
+     * Updates sort dropdown options
+     * Different options for films vs reviews
+     */
     const updateSortOptions = (searchType) => {
         const sortBySelect = document.getElementById('sortBySelect');
         if (!sortBySelect) return;
@@ -1800,7 +1917,11 @@ window.initAdvancedSearch = function () {
         }
     };
 
-    // Inizializza i filtri per i film
+    /**
+     * Initializes film-specific filters:
+     * - Rating slider
+     * - Search type dropdown
+     */
     const initFilmFilters = () => {
         // Slider rating
         initRatingSlider('minRating');
@@ -1821,12 +1942,17 @@ window.initAdvancedSearch = function () {
         });
     };
 
-    // Inizializza i filtri per le recensioni
+    /**
+     * Initializes review-specific filters
+     */
     const initReviewFilters = () => {
         initRatingSlider('reviewMinRating');
     };
 
-    // Funzione helper per inizializzare gli slider di rating
+    /**
+     * Sets up star rating slider
+     * Shows live value updates
+     */
     const initRatingSlider = (name) => {
         const slider = filtersContainer.querySelector(`input[name="${name}"]`);
         const valueDisplay = filtersContainer.querySelector(`input[name="${name}"]`).closest('.star-rating-slider').querySelector('.rating-value-display span');
@@ -1842,7 +1968,11 @@ window.initAdvancedSearch = function () {
         }
     };
 
-    // Esegue la ricerca avanzata
+    /**
+     * Executes search with validation
+     * Handles different params for films/reviews
+     * Prevents duplicate submissions
+     */
     const executeAdvancedSearch = async (e) => {
         e.preventDefault();
 
@@ -1941,27 +2071,34 @@ window.initAdvancedSearch = function () {
         }
     };
 
-    // Gestione eventi
+    // Setup event when search type changes
     searchTypeSelect.addEventListener('change', (e) => {
-        updateFilters(e.target.value);
+        updateFilters(e.target.value);// Dynamically update filters
     });
 
+    // Main form submit handler with duplicate request protection
     searchForm.addEventListener('submit', function (e) {
         e.preventDefault();
-        if (!this.searchExecuted) {
+        if (!this.searchExecuted) { // Flag to prevent multiple submissions
             this.searchExecuted = true;
             executeAdvancedSearch(e).finally(() => {
-                this.searchExecuted = false;
+                this.searchExecuted = false;// Reset flag when done
             });
         }
     });
 
-    // Inizializzazione
+    // Initial UI setup - load default filters
     updateFilters(searchTypeSelect.value);
 }
-// =============================================
-// GESTIONE REVIEWS ADVANCED SEARCH
-// =============================================
+
+////////////////// REVIEWS ADVANCED SEARCH //////////////////
+// Handles review search results display and pagination
+
+/**
+ * Updates review results section with fetched data
+ * @param query - The search query string
+ * @param page - The page number to display
+ */
 async function updateReviewResults(query, page) {
     const container = document.getElementById('reviewResultsSection');
     if (!container) return;
@@ -1992,7 +2129,11 @@ async function updateReviewResults(query, page) {
     }
 }
 
-// Funzione helper per la paginazione
+/**
+ * Updates pagination UI state
+ * @param page - Current page number
+ * @param totalPages - Total available pages
+ */
 function updatePaginationState(page, totalPages) {
     document.querySelectorAll('.page-item').forEach(item => {
         item.classList.remove('active', 'disabled');
@@ -2008,7 +2149,10 @@ function updatePaginationState(page, totalPages) {
     });
 }
 
-// Gestione della paginazione con event delegation
+/**
+ * Sets up event handlers for review pagination
+ * Uses event delegation for dynamic elements
+ */
 function setupReviewPaginationHandlers() {
     document.addEventListener('click', function (e) {
         const link = e.target.closest('.review-pagination-link');
