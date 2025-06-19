@@ -5,7 +5,13 @@ const path = require('path');
 // Configurazione
 const CHAT_SERVER_URL = 'http://localhost:3001'; // URL del server chat
 
-// Route principale per la chat SPA
+/**
+ * GET /chat - Renders chat interface (SPA) with two modes:
+ * - AJAX request: returns only chat content
+ * - Normal request: full page with layout
+ * @returns {HTML} 200 - Chat page with active rooms
+ * @throws {500} Rendering error
+ */
 router.get('/chat', async (req, res) => {
     try {
         const activeRooms = await getActiveChatRooms();
@@ -55,7 +61,11 @@ router.get('/chat', async (req, res) => {
         }
     }
 });
-// Helper per ottenere le stanze attive dal server chat
+/**
+ * Fetches active chat rooms from MongoDB server
+ * @returns {Array} List of rooms formatted for client
+ * @throws {Error} When connection fails (returns empty array)
+ */
 async function getActiveChatRooms() {
     try {
         const response = await axios.get(`${CHAT_SERVER_URL}/chat/getRooms`, {
@@ -74,6 +84,16 @@ async function getActiveChatRooms() {
         return []; // Fallback vuoto
     }
 }
+
+/**
+ * POST /chat/createRoom - Creates new chat room
+ * @param {string} name - Room name
+ * @param {string} topic - Room topic
+ * @returns {Object} 200 - { success: true, room: roomObject }
+ * @throws {400} Missing/invalid parameters
+ * @throws {503} Chat service unavailable
+ * @throws {500} Internal server error
+ */
 router.post('/chat/createRoom', async (req, res) => {
     try {
         const response = await axios.post(`${CHAT_SERVER_URL}/chat/createRoom`, req.body, {
@@ -105,7 +125,11 @@ router.post('/chat/createRoom', async (req, res) => {
     }
 });
 
-
+/**
+ * GET /chat/active-rooms - List active rooms for Socket.IO
+ * @returns {Array} 200 - [{ id, name, type, userCount }]
+ * @throws {500} Error fetching rooms
+ */
 router.get('/chat/active-rooms', async (req, res) => {
     try {
         const response = await axios.get(`${CHAT_SERVER_URL}/chat/getRooms`, {
@@ -133,7 +157,13 @@ router.get('/chat/active-rooms', async (req, res) => {
     }
 });
 
-// Route per cancellare una stanza (chiamata da Socket.IO)
+/**
+ * DELETE /chat/deleteRoom/:code - Deletes a room (called by Socket.IO)
+ * @param {string} code - Room ID (MongoDB _id)
+ * @returns {Object} 200 - { success: true }
+ * @throws {404} Room not found
+ * @throws {500} Deletion error
+ */
 router.delete('/chat/deleteRoom/:code', async (req, res) => {
     try {
         // Inoltra la richiesta al MongoDB server

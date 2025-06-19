@@ -57,10 +57,11 @@ function closeMobileMenu() {
 }
 
 ////////////////// AUTH MANAGEMENT //////////////////
-// These functions handle user authentication state and UI updates
+// Manages user authentication states and UI updates
 
 /**
- * Checks the current authentication state with the server
+ * Verifies authentication status with server
+ * Checks tabId consistency for security
  */
 async function checkAuthState() {
     // 1. Recupera il tabId (DEVE esistere grazie all'init)
@@ -993,7 +994,7 @@ function setupSearch() {
             } else {
                 hideAutocompleteDropdown();
             }
-        }, 300);
+        }, 400);
     });
 
     // Mostra suggerimenti quando la searchbar riceve focus (se ha testo)
@@ -1047,7 +1048,7 @@ async function fetchAutocompleteResults(query) {
     try {
         const response = await axios.get('/films/search/autocomplete', {
             params: {q: query},
-            timeout: 13000
+            timeout: 18000
         });
 
         hideAutocompleteDropdown();
@@ -1853,7 +1854,7 @@ window.initAdvancedSearch = function () {
 
     /**
      * Updates UI filters based on selected search type
-     * Switches between film/review templates
+     * @param {string} type - The search type ('films' or 'reviews')
      */
     const updateFilters = (type) => {
         try {
@@ -1892,7 +1893,7 @@ window.initAdvancedSearch = function () {
 
     /**
      * Updates sort dropdown options
-     * Different options for films vs reviews
+     * @param {string} searchType - The current search type
      */
     const updateSortOptions = (searchType) => {
         const sortBySelect = document.getElementById('sortBySelect');
@@ -1950,8 +1951,8 @@ window.initAdvancedSearch = function () {
     };
 
     /**
-     * Sets up star rating slider
-     * Shows live value updates
+     * Sets up star rating slider component
+     * @param {string} name - The input name attribute for the slider
      */
     const initRatingSlider = (name) => {
         const slider = filtersContainer.querySelector(`input[name="${name}"]`);
@@ -1972,6 +1973,7 @@ window.initAdvancedSearch = function () {
      * Executes search with validation
      * Handles different params for films/reviews
      * Prevents duplicate submissions
+     * * @param {Event} e - The form submit event
      */
     const executeAdvancedSearch = async (e) => {
         e.preventDefault();
@@ -2170,16 +2172,18 @@ function setupReviewPaginationHandlers() {
     });
 }
 
-// =============================================
-// GESTIONE FILM PER GENERE E OSCAR
-// =============================================
-const OSCAR_FILMS_CONFIG = {
-    apiUrl: "http://localhost:3003/api/by-genre",
-    defaultGenre: "Horror",
-    limit: 12
-};
+//////////////////////////// GESTIONE FILM PER GENERE E OSCAR ////////////////////////////
+// Questo modulo gestisce il caricamento, visualizzazione e interazione con i film
+// organizzati per genere e informazioni sugli Oscar
 
-async function loadAndDisplayOscarFilms(genre = OSCAR_FILMS_CONFIG.defaultGenre) {
+/**
+ * Carica e visualizza i film con Oscar per un genere specifico
+ * Gestisce lo stato di caricamento, il fetch dei dati, il rendering e gli errori
+ * @param {string} [genre="Horror"] - Il genere dei film da caricare (default: "Horror")
+ * @returns {Promise<void>} Non ritorna valori ma aggiorna l'interfaccia utente
+ * @throws {Error} Se il fetch dei dati fallisce
+ */
+async function loadAndDisplayOscarFilms(genre = "Horror") {
     try {
         // Mostra lo stato di caricamento
         document.getElementById('oscarFilmsGrid').innerHTML = `
@@ -2206,14 +2210,17 @@ async function loadAndDisplayOscarFilms(genre = OSCAR_FILMS_CONFIG.defaultGenre)
 }
 
 /**
- * Fetch dei film con Oscar dal backend usando Axios
+ * Effettua una richiesta API per ottenere i film con Oscar filtrati per genere
+ * @param {string} genre - Il genere dei film da recuperare
+ * @returns {Promise<Array>} Array di oggetti film con i relativi dati
+ * @throws {Error} Se la richiesta API fallisce o supera il timeout
  */
 async function fetchOscarFilms(genre) {
     try {
-        const response = await axios.get(`${OSCAR_FILMS_CONFIG.apiUrl}`, {
+        const response = await axios.get("http://localhost:3003/api/by-genre", {
             params: {
                 genre: genre,
-                limit: OSCAR_FILMS_CONFIG.limit
+                limit: 12
             },
             timeout: 15000 // Timeout di 10 secondi
         });
@@ -2231,7 +2238,9 @@ async function fetchOscarFilms(genre) {
 }
 
 /**
- * Renderizza i film nella griglia
+ * Renderizza l'array di film nella griglia dell'interfaccia utente
+ * Gestisce sia i casi con risultati che senza risultati
+ * @param {Array<Object>} films - Array di oggetti film da visualizzare
  */
 function renderOscarFilms(films) {
     const grid = document.getElementById('oscarFilmsGrid');
@@ -2284,7 +2293,8 @@ function renderOscarFilms(films) {
 }
 
 /**
- * Mostra errore nella sezione Oscar
+ * Mostra un messaggio di errore nella sezione Oscar quando il caricamento fallisce
+ * Include un pulsante per riprovare il caricamento
  */
 function showOscarError() {
     document.getElementById('oscarFilmsGrid').innerHTML = `
@@ -2300,7 +2310,8 @@ function showOscarError() {
 }
 
 /**
- * Configura gli handler per il click sui film
+ * Configura gli event handler per i click sulle card dei film
+ * Implementa un sistema di debounce per prevenire click accidentali multipli
  */
 function setupOscarFilmClickHandlers() {
     const grid = document.getElementById('oscarFilmsGrid');
@@ -2349,7 +2360,8 @@ function setupOscarFilmClickHandlers() {
 }
 
 /**
- * Inizializza il dropdown dei generi
+ * Inizializza il dropdown menu per la selezione del genere
+ * Gestisce il cambio di genere e l'aggiornamento dell'interfaccia
  */
 function initOscarGenreDropdown() {
     const dropdownMenu = document.querySelector('#genreDropdown + .dropdown-menu');
@@ -2374,14 +2386,24 @@ function initOscarGenreDropdown() {
     });
 }
 
-// =============================================
-// STATO DELL'APPLICAZIONE E GESTIONE VISTE
-// =============================================
+//////////////////////////// STATO DELL'APPLICAZIONE E GESTIONE VISTE ////////////////////////////
+/**
+ * Oggetto AppState - Gestisce lo stato globale dell'applicazione e la navigazione tra le viste
+ * @namespace
+ * @property {boolean} _isHandlingPopstate - Flag che indica se è in corso la gestione di un popstate
+ * @property {number} _filmNavigationCount - Contatore delle navigazioni ai film
+ * @property {string} currentView - Vista corrente ('carousel', 'filmDetails', etc.)
+ * @property {string|null} previousView - Vista precedente
+ * @property {string|null} currentFilmId - ID del film corrente
+ * @property {string|null} searchQuery - Query di ricerca corrente
+ * @property {string} searchType - Tipo di ricerca ('film' o 'reviews')
+ * @property {number} currentPage - Pagina corrente nei risultati
+ * @property {boolean} chatInitialized - Flag di inizializzazione chat
+ * @property {Object} _activeFilmRequests - Traccia le richieste attive per film
+ * @property {Object} _lastFilmNavigation - Ultima navigazione a un film (per debounce)
+ */
 const AppState = {
-    _popstateLock: false,
     _isHandlingPopstate: false,
-    _lastHandledState: null,
-    _filmNavigationLock: false,
     _filmNavigationCount: 0,
     currentView: 'carousel',
     previousView: null,
@@ -2389,7 +2411,6 @@ const AppState = {
     searchQuery: null,
     searchType: 'film',
     currentPage: 0,
-    currentRoom: null,
     chatInitialized: false,
     _activeFilmRequests: {}, // Traccia le richieste attive
 
@@ -2397,7 +2418,12 @@ const AppState = {
         filmId: null,
         timestamp: 0,
     },
-
+    /**
+     * Naviga tra le diverse viste dell'applicazione
+     * @param {string} view - Vista di destinazione ('carousel', 'filmDetails', etc.)
+     * @param {Object} [params={}] - Parametri per la vista
+     * @param {boolean} [replace=false] - Se true, sostituisce l'entry nello history
+     */
     navigateTo: function (view, params = {}, replace = false) {
         if (this.currentView === view &&
             JSON.stringify(params) === JSON.stringify(this.currentParams)) {
@@ -2435,7 +2461,11 @@ const AppState = {
 
         this.updateHistory(view, params, replace);
     },
-
+    /**
+     * Mostra la vista dei risultati delle recensioni
+     * @param {string} query - Query di ricerca
+     * @param {number} [page=0] - Pagina dei risultati
+     */
     showReviewResults: function (query, page = 0) {
         // Nascondi tutte le altre sezioni
         document.getElementById('carouselSection').classList.add('d-none');
@@ -2449,7 +2479,9 @@ const AppState = {
         updateReviewResults(query, page);
     },
 
-
+    /**
+     * Mostra la vista con form di ricerca avanzata
+     */
     showAdvancedSearch: async function () {
         // Nascondi tutte le altre sezioni
         document.getElementById('reviewResultsSection').classList.remove('d-block');
@@ -2461,7 +2493,9 @@ const AppState = {
         // Mostra la sezione di ricerca avanzata
         document.getElementById('advancedSearchSection').classList.remove('d-none');
     },
-
+    /**
+     * Mostra la vista delle chat
+     */
     showChat: async function () {
         // Nascondi tutte le altre view prima
         document.getElementById('carouselSection').classList.add('d-none');
@@ -2477,7 +2511,11 @@ const AppState = {
             this.chatInitialized = true;
         }
     },
-
+    /**
+     * Mostra la vista del carosello principale (pagina iniziale)
+     * @param {boolean} [replace=false] - Se true, forza il ricaricamento
+     * @returns {Promise<void>}
+     */
     showCarousel: async function (replace) {
         if(replace){
             initOscarGenreDropdown();
@@ -2538,7 +2576,10 @@ const AppState = {
         }
         }
     },
-
+    /**
+     * Mostra la vista dei dettagli del film
+     * @param {string} filmId - ID del film da visualizzare
+     */
     showFilmDetails: async function (filmId) {
         document.getElementById('carouselSection').classList.add('d-none');
         document.getElementById('searchResultsSection').classList.add('d-none');
@@ -2548,7 +2589,11 @@ const AppState = {
         document.getElementById('reviewResultsSection').classList.add('d-none');
         await showFilmDetails(filmId);
     },
-
+    /**
+     * Mostra la vista dei risultati di ricerca
+     * @param {string} query - Query di ricerca
+     * @param {number} [page=0] - Pagina dei risultati
+     */
     showSearchResults: function (query, page = 0) {
         document.getElementById('carouselSection').classList.add('d-none');
         document.getElementById('filmDetailSection').style.display = 'none';
@@ -2559,7 +2604,13 @@ const AppState = {
         updateSearchResults(query, page);
     },
 
-
+    /**
+     * Aggiorna lo history del browser in base alla navigazione
+     * @param {string} view - Vista corrente
+     * @param {Object} params - Parametri della vista
+     * @param {boolean} [replace=false] - Se true, sostituisce l'entry corrente
+     * @returns {void}
+     */
     updateHistory: function (view, params, replace = false) {
         // Validazione minima
         if (view === 'searchResults') {
@@ -2663,7 +2714,10 @@ const AppState = {
             }
         }
     },
-
+    /**
+     * Gestisce l'evento popstate (navigazione avanti/indietro)
+     * @param {PopStateEvent} event - Evento popstate
+     */
     handlePopState: function (event) {
         if (this._isHandlingPopstate) return;
         this._isHandlingPopstate = true;
@@ -2774,7 +2828,12 @@ const AppState = {
             this._isHandlingPopstate = false;
         }
     },
-
+    /**
+     * Naviga alla vista dei risultati delle recensioni (helper interno)
+     * @param {string} query - Query di ricerca
+     * @param {number} page - Pagina dei risultati
+     * @param {boolean} [forceReload=false] - Forza il ricaricamento anche se già sulla vista
+     */
     _navigateToReviewsResults: function (query, page, forceReload = false) {
         // Correggi il nome della view e aggiungi forceReload
         if (!forceReload &&
@@ -2789,7 +2848,9 @@ const AppState = {
         this.currentPage = page;
         this.showReviewResults(query, page);
     },
-
+    /**
+     * Naviga alla vista di ricerca avanzata (helper interno)
+     */
     _navigateToAdvancedSearch: function () {
         if (this.currentView === 'advancedSearch') return;
 
@@ -2797,7 +2858,9 @@ const AppState = {
         this.showAdvancedSearch();
     },
 
-    //helper per la navigazione alla chat
+    /**
+     * Naviga alla vista della chat (helper interno)
+     */
     _navigateToChat: function () {
         if (this.currentView === 'chat') return;
 
@@ -2805,7 +2868,10 @@ const AppState = {
         this.showChat();
     },
 
-// Aggiungi queste funzioni helper a AppState:
+    /**
+     * Naviga alla vista dettagli film (helper interno)
+     * @param {string} filmId - ID del film
+     */
     _navigateToFilmDetails: function (filmId) {
         if (this.currentView === 'filmDetails' && this.currentFilmId === filmId) {
             return;
@@ -2815,7 +2881,12 @@ const AppState = {
         this.currentFilmId = filmId;
         this.showFilmDetails(filmId);
     },
-
+    /**
+     * Naviga alla vista risultati di ricerca (helper interno)
+     * @param {string} query - Query di ricerca
+     * @param {number} page - Pagina dei risultati
+     * @param {boolean} [forceReload=false] - Forza il ricaricamento
+     */
     _navigateToSearchResults: function (query, page, forceReload = false) {
         if (!forceReload &&
             this.currentView === 'searchResults' &&
@@ -2829,7 +2900,9 @@ const AppState = {
         this.currentPage = page;
         this.showSearchResults(query, page);
     },
-
+    /**
+     * Naviga alla vista carosello principale (helper interno)
+     */
     _navigateToCarousel: function () {
         if (this.currentView === 'carousel') return;
 
@@ -2837,13 +2910,23 @@ const AppState = {
         this.showCarousel();
     },
 };
-// Inizializzazione
+/**
+ * Aggiunge un listener globale per l'evento 'popstate' del browser
+ * @param {PopStateEvent} event - L'evento popstate contenente le informazioni di navigazione
+ **/
 window.addEventListener('popstate', (event) => {
     AppState.handlePopState(event);
 });
-// =============================================
-// INIT DELL'APPLICAZIONE
-// =============================================
+//////////////////////////// INIT DELL'APPLICAZIONE ////////////////////////////
+/**
+ * Listener per l'evento DOMContentLoaded che esegue l'inizializzazione dell'applicazione.
+ * Gestisce:
+ * - La generazione di un tabId univoco per la sessione
+ * - L'impostazione dello stato iniziale in base all'URL
+ * - La configurazione di tutti gli event handlers
+ * - La gestione dell'autenticazione e della navigazione iniziale
+ * @throws {Error} Se si verifica un errore durante l'inizializzazione
+ */
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // 1. INIZIALIZZAZIONE TAB ID

@@ -1,0 +1,423 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Main Server API",
+    "description": "API documentation for the main server including authentication endpoints",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Your Name",
+      "email": "your.email@example.com",
+      "url": "http://yourwebsite.com"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Main server local development"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "Endpoints for user authentication, registration and session management"
+    }
+  ],
+  "paths": {
+    "/forms": {
+      "get": {
+        "tags": ["Authentication"],
+        "description": "Renders authentication forms (login/register)",
+        "operationId": "getAuthForms",
+        "responses": {
+          "200": {
+            "description": "EJS template without layout",
+            "content": {
+              "text/html": {
+                "example": "<div>Login/Register form HTML here</div>"
+              }
+            }
+          },
+          "500": {
+            "description": "Rendering error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "description": "User authentication with multi-tab support",
+        "operationId": "loginUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful authentication",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "success": false,
+                  "error": "Username e password obbligatori"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "success": false,
+                  "error": "Credenziali non valide"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "success": false,
+                  "error": "Errore durante il login"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/register": {
+      "post": {
+        "tags": ["Authentication"],
+        "description": "Registers new user",
+        "operationId": "registerUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful registration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "success": false,
+                  "error": "Username già esistente"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "success": false,
+                  "error": "Errore durante la registrazione"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "description": "Ends session for specific tab or globally",
+        "operationId": "logoutUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful logout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/check": {
+      "get": {
+        "tags": ["Authentication"],
+        "description": "Verifies authentication status for a tab",
+        "operationId": "checkAuthStatus",
+        "parameters": [
+          {
+            "name": "tabId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session is active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authenticated": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/UserSession"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No active session for this tab",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authenticated": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                },
+                "example": {
+                  "authenticated": false
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password", "tabId"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "user123"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "securePassword123"
+          },
+          "tabId": {
+            "type": "string",
+            "description": "Browser tab unique identifier",
+            "example": "tab-abc123"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserSession"
+          },
+          "tabId": {
+            "type": "string",
+            "example": "tab-abc123"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "newuser"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "newSecurePassword123"
+          },
+          "additionalFields": {
+            "type": "object",
+            "description": "Other required fields",
+            "example": {
+              "email": "user@example.com",
+              "fullName": "John Doe"
+            }
+          }
+        }
+      },
+      "RegisterResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "LogoutRequest": {
+        "type": "object",
+        "properties": {
+          "tabId": {
+            "type": "string",
+            "description": "Tab identifier to disconnect (optional)",
+            "example": "tab-abc123"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "username": {
+            "type": "string",
+            "example": "user123"
+          }
+        }
+      },
+      "UserSession": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "username": {
+            "type": "string",
+            "example": "user123"
+          },
+          "role": {
+            "type": "string",
+            "example": "user"
+          },
+          "isAuthenticated": {
+            "type": "boolean",
+            "example": true
+          },
+          "uniqueSessionId": {
+            "type": "string",
+            "example": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6"
+          },
+          "tabId": {
+            "type": "string",
+            "example": "tab-abc123"
+          }
+        }
+      }
+    }
+  }
+}

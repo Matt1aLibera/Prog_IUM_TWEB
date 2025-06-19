@@ -149,7 +149,7 @@ router.get('/films/search/autocomplete', async (req, res, next) => {
 
     const { data } = await axios.get(
         `${SERVICES.postgres}/api/films/search/autocomplete?q=${encodeURIComponent(q)}`,
-        { timeout: 15000 }
+        { timeout: 17000 }
     );
 
     res.json(data || []);

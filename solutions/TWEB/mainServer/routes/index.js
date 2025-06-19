@@ -1,9 +1,19 @@
 var express = require('express');
 var router = express.Router();
-const DATA_AGGREGATION_SERVER = 'http://localhost:3003'; // URL auth-server
+const DATA_AGGREGATION_SERVER = 'http://localhost:3003'; // URL del servizio di aggregazione dati
 const axios = require('axios');
 
-/* GET home page. */
+/**
+ * GET / - Application root route
+ * Handles:
+ * - Initial page load
+ * - Multi-tab session management
+ * - Movie carousel loading
+ * - Chat/search view switching
+ * @returns {Response} Rendered page with dynamic context
+ * @returns {Redirect} 302 redirect for invalid sessions
+ * @throws {500} Rendering error
+ */
 router.get('/', async (req, res) => {
     console.log('--- NUOVA RICHIESTA A / ---');
 
@@ -75,7 +85,13 @@ router.get('/', async (req, res) => {
 
 
 
-// Route per l'autocomplete
+/**
+ * GET /films/search/autocomplete provides movie title suggestions
+ * @param {string} q - Search term (minimum 2 characters)
+ * @returns {Array} 200 - List of suggestion objects
+ * @returns {Array} 400 - Empty array when query is too short
+ * @throws {500} Server error (returns empty array)
+ */
 router.get('/films/search/autocomplete', async (req, res) => {
     try {
         const { q } = req.query;
@@ -87,7 +103,7 @@ router.get('/films/search/autocomplete', async (req, res) => {
         // MODIFICA CHIAVE: usa l'endpoint corretto del DAS
         const response = await axios.get('http://localhost:3003/api/films/search/autocomplete', {
             params: { q },
-            timeout: 16000
+            timeout: 18000
         });
 
         res.json(response.data || []);
@@ -98,7 +114,16 @@ router.get('/films/search/autocomplete', async (req, res) => {
     }
 });
 
-// Route per la ricerca completa (aggiornata per coerenza con autocomplete)
+/**
+ * GET /films/search/full - Performs full-text search across movie database
+ * Query params:
+ * @param {string} q - Search term
+ * @param {number} [page=0] - Pagination offset
+ * @param {number} [size=15] - Items per page (max 100)
+ * @returns {HTML | JSON} 200 - Search results (content-negotiated)
+ * @throws {400} Invalid search term
+ * @throws {500} Search execution error
+ */
 router.get('/films/search/full', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store, max-age=0');
     try {
@@ -164,7 +189,13 @@ router.get('/films/search/full', async (req, res) => {
         }
     }
 });
-
+/**
+ * GET /film/:id - Retrieves detailed information about specific movie
+ * @param {string} id - Movie identifier
+ * @returns {Object} 200 - Movie details (content-negotiated)
+ * @throws {404} Movie not found
+ * @throws {500} Internal server error
+ */
 router.get('/film/:id', async (req, res) => {
     try {
         const {data: film} = await axios.get(`${DATA_AGGREGATION_SERVER}/api/films/${req.params.id}`, {
@@ -205,7 +236,12 @@ router.get('/film/:id', async (req, res) => {
         });
     }
 });
-
+/**
+ * GET /advanced-search - Displays advanced search interface
+ * @returns {HTML} 200 - Search form markup
+ * @returns {Redirect} 302 - Redirects to / for non-AJAX requests
+ * @throws {500} Rendering error
+ */
 router.get('/advanced-search', async (req, res) => {
     try {
         // 1. Renderizza il contenuto della ricerca avanzata
@@ -254,7 +290,15 @@ router.get('/advanced-search', async (req, res) => {
         }
     }
 });
-
+/**
+ * GET /search/advanced - Executes advanced search with multiple criteria
+ * @param {string} searchType - 'films' or 'reviews'
+ * @param {number} [page=0] - Pagination offset
+ * @param {number} [size=15] - Items per page (10 for reviews)
+ * @returns {HTML|JSON} 200 - Search results (content-negotiated)
+ * @throws {400} Missing required parameters
+ * @throws {500} Search execution error
+ */
 router.get('/search/advanced', async (req, res) => {
     console.log('══════════════════════════════════════════════════════════════');
     console.log('⏳ [1/6] Ricevuta richiesta ricerca avanzata');

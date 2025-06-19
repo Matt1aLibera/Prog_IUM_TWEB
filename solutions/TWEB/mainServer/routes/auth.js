@@ -6,7 +6,11 @@ const router = express.Router();
 // Configurazione
 const AUTH_SERVER = 'http://localhost:3001'; // URL auth-server
 
-// Route per ottenere i form di autenticazione
+/**
+ * GET /forms - Renders authentication forms (login/register)
+ * @returns {HTML} 200 - EJS template without layout
+ * @throws {500} Rendering error
+ */
 router.get('/forms', (req, res) => {
     try {
         res.render('partials/Form', {
@@ -19,39 +23,16 @@ router.get('/forms', (req, res) => {
     }
 });
 
-
-// Strategia Passport per comunicare con l'auth-server
-passport.use('remote', new (require('passport-local').Strategy)({
-    passReqToCallback: true
-}, async (req, username, password, done) => {
-    try {
-        console.log(`Tentativo di connessione a: ${AUTH_SERVER}/auth/verify`);
-        const response = await axios.post(`${AUTH_SERVER}/auth/verify`, {
-            username,
-            password
-        });
-
-        if (!response.data.success) {
-            return done(null, false, { message: response.data.error });
-        }
-
-        // Normalizzazione dell'oggetto user
-        const user = response.data.user;
-        if (user._id && !user.id) {
-            user.id = user._id; // Aggiungiamo id per compatibilità
-        }
-
-        return done(null, user);
-
-    } catch (error) {
-        return done(null, false, {
-            message: error.response?.data?.error || 'Errore durante l\'autenticazione'
-        });
-    }
-}));
-
-// Handle Login
-// Versione semplificata con solo API JSON
+/**
+ * POST /login - User authentication with multi-tab support
+ * @param {string} username - Required username
+ * @param {string} password - Required password
+ * @param {string} tabId - Browser tab unique identifier
+ * @returns {Object} 200 - { success: true, user: userObject, tabId: string }
+ * @throws {400} Missing parameters
+ * @throws {401} Invalid credentials
+ * @throws {500} Server error
+ */
 router.post('/login', async (req, res) => {
     try {
         const { username, password, tabId } = req.body; // Aggiunto tabId
@@ -124,7 +105,15 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Route Registrazione
+/**
+ * POST /register - Registers new user
+ * @param {string} username - Required username
+ * @param {string} password - Required password
+ * @param {Object} [additionalFields] - Other required fields
+ * @returns {Object} 200 - { success: true, user: userObject }
+ * @throws {400} Missing or invalid data
+ * @throws {500} Server error
+ */
 router.post('/register', async (req, res) => {
     try {
         const response = await axios.post(`${AUTH_SERVER}/auth/register`, req.body);
@@ -138,7 +127,11 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Route di logout
+/**
+ * POST /logout - Ends session for specific tab or globally
+ * @param {string} [tabId] - Tab identifier to disconnect
+ * @returns {Object} 200 - { success: true }
+ */
 router.post('/logout', (req, res) => {
     const tabId = req.body.tabId;
 
@@ -158,7 +151,12 @@ router.post('/logout', (req, res) => {
         res.json({ success: true });
     }
 });
-
+/**
+ * GET /check - Verifies authentication status for a tab
+ * @param {string} tabId - Tab identifier to check
+ * @returns {Object} 200 - { authenticated: true, user: userObject }
+ * @returns {Object} 401 - { authenticated: false }
+ */
 router.get('/check', (req, res) => {
     const tabId = req.query.tabId;
 

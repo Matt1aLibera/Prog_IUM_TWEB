@@ -2,9 +2,19 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 
-// Middleware per proteggere la rotta admin
-
-
+/**
+ * Admin privileges verification middleware
+ * @param {Object} req - Express request object
+ * @param {string} [req.query.tabId] - Tab ID from query params
+ * @param {string} [req.body.tabId] - Tab ID from request body
+ * @param {string} [req.headers.x-tab-id] - Tab ID from headers
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware
+ * @throws {403} Redirects to home if:
+ * - No valid tabId found
+ * - No active session for tabId
+ * - User lacks admin privileges
+ */
 function requireAdmin(req, res, next) {
     // 1. Verifica se esiste la sessione e il tabId
     const tabId = req.query.tabId || req.body.tabId || req.headers['x-tab-id'];
@@ -32,7 +42,21 @@ function requireAdmin(req, res, next) {
 }
 
 
-// Avvia il caricamento dati sui database
+/**
+ * POST /upload-db - Parallel database upload to PostgreSQL and MongoDB
+ * @requires requireAdmin - Admin privileges middleware
+ * @returns {Object} 200 - {
+ *   success: true,
+ *   message: string,
+ *   details: { postgres: object, mongo: object }
+ * } - Both databases succeeded
+ * @returns {Object} 207 - {
+ *   success: false,
+ *   message: string,
+ *   details: { postgres: object, mongo: object }
+ * } - Partial success (one DB failed)
+ * @throws {500} Coordination error
+ */
 router.post('/upload-db', requireAdmin, async (req, res) => {
     // Configurazione axios con timeout disabilitato
     const axiosConfig = {
