@@ -5,11 +5,8 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const { connectUserDB } = require('./databases/user');
 const initializeAdmin = require('./services/adminInit');
-const bodyParser = require('body-parser');
 const authRoutes = require('./routes/index');
 const chatRoutes = require('./routes/chatRoom')
-
-
 
 const app = express();
 
@@ -42,7 +39,7 @@ app.use(express.static(path.join(__dirname, 'public')));
   }
 })();
 
-// Health check endpoint (minimo)
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -59,12 +56,6 @@ app.use((err, req, res, next) => {
     error: err.message,
     ...(app.get('env') === 'development' && { stack: err.stack })
   });
-
-  // Se hai bisogno di renderizzare errori HTML (solo se usi view engine):
-  // res.locals.message = err.message;
-  // res.locals.error = req.app.get('env') === 'development' ? err : {};
-  // res.status(err.status || 500);
-  // res.render('error');
 });
 
 module.exports = app;

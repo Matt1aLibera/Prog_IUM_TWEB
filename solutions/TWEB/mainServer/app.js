@@ -8,12 +8,14 @@ require('passport');
 const flash = require('connect-flash');
 const MongoStore = require('connect-mongo');
 
+// Route imports
 var indexRouter = require('./routes/index');
 var loginRouter = require('./routes/auth');
 var adminRouter =require ('./routes/admin')
 var chatRouter =require('./routes/chatRoom')
 
 var app = express();
+
 // Configurazione Handlebars
 const { engine } = require('express-handlebars');
 const hbs = engine({
@@ -26,7 +28,7 @@ const hbs = engine({
     allowProtoMethodsByDefault: true
   },
   helpers: {
-    // Helper per arrotondare il rating normalizzato (1-5)
+    // Helper per visualizzare e arrotondare il rating normalizzato (1-5)
     roundRating: function(normalizedScore) {
       if (typeof normalizedScore !== 'number' || isNaN(normalizedScore)) return 0;
       return Math.min(5, Math.max(1, Math.round(normalizedScore)));
@@ -58,9 +60,6 @@ const hbs = engine({
 
       return new Handlebars.SafeString(stars);
     },
-
-
-
     // Helper per formattare la data
     formatDate: function(dateString) {
       if (!dateString) return '';
@@ -99,12 +98,12 @@ const hbs = engine({
       options.data.root[varName] = varValue;
     },
 
-    // Helper esistente per la serializzazione JSON
+    // Helper per la serializzazione JSON
     json: function(context) {
       return JSON.stringify(context).replace(/"/g, '&quot;');
     },
 
-    // Helper per le icone delle stanze chat (NUOVO)
+    // Helper per le icone delle stanze chat
     roomIcon: function(type) {
       const icons = {
         film: 'film',
@@ -143,7 +142,7 @@ app.engine('hbs', hbs);
 app.set('views', path.join(__dirname, 'views')); // Punta alla cartella padre
 app.set('view engine', 'hbs');
 
-// Aggiungi questo middleware prima delle route
+// Disabilita caching per le risposte HTTP
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
@@ -157,6 +156,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// Configurazione sessione con MongoDB store
 app.use(session({
   secret: process.env.SESSION_SECRET || 'university-project-secret',
   resave: false,
@@ -176,22 +176,21 @@ app.use(session({
     touchAfter: 3600 // 1 ora
   })
 }));
-app.use((req, res, next) => {
-  // Middleware vuoto che bypassa Passport per le sessioni
-  next();
-});
-// File statici
+// File statici e flash messages
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(flash());
 
-// Route
+// Definizione delle route
 app.use('/admin', adminRouter);
 app.use('/', indexRouter);
 app.use('/auth', loginRouter);  // invece di '/login'
 app.use('/sio', chatRouter)
+
+// Endpoint speciale per Chrome DevTools
 app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
   res.status(204).end(); // 204 = No Content
 });
+// Make Date available in views
 app.locals.Date = Date;
 // Gestione 404
 app.use(function(req, res, next) {
@@ -203,20 +202,11 @@ app.use(function(err, req, res) {
   // Imposta le variabili locali
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
-
   // Renderizza la pagina di errore
   res.status(err.status || 500);
-
-  // Scegli UNA delle seguenti opzioni:
-
-  // OPZIONE 1: Con layout specifico (assicurati che esista views/layouts/error-layout.hbs)
-  // res.render('pages/error', { layout: 'error-layout' });
-
-  // OPZIONE 2: Con layout principale (default)
+  // layout principale (default)
   res.render('pages/error', { layout: 'layout' });
 
-  // OPZIONE 3: Senza layout
-  // res.render('pages/error');
 });
 
 module.exports = app;

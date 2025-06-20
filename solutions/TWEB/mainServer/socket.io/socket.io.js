@@ -2,11 +2,15 @@ const activeRooms = new Map();
 const axios = require('axios');
 
 module.exports = {
+    /**
+     * Initialize Socket.IO chat server with event handlers
+     * @param {SocketIO.Server} io - Socket.IO server instance
+     */
     init: function(io) {
         const chatNamespace = io.of('/chat');
 
+        // Authentication middleware for socket connections
         chatNamespace.use((socket, next) => {
-            // Middleware di autenticazione
             const { userId, username } = socket.handshake.auth;
             if (userId && username) {
                 socket.user = { id: userId, username };
@@ -15,10 +19,20 @@ module.exports = {
             next(new Error('Authentication error'));
         });
 
+        /**
+         * Handle new socket connections
+         */
         chatNamespace.on('connection', (socket) => {
             console.log(`Utente connesso: ${socket.user.username} (${socket.id})`);
 
-            // Creazione o connessione a stanza
+            /**
+             * Join or create chat room
+             * @param {Object} data - Room data
+             * @param {string} data.code - Room ID
+             * @param {string} [data.name] - Room name
+             * @param {string} [data.topic] - Room topic
+             * @param {function} callback - Response callback
+             */
             socket.on('chat:join_or_create', (data, callback) => {
                 if (!socket.user) return callback({ error: 'Not authenticated' });
 
@@ -26,6 +40,7 @@ module.exports = {
                 let room = activeRooms.get(code);
                 const isNewRoom = !room;
 
+                // Create new room if doesn't exist
                 if (isNewRoom) {
                     room = {
                         id: code,
@@ -37,11 +52,11 @@ module.exports = {
                     activeRooms.set(code, room);
                 }
 
-                // Aggiungi l'utente alla stanza
+                // Add user to room
                 room.users.set(socket.user.id, socket.user.username);
                 socket.join(code);
 
-                // Prepara i dati per la risposta
+                // Prepare response data
                 const userList = Array.from(room.users.values());
                 const responseData = {
                     success: true,
@@ -55,10 +70,9 @@ module.exports = {
                     }
                 };
 
-                // Invia prima la risposta al client che si è unito
                 callback(responseData);
 
-                // Poi notifica tutti gli altri nella stanza
+                // Notify other room users
                 if (!isNewRoom) {
                     chatNamespace.to(code).emit('chat:room_update', {
                         roomId: code,
@@ -71,7 +85,7 @@ module.exports = {
                         username: socket.user.username
                     });
                 } else {
-                    // Per le nuove stanze, emetti l'evento room_created
+                    // Broadcast new room creation
                     chatNamespace.emit('chat:room_created', {
                         id: code,
                         name: room.name,
@@ -80,7 +94,13 @@ module.exports = {
                 }
             });
 
-            // Invio messaggi
+            /**
+             * Handle new chat messages
+             * @param {Object} data - Message data
+             * @param {string} data.roomId - Target room ID
+             * @param {string} data.message - Message content
+             * @param {function} callback - Response callback
+             */
             socket.on('chat:message', (data, callback) => {
                 if (!socket.user || !data.roomId || typeof data.message !== 'string') {
                     return callback({
@@ -96,12 +116,7 @@ module.exports = {
                     });
                 }
 
-                console.log('Messaggio ricevuto:', { // Debug
-                    room: data.roomId,
-                    user: socket.user.username,
-                    message: data.message
-                });
-
+                // Broadcast message to room
                 chatNamespace.to(data.roomId).emit('chat:message', {
                     user: socket.user,
                     message: data.message,
@@ -112,7 +127,11 @@ module.exports = {
                 callback({ success: true });
             });
 
-            // Nuovo evento per uscire da una stanza
+            /**
+             * Leave chat room
+             * @param {string} roomCode - Room ID to leave
+             * @param {function} callback - Response callback
+             */
             socket.on('chat:leave', (roomCode, callback) => {
                 if (!socket.user || !roomCode) {
                     return callback({ success: false, error: 'Not authorized or missing room code' });
@@ -123,7 +142,7 @@ module.exports = {
                     room.users.delete(socket.user.id);
                     socket.leave(roomCode);
 
-                    // Invia aggiornamento a tutti nella stanza
+                    // Update remaining users
                     const userList = Array.from(room.users.values());
                     chatNamespace.to(roomCode).emit('chat:room_update', {
                         roomId: roomCode,
@@ -131,13 +150,13 @@ module.exports = {
                         userCount: userList.length
                     });
 
-                    // Notifica specifica per l'utente uscito
+                    // Notify about user leaving
                     socket.to(roomCode).emit('chat:user_left', {
                         userId: socket.user.id,
                         username: socket.user.username
                     });
 
-                    // Se la stanza è vuota, cancellala
+                    // Delete empty rooms
                     if (room.users.size === 0) {
                         activeRooms.delete(roomCode);
                         axios.delete(`http://localhost:3000/sio/chat/deleteRoom/${roomCode}`)
@@ -154,7 +173,9 @@ module.exports = {
                 }
             });
 
-            // Disconnessione
+            /**
+             * Handle socket disconnection
+             */
             socket.on('disconnect', () => {
                 if (socket.user) {
                     activeRooms.forEach(async (room, roomCode) => {
@@ -163,7 +184,6 @@ module.exports = {
 
                             if (room.users.size === 0) {
                                 try {
-                                    // Chiamata al MongoDB server usando roomCode
                                     await axios.delete(`http://localhost:3000/sio/chat/deleteRoom/${roomCode}`);
                                     console.log(`Stanza ${roomCode} eliminata dal DB`);
                                     activeRooms.delete(roomCode);

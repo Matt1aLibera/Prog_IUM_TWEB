@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-
+/**
+ * Schema for chat rooms stored in MongoDB
+ */
 const chatRoomSchema = new Schema({
     name: {
         type: String,
@@ -13,7 +15,7 @@ const chatRoomSchema = new Schema({
         required: true,
         enum: ['film', 'attore', 'crew', 'personaggio', 'generale']
     },
-    code: {  // <-- Aggiungi questo campo
+    code: {
         type: String,
         required: true,
         unique: true,
@@ -23,5 +25,4 @@ const chatRoomSchema = new Schema({
     timestamps: true // Aggiunge createdAt e updatedAt automaticamente
 });
 
-// Non serve aggiungere manualmente findByIdAndDelete, è già fornito da Mongoose
 module.exports = mongoose.model('ChatRoom', chatRoomSchema);

@@ -1,5 +1,7 @@
 const User = require('../models/User');
-
+/**
+ * Creates an admin user on startup if none exists
+ */
 module.exports = async () => {
     try {
         const adminExists = await User.findOne({ username: 'admin' });
@@ -7,7 +9,7 @@ module.exports = async () => {
         if (!adminExists) {
             const admin = new User({
                 username: 'admin',
-                password: 'admin123', // Verrà hashato automaticamente dal pre-save hook
+                password: 'admin123', // Will be auto-hashed
                 role: 'admin'
             });
             await admin.save();

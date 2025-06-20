@@ -1,4 +1,15 @@
 const User = require('../models/User');
+/**
+ * POST /auth/verify - Verifies user credentials
+ * @param {string} username - User's username
+ * @param {string} password - User's password
+ * @returns {Object} 200 - {
+ *   success: true,
+ *   user: { _id: string, username: string, role: string }
+ * }
+ * @throws {401} Invalid credentials (user not found or wrong password)
+ * @throws {500} Server error during verification
+ */
 exports.verify = async (req, res) => {
     console.log('\n=== NUOVA RICHIESTA DI VERIFICA ===');
     console.log('Dati ricevuti:', {

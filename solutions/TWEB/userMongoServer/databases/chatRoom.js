@@ -2,8 +2,10 @@ const mongoose = require('mongoose');
 const ChatRoomSchema = require('../models/ChatRoom').schema;
 
 const chatDB = 'mongodb://localhost:27017/chatRoomDB';
-
-// Crea una connessione dedicata indipendente
+/**
+ * Isolated MongoDB connection for chat rooms
+ */
+// Create separate mongoose instance
 const chatConnection = new mongoose.Mongoose(); // Nuova istanza Mongoose isolata
 
 const connectDB = async () => {
@@ -24,7 +26,7 @@ const connectDB = async () => {
     }
 };
 
-// Crea il modello sull'istanza isolata
+// Register model on isolated connection
 const ChatRoom = chatConnection.model('ChatRoom', ChatRoomSchema);
 
 module.exports = {

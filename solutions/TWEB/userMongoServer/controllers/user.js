@@ -1,6 +1,13 @@
-const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-//registrazione e logut
+/**
+ * POST /auth/register - Registers a new user
+ * @param {string} username - Desired username (min 3 chars)
+ * @param {string} password - User password (min 6 chars)
+ * @param {string} confirmPassword - Must match password
+ * @returns {Object} 201 - { success: true, user: { id, username, role } }
+ * @throws {400} Invalid input (missing fields, password mismatch, username taken)
+ * @throws {500} Server error during registration
+ */
 exports.register = async (req, res) => {
     try {
         const { username, password, confirmPassword } = req.body;
@@ -81,7 +88,11 @@ exports.register = async (req, res) => {
         res.status(500).json(errorResponse);
     }
 };
-
+/**
+ * POST /auth/logout - Terminates user session
+ * @returns {Object} 200 - { success: true, message: string }
+ * @throws {500} Server error during session destruction
+ */
 exports.logout = (req, res) => {
     try {
         // Distruggi la sessione
@@ -111,7 +122,13 @@ exports.logout = (req, res) => {
     }
 };
 
-
+/**
+ * GET /auth/:id - Retrieves user by ID
+ * @param {string} id - User ID
+ * @returns {Object} 200 - { user: { id, username, role } }
+ * @throws {404} User not found
+ * @throws {500} Server error during fetch
+ */
 exports.id = async (req, res) => {
     console.log('Fetching user with ID:', req.params.id); // Debug
     try {

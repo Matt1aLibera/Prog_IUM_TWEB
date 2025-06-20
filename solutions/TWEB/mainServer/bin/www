@@ -60,8 +60,8 @@ function onError(error) {
   }
 
   var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
+      ? 'Pipe ' + port
+      : 'Port ' + port;
 
   // handle specific listen errors with friendly messages
   switch (error.code) {
@@ -85,12 +85,14 @@ function onError(error) {
 function onListening() {
   var addr = server.address();
   var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
+      ? 'pipe ' + addr
+      : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
-// Middleware di sessione per Socket.IO
 
-const io = require('socket.io')(server, { pingTimeout: 60000 });
+// Initialize Socket.IO with session support
+const io = require('socket.io')(server, {
+  pingTimeout: 60000 // 60 second timeout
+});
 const socket_module = require('../socket.io/socket.io');
 socket_module.init(io, app);

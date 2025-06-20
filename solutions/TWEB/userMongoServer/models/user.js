@@ -1,7 +1,9 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const Schema = mongoose.Schema;
-
+/**
+ * User model for authentication
+ */
 const userSchema = new Schema({
     username: {
         type: String,
@@ -26,12 +28,12 @@ const userSchema = new Schema({
     }
 });
 
-// Metodo per verificare la password
+// Password verification helper
 userSchema.methods.verifyPassword = async function(password) {
     return await bcrypt.compare(password, this.password);
 };
 
-// Hash password prima di salvare
+// Auto-hash password before save
 userSchema.pre('save', async function(next) {
     if (!this.isModified('password')) return next();
 

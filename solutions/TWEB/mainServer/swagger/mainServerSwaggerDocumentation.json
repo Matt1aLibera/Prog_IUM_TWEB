@@ -2,12 +2,12 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Main Server API",
-    "description": "API documentation for the main server including authentication endpoints",
+    "description": "API documentation for the main server including authentication and admin endpoints",
     "version": "1.0.0",
     "contact": {
-      "name": "Your Name",
-      "email": "your.email@example.com",
-      "url": "http://yourwebsite.com"
+      "name": "Mattia Liberatore",
+      "email": "mattia.liberatore@edu.unito.it",
+      "url": "http://localhost:3000"
     },
     "license": {
       "name": "Apache 2.0",
@@ -24,9 +24,600 @@
     {
       "name": "Authentication",
       "description": "Endpoints for user authentication, registration and session management"
+    },
+    {
+      "name": "Admin",
+      "description": "Administrative endpoints requiring admin privileges"
+    },
+    {
+      "name": "Public Pages",
+      "description": "Data loading for homepage, movie details page, advanced search form page"
+    },
+    {
+      "name": "Search",
+      "description": "Full-text search operations, advanced search, suggestions"
+    },
+    {
+      "name": "Chat Rooms",
+      "description": "Endpoints for chat room management and operations"
     }
   ],
   "paths": {
+    "/": {
+      "get": {
+        "tags": ["Public Pages"],
+        "description": "Application root route. Handles initial page load, multi-tab session management, movie carousel loading and chat/search view switching",
+        "parameters": [
+          {
+            "name": "tabId",
+            "in": "query",
+            "description": "Browser tab unique identifier for session management",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "description": "View to display ('chat' for chat view)",
+            "schema": {
+              "type": "string",
+              "enum": ["chat"]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search query to display results",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rendered page with dynamic context",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirect for invalid sessions",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "example": "/"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Rendering error",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/film/{id}": {
+      "get": {
+        "tags": ["Public Pages"],
+        "description": "Retrieves detailed information about specific movie",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Movie identifier",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Movie details (content-negotiated)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovieDetails"
+                }
+              },
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Movie not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Film non trovato"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/films/search/autocomplete": {
+      "get": {
+        "tags": ["Search"],
+        "description": "Provides movie title suggestions",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Search term (minimum 2 characters)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of suggestion objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty array when query is too short",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                },
+                "example": []
+              }
+            }
+          },
+          "500": {
+            "description": "Server error (returns empty array)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                },
+                "example": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "/films/search/full": {
+      "get": {
+        "tags": ["Search"],
+        "description": "Performs full-text search across movie database",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Search term",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Pagination offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Items per page (max 100)",
+            "schema": {
+              "type": "integer",
+              "default": 15,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results (content-negotiated)",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid search term",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Search execution error",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/advanced-search": {
+      "get": {
+        "tags": ["Public Pages"],
+        "description": "Displays advanced search interface",
+        "responses": {
+          "200": {
+            "description": "Search form markup",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirects to / for non-AJAX requests",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "example": "/"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Rendering error",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search/advanced": {
+      "get": {
+        "tags": ["Search"],
+        "description": "Executes advanced search with multiple criteria",
+        "parameters": [
+          {
+            "name": "searchType",
+            "in": "query",
+            "required": true,
+            "description": "Type of search ('films' or 'reviews')",
+            "schema": {
+              "type": "string",
+              "enum": ["films", "reviews"]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Pagination offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Items per page (10 for reviews, 15 for films)",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results (content-negotiated)",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Search execution error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat": {
+      "get": {
+        "tags": ["Public Pages", "Chat Rooms"],
+        "description": "Renders chat interface (SPA) with two modes: AJAX request returns only chat content, normal request returns full page with layout",
+        "responses": {
+          "200": {
+            "description": "Chat page with active rooms",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Rendering error",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/createRoom": {
+      "post": {
+        "tags": ["Chat Rooms"],
+        "description": "Creates new chat room",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "topic"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Room name"
+                  },
+                  "topic": {
+                    "type": "string",
+                    "description": "Room topic"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Room created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "room": {
+                      "type": "object",
+                      "description": "Created room object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Chat service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/active-rooms": {
+      "get": {
+        "tags": ["Chat Rooms"],
+        "description": "List active rooms for Socket.IO",
+        "responses": {
+          "200": {
+            "description": "List of active rooms",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Room ID"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "Room name"
+                      },
+                      "type": {
+                        "type": "string",
+                        "description": "Room type/topic"
+                      },
+                      "userCount": {
+                        "type": "integer",
+                        "description": "Number of active users",
+                        "default": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error fetching rooms",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/deleteRoom/{code}": {
+      "delete": {
+        "tags": ["Chat Rooms"],
+        "description": "Deletes a room (called by Socket.IO)",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "description": "Room ID (MongoDB _id)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Room deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Room not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Deletion error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/forms": {
       "get": {
         "tags": ["Authentication"],
@@ -269,6 +860,118 @@
           }
         }
       }
+    },
+    "/admin/upload-db": {
+      "post": {
+        "tags": ["Admin"],
+        "description": "Parallel database upload to PostgreSQL and MongoDB",
+        "operationId": "uploadDatabases",
+        "security": [
+          {
+            "sessionAuth": ["admin"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Both databases upload succeeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Caricamento completato con successo!"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "postgres": {
+                          "type": "object",
+                          "description": "PostgreSQL upload result"
+                        },
+                        "mongo": {
+                          "type": "object",
+                          "description": "MongoDB upload result"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "207": {
+            "description": "Partial success (one DB failed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Caricamento parzialmente riuscito"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "postgres": {
+                          "type": "object",
+                          "description": "PostgreSQL upload result"
+                        },
+                        "mongo": {
+                          "type": "object",
+                          "description": "MongoDB upload result"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin privileges required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "success": false,
+                  "error": "Privilegi insufficienti"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Coordination error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Errore durante il coordinamento del caricamento",
+                  "error": {
+                    "name": "Error",
+                    "message": "Error details"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -417,6 +1120,134 @@
             "example": "tab-abc123"
           }
         }
+      },
+      "DatabaseUploadResult": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "MovieDetails": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Movie unique identifier"
+          },
+          "title": {
+            "type": "string",
+            "description": "Movie title"
+          },
+          "duration": {
+            "type": "string",
+            "description": "Formatted duration (e.g. '2h 15m')",
+            "example": "2h 15m"
+          },
+          "year": {
+            "type": "string",
+            "description": "Release year",
+            "example": "2020"
+          },
+          "movie": {
+            "type": "object",
+            "description": "Raw movie data",
+            "properties": {
+              "minute": {
+                "type": "integer",
+                "description": "Duration in minutes"
+              },
+              "date": {
+                "type": "string",
+                "description": "Release date"
+              },
+              "year": {
+                "type": "string",
+                "description": "Release year"
+              }
+            }
+          }
+        }
+      },
+      "AdvancedSearchResults": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Search results"
+          },
+          "totalElements": {
+            "type": "integer",
+            "description": "Total number of results"
+          },
+          "totalPages": {
+            "type": "integer",
+            "description": "Total number of pages"
+          },
+          "stats": {
+            "type": "object",
+            "description": "Search statistics"
+          }
+        }
+      },
+      "ChatRoom": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Room ID (MongoDB _id)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Room name"
+          },
+          "topic": {
+            "type": "string",
+            "description": "Room topic/description"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          }
+        }
+      },
+      "ActiveChatRoom": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Room ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Room name"
+          },
+          "type": {
+            "type": "string",
+            "description": "Room type/topic"
+          },
+          "userCount": {
+            "type": "integer",
+            "description": "Number of active users",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "sessionAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-tab-id",
+        "description": "Tab ID for session management"
       }
     }
   }

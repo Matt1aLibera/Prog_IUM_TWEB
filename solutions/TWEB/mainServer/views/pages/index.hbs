@@ -307,13 +307,13 @@
             // Nascondi spinner (non necessario in render server-side)
             document.getElementById('filmLoadingSpinner').style.display = 'none';
 
-            // Se la navigazione è client-side, i dati verranno gestiti dalle tue funzioni esistenti
+            // Se la navigazione è client-side, i dati verranno gestiti dalle funzioni esistenti
             // Se è un accesso diretto, il contenuto è già renderizzato dal server
 
-            // Aggiungi comunque i listener per mantenere la funzionalità
+            // Aggiungi listener per mantenere la funzionalità
             document.getElementById('backToCarousel')?.addEventListener('click', backToPreviousView);
 
-            // Nascondi le altre sezioni (come farebbero le tue funzioni)
+            // Nascondi le altre sezioni
             document.getElementById('carouselSection').classList.add('d-none');
             document.getElementById('searchResultsSection').classList.add('d-none');
             document.getElementById('filmDetailSection').classList.remove('d-none');
