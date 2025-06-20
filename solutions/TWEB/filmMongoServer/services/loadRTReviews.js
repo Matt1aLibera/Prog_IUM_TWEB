@@ -2,7 +2,14 @@ const csv = require('csv-parser');
 const fs = require('fs');
 const mongoose = require('mongoose');
 const RTReview = require('../models/RTReview');
-
+/**
+ * Loads reviews from CSV to MongoDB with batch processing
+ * @param {Model} RTReviewModel - Mongoose model for reviews
+ * @param {string} filePath - Path to CSV file
+ * @param {Function} processRecord - Record transformation function
+ * @param {number} [batchSize=5000] - Insert batch size (default: 5000)
+ * @returns {Object} Operation result with counts
+ */
 const loadRTReviews = async (RTReviewModel, filePath, processRecord, batchSize = 5000) => {
     let processedCount = 0;
     let skippedCount = 0;

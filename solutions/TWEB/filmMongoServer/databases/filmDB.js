@@ -3,7 +3,9 @@ const FilmRating = require('../models/FilmRating');
 const RTReview = require('../models/RTReview');
 
 let cachedConnection = null;
-
+/**
+ * MongoDB connection manager with caching
+ */
 const connectDB = async () => {
     if (cachedConnection) {
         return cachedConnection;

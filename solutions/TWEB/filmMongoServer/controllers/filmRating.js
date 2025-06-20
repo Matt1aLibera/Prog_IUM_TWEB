@@ -1,6 +1,12 @@
 const connectDB = require('../databases/filmDB');
 const { parseCSV } = require('../services/loadRatings');
-// Crea/aggiorna rating
+
+/**
+ * Creates or updates a movie rating
+ * @param {number} movie_id - Numeric movie identifier
+ * @param {number} rating - Rating value (0-5)
+ * @returns {boolean} True if operation succeeded
+ */
 const upsertRating = async (movie_id, rating) => {
     try {
         await FilmRating.findOneAndUpdate(
@@ -15,7 +21,11 @@ const upsertRating = async (movie_id, rating) => {
     }
 };
 
-// Recupera rating
+/**
+ * Retrieves rating for a specific movie
+ * @param {number} movie_id - Numeric movie identifier
+ * @returns {number|null} Rating value or null if not found/error
+ */
 const getRating = async (movie_id) => {
     try {
         const doc = await FilmRating.findOne({ movie_id });
@@ -26,7 +36,12 @@ const getRating = async (movie_id) => {
     }
 };
 
-// Nuova funzione per il caricamento del DB
+/**
+ * Uploads ratings data from CSV to database
+ * @param {string} csvPath - Path to CSV file
+ * @returns {Object} Upload result - {success: bool, insertedCount: number, sample?: Object[]}
+ * @throws {Error} If collection already populated or file processing fails
+ */
 const uploadRatings = async (csvPath) => {
     const connection = await connectDB();
     const FilmRating = connection.model('FilmRating');
@@ -63,7 +78,14 @@ const uploadRatings = async (csvPath) => {
         throw error;
     }
 };
-
+/**
+ * Finds films within specified rating range
+ * @param {number} minRating - Minimum rating value (0-5)
+ * @param {number} maxRating - Maximum rating value (0-5)
+ * @param {number} limit - Maximum results to return
+ * @returns {Object[]} Array of {id: number, rating: number}
+ * @throws {Error} If database query fails
+ */
 const getFilmsByRatingRange = async (minRating, maxRating, limit) => {
     const connection = await connectDB();
     const FilmRating = connection.model('FilmRating'); // Ottieni il modello dalla connessione
@@ -86,7 +108,12 @@ const getFilmsByRatingRange = async (minRating, maxRating, limit) => {
         throw error;
     }
 };
-
+/**
+ * Gets rating for specific movie with validation
+ * @param {number} movie_id - Numeric movie identifier
+ * @returns {Object} Result with rating - {success: bool, rating?: number, message?: string}
+ * @throws {Error} If database operation fails
+ */
 const getFilmRating = async (movie_id) => {
     const connection = await connectDB();
     const FilmRating = connection.model('FilmRating');
@@ -107,7 +134,12 @@ const getFilmRating = async (movie_id) => {
         throw error;
     }
 };
-
+/**
+ * Retrieves ratings for multiple movies in single query
+ * @param {number[]} filmIds - Array of movie IDs
+ * @returns {Object[]} Array of {id: number, rating: number|null} (preserves input order)
+ * @throws {Error} If database operation fails
+ */
 const getRatingsBatch = async (filmIds) => {
     const connection = await connectDB();
     const FilmRating = connection.model('FilmRating');

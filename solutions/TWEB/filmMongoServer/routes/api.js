@@ -5,8 +5,17 @@ const {getRatingsBatch, uploadRatings, getFilmsByRatingRange, getFilmRating } = 
 const path = require('path');
 const fs = require('fs');
 const {advancedReviewsSearch, getFilmReviews, uploadRTReviews} = require('../controllers/RTReview');
-//usa curl "http://localhost:3002/api/films/ratings"
-
+/**
+ * POST /advanced-search/reviews - Advanced search for movie reviews with filtering and sorting
+ * @param {Object} query - Search criteria {movie_title?, critic_name?}
+ * @param {Object} sort - Sorting criteria {field: order}
+ * @param {number} [page=0] - Pagination offset
+ * @param {number} [size=15] - Items per page (max 100)
+ * @param {boolean} [topCriticsOnly=false] - Filter only top critics
+ * @returns {Object} 200 - {data: Review[], pagination: Object, stats: Object}
+ * @throws {400} Missing required search criteria
+ * @throws {500} Database query error
+ */
 router.post('/advanced-search/reviews', async (req, res) => {
     try {
         const { query = {}, sort = {}, page = 0, size = 15, topCriticsOnly = false } = req.body;
@@ -54,6 +63,16 @@ router.post('/advanced-search/reviews', async (req, res) => {
         });
     }
 });
+/**
+ * GET /films/:title/reviews - Get reviews for specific movie title
+ * @param {string} title - URL encoded movie title
+ * @param {number} [limit=10] - Max results to return
+ * @param {number} [offset=0] - Pagination offset
+ * @param {number} [minRating] - Minimum normalized rating filter
+ * @param {number} [maxRating] - Maximum normalized rating filter
+ * @returns {Object} 200 - {reviews: Review[], pagination: Object, stats: Object}
+ * @throws {500} Database query error
+ */
 router.get('/films/:title/reviews', async (req, res) => {
     try {
         const movieTitle = decodeURIComponent(req.params.title);
@@ -86,6 +105,15 @@ router.get('/films/:title/reviews', async (req, res) => {
         });
     }
 });
+/**
+ * GET /films/ratings - Find films within rating range
+ * @param {number} [minRating=0] - Minimum rating (0-5)
+ * @param {number} [maxRating=5] - Maximum rating (0-5)
+ * @param {number} [limit=10] - Max results to return
+ * @returns {Object} 200 - Array of film rating objects
+ * @throws {400} Invalid rating range
+ * @throws {500} Database query error
+ */
 router.get('/films/ratings', async (req, res) => {
     try {
         const minRating = parseFloat(req.query.minRating) || 0;
@@ -100,7 +128,7 @@ router.get('/films/ratings', async (req, res) => {
         }
 
         // Chiamata al controller
-        const films = await getFilmsByRatingRange(minRating, maxRating, limit);
+        const films = getFilmsByRatingRange(minRating, maxRating, limit);
         res.json(films);
     } catch (error) {
         console.error('Errore route /films/ratings:', error);
@@ -110,7 +138,14 @@ router.get('/films/ratings', async (req, res) => {
         });
     }
 });
-//usa curl -X GET "http://localhost:3002/api/films/1001003"
+/**
+ * GET /films/:id - Get average rating for specific movie ID
+ * @param {number} id - Numeric movie identifier
+ * @returns {Object} 200 - {id: number, rating: number}
+ * @throws {400} Invalid movie ID format
+ * @throws {404} Movie not found
+ * @throws {500} Database error
+ */
 router.get('/films/:id', async (req, res) => {
     try {
         const movieId = parseInt(req.params.id);
@@ -140,6 +175,13 @@ router.get('/films/:id', async (req, res) => {
     }
 })
 
+/**
+ * POST /ratings/batch - Get ratings for multiple films in batch
+ * @param {number[]} filmIds - Array of movie IDs
+ * @returns {Object} 200 - Array of rating objects
+ * @throws {400} Invalid input format
+ * @throws {500} Database error
+ */
 router.post('/ratings/batch', async (req, res) => {
     try {
         const { filmIds } = req.body;
@@ -151,7 +193,7 @@ router.post('/ratings/batch', async (req, res) => {
         }
 
         // Utilizza il controller invece della logica diretta
-        const ratings = await getRatingsBatch(filmIds);
+        const ratings = getRatingsBatch(filmIds);
 
         res.json(ratings);
     } catch (error) {
@@ -164,6 +206,11 @@ router.post('/ratings/batch', async (req, res) => {
 });
 
 
+/**
+ * POST /upload-db - Upload CSV data to database (admin only)
+ * @returns {Object} 200 - {reviews: UploadResult}
+ * @throws {500} File processing error
+ */
 router.post('/upload-db', async (req, res) => {
     try {
         // Caricamento Ratings
@@ -179,7 +226,7 @@ router.post('/upload-db', async (req, res) => {
             : { success: false, message: "File rt_reviews.csv non trovato" };
 
         res.json({
-            //ratings: ratingsResult,
+            ratings: ratingsResult,
             reviews: reviewsResult
         });
     } catch (error) {
@@ -189,12 +236,5 @@ router.post('/upload-db', async (req, res) => {
         });
     }
 });
-
-
-router.post('/upload-reviews', async (req, res) => {
-    const result = await uploadReviews();
-    res.status(result.success ? 200 : 500).json(result);
-});
-
 
 module.exports = router;

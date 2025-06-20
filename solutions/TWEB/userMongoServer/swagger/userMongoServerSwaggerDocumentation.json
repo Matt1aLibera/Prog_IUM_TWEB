@@ -1,13 +1,13 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "User Authentication Server API",
-    "description": "API documentation for user authentication and management",
+    "title": "User Authentication Server API and management of chat rooms",
+    "description": "API documentation for user authentication and management end chat rooms management",
     "version": "1.0.0",
     "contact": {
       "name": "Mattia Liberatore",
       "email": "mattia.liberatore@edu.unito.it",
-      "url": "http://localhost:3002"
+      "url": "http://localhost:3001"
     },
     "license": {
       "name": "Apache 2.0",
@@ -16,7 +16,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3002",
+      "url": "http://localhost:3001",
       "description": "User registration and authentication service, management of active chat rooms"
     }
   ],

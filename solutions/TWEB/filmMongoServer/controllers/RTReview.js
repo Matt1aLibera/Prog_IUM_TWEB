@@ -1,5 +1,11 @@
 const loadRTReviews = require('../services/loadRTReviews');
 const connectDB = require('../databases/filmDB');
+/**
+ * Uploads Rotten Tomatoes reviews from CSV to database
+ * @param {string} csvPath - Path to CSV file
+ * @returns {Object} Result with stats - {success: bool, insertedCount: number, stats: Object}
+ * @throws {Error} If collection already populated or file processing fails
+ */
 const uploadRTReviews = async (csvPath) => {
     const connection = await connectDB();
     const RTReview = connection.model('RTReview');
@@ -113,7 +119,16 @@ const uploadRTReviews = async (csvPath) => {
         };
     }
 };
-
+/**
+ * Retrieves reviews for a specific movie with pagination and rating filters
+ * @param {string} movieTitle - Movie title to search for
+ * @param {number} [limit=10] - Maximum results to return
+ * @param {number} [offset=0] - Pagination offset
+ * @param {number} [minRating] - Minimum normalized rating (0-5)
+ * @param {number} [maxRating] - Maximum normalized rating (0-5)
+ * @returns {Object} Result with reviews and stats - {success: bool, data: Review[], stats: Object}
+ * @throws {Error} If database query fails
+ */
 const getFilmReviews = async (movieTitle, limit = 10, offset = 0, minRating = null, maxRating = null) => {
     const connection = await connectDB();
     const RTReview = connection.model('RTReview');
@@ -175,7 +190,17 @@ const getFilmReviews = async (movieTitle, limit = 10, offset = 0, minRating = nu
         };
     }
 };
-
+/**
+ * Performs advanced search across reviews with multiple criteria
+ * @param {Object} params - Search parameters
+ * @param {Object} params.query - Search criteria {movie_title?, critic_name?, normalized_score?}
+ * @param {Object} params.sort - Sorting configuration
+ * @param {number} [params.page=0] - Pagination page number
+ * @param {number} [params.size=15] - Items per page
+ * @param {boolean} [params.topCriticsOnly=false] - Filter only top critics
+ * @returns {Object} Result with paginated data - {success: bool, data: Review[], pagination: Object}
+ * @throws {Error} If database query fails
+ */
 const advancedReviewsSearch = async (params) => {
     const connection = await connectDB();
     const RTReview = connection.model('RTReview');

@@ -1,6 +1,10 @@
 const fs = require('fs');
 const csv = require('csv-parser');
-
+/**
+ * Parses CSV file into JSON array, filtering invalid records
+ * @param {string} filePath - Path to CSV file
+ * @returns {Promise<Array>} Resolves with valid records
+ */
 const parseCSV = (filePath) => {
     return new Promise((resolve, reject) => {
         const validRecords = [];

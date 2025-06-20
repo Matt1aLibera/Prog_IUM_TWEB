@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-
+/**
+ * Movie rating schema with validation constraints
+ */
 const filmRatingSchema = new Schema({
     movie_id: {
         type: Number,  // ID numerico semplice

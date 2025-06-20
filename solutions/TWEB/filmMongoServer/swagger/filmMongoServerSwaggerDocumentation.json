@@ -1,0 +1,656 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Film MongoDB Server API",
+    "description": "API for movie ratings and reviews data management",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Mattia Liberatore",
+      "email": "mattia.liberatore@edu.unito.it",
+      "url": "http://localhost:3002"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3002",
+      "description": "Movie ratings and reviews data service"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Reviews",
+      "description": "Rotten Tomatoes movie reviews operations"
+    },
+    {
+      "name": "Ratings",
+      "description": "Movie ratings management and queries"
+    },
+    {
+      "name": "Admin",
+      "description": "Database administration endpoints"
+    }
+  ],
+  "paths": {
+    "/advanced-search/reviews": {
+      "post": {
+        "tags": ["Reviews"],
+        "summary": "Advanced review search with multiple filters",
+        "description": "Performs complex searches across reviews with filtering, sorting and pagination",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdvancedReviewSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results with pagination info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdvancedReviewSearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required search criteria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Specificare almeno il titolo del film o il nome del critico"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Database query error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/films/{title}/reviews": {
+      "get": {
+        "tags": ["Reviews"],
+        "summary": "Get reviews for specific movie",
+        "description": "Retrieves paginated reviews with optional rating filters, sorted by rating and date",
+        "parameters": [
+          {
+            "name": "title",
+            "in": "path",
+            "required": true,
+            "description": "Movie title (URL encoded)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum results per page",
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Pagination offset",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "minRating",
+            "in": "query",
+            "description": "Minimum normalized rating (0-5 scale)",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5
+            }
+          },
+          {
+            "name": "maxRating",
+            "in": "query",
+            "description": "Maximum normalized rating (0-5 scale)",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of reviews with stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovieReviewsResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Database error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/films/ratings": {
+      "get": {
+        "tags": ["Ratings"],
+        "summary": "Find films by rating range",
+        "description": "Retrieves films with ratings within specified range, sorted by rating",
+        "parameters": [
+          {
+            "name": "minRating",
+            "in": "query",
+            "description": "Minimum rating value (0-5)",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5,
+              "default": 0
+            }
+          },
+          {
+            "name": "maxRating",
+            "in": "query",
+            "description": "Maximum rating value (0-5)",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5,
+              "default": 5
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum results to return",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of films with ratings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FilmRating"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid rating range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Range di rating non valido"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Database error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/films/{id}": {
+      "get": {
+        "tags": ["Ratings"],
+        "summary": "Get rating for specific movie",
+        "description": "Retrieves rating for a movie by its numeric ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Numeric movie identifier",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Movie rating data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilmRatingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "ID film non valido"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Movie not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Film non trovato"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Database error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ratings/batch": {
+      "post": {
+        "tags": ["Ratings"],
+        "summary": "Get ratings for multiple films",
+        "description": "Retrieves ratings for multiple movies in a single request, preserving input order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRatingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Array of rating objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FilmRating"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Il campo 'filmIds' è obbligatorio e deve essere un array"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Database error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/upload-db": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Upload CSV data to database",
+        "description": "Admin endpoint for loading ratings and reviews from CSV files",
+        "responses": {
+          "200": {
+            "description": "Upload results for both ratings and reviews",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResults"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "File processing error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdvancedReviewSearchRequest": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": {
+            "type": "object",
+            "description": "Search criteria",
+            "properties": {
+              "movie_title": {
+                "type": "string",
+                "description": "Partial movie title match"
+              },
+              "critic_name": {
+                "type": "string",
+                "description": "Partial critic name match"
+              },
+              "normalized_score": {
+                "type": "number",
+                "description": "Minimum normalized score (0-5 scale)",
+                "minimum": 0,
+                "maximum": 5
+              }
+            },
+            "anyOf": [
+              { "required": ["movie_title"] },
+              { "required": ["critic_name"] }
+            ]
+          },
+          "sort": {
+            "type": "object",
+            "description": "Sorting criteria (field: 1 for asc, -1 for desc)",
+            "example": { "normalized_score": -1, "review_date": -1 }
+          },
+          "page": {
+            "type": "integer",
+            "description": "Pagination offset",
+            "default": 0,
+            "minimum": 0
+          },
+          "size": {
+            "type": "integer",
+            "description": "Items per page",
+            "default": 15,
+            "maximum": 100,
+            "minimum": 1
+          },
+          "topCriticsOnly": {
+            "type": "boolean",
+            "description": "Filter only top critics",
+            "default": false
+          }
+        }
+      },
+      "AdvancedReviewSearchResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Review"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": { "type": "integer" },
+              "size": { "type": "integer" },
+              "totalItems": { "type": "integer" },
+              "totalPages": { "type": "integer" }
+            }
+          },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "avgRating": { "type": "number" },
+              "minRating": { "type": "number" },
+              "maxRating": { "type": "number" },
+              "topCriticsCount": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "MovieReviewsResponse": {
+        "type": "object",
+        "properties": {
+          "reviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Review"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "limit": { "type": "integer" },
+              "offset": { "type": "integer" },
+              "total": { "type": "integer" }
+            }
+          },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "avgRating": { "type": "number" },
+              "minRating": { "type": "number" },
+              "maxRating": { "type": "number" }
+            }
+          }
+        }
+      },
+      "FilmRating": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Numeric movie identifier"
+          },
+          "rating": {
+            "type": "number",
+            "description": "Rating value (0-5 scale)",
+            "minimum": 0,
+            "maximum": 5
+          }
+        }
+      },
+      "FilmRatingResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "rating": { "type": "number" }
+        }
+      },
+      "BatchRatingRequest": {
+        "type": "object",
+        "required": ["filmIds"],
+        "properties": {
+          "filmIds": {
+            "type": "array",
+            "description": "Array of numeric movie IDs",
+            "items": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "UploadResults": {
+        "type": "object",
+        "properties": {
+          "ratings": {
+            "type": "object",
+            "properties": {
+              "success": { "type": "boolean" },
+              "insertedCount": { "type": "integer" },
+              "sample": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilmRating"
+                }
+              }
+            }
+          },
+          "reviews": {
+            "type": "object",
+            "properties": {
+              "success": { "type": "boolean" },
+              "insertedCount": { "type": "integer" },
+              "stats": {
+                "type": "object",
+                "properties": {
+                  "scoresNormalized": { "type": "integer" },
+                  "scoreDistribution": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "_id": { "type": "string" },
+                        "count": { "type": "integer" },
+                        "avgNormalized": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Review": {
+        "type": "object",
+        "properties": {
+          "rotten_tomatoes_link": {
+            "type": "string",
+            "description": "Unique review identifier"
+          },
+          "movie_title": {
+            "type": "string",
+            "description": "Movie title"
+          },
+          "critic_name": {
+            "type": "string",
+            "description": "Critic name"
+          },
+          "top_critic": {
+            "type": "boolean",
+            "description": "Top critic flag"
+          },
+          "publisher_name": {
+            "type": "string",
+            "description": "Publication source"
+          },
+          "review_type": {
+            "type": "string",
+            "description": "Review classification (Fresh/Rotten)",
+            "enum": ["Fresh", "Rotten"]
+          },
+          "review_score": {
+            "type": "string",
+            "description": "Original score format"
+          },
+          "normalized_score": {
+            "type": "number",
+            "description": "Normalized score (0-5 scale)",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "review_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date of review"
+          },
+          "review_content": {
+            "type": "string",
+            "description": "Full review text"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "default": false
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "details": {
+            "type": "string",
+            "description": "Additional error details (development only)"
+          }
+        }
+      }
+    }
+  }
+}
