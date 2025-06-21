@@ -1,0 +1,812 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Data Aggregation Server API",
+    "description": "API gateway that aggregates data from MongoDB and PostgreSQL services",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Mattia Liberatore",
+      "email": "mattia.liberatore@edu.unito.it",
+      "url": "http://localhost:3003"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3003/api",
+      "description": "Main aggregation service endpoint"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Carousel",
+      "description": "Homepage carousel data operations"
+    },
+    {
+      "name": "Films",
+      "description": "Film data aggregation endpoints"
+    },
+    {
+      "name": "Search",
+      "description": "Full-text, suggestions and advanced search operations"
+    },
+    {
+      "name": "Oscars",
+      "description": "Oscar nominations data"
+    },
+    {
+      "name": "Reviews",
+      "description": "Film reviews aggregation"
+    }
+  ],
+  "paths": {
+    "/carousel": {
+      "get": {
+        "tags": ["Carousel"],
+        "summary": "Get highly rated films for carousel",
+        "description": "Aggregates data from MongoDB (ratings) and PostgreSQL (posters) for homepage display",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of films to return",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 15
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of carousel-ready film objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CarouselFilm"
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Dependent service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/films/{id}": {
+      "get": {
+        "tags": ["Films"],
+        "summary": "Get complete film details",
+        "description": "Combines film metadata from PostgreSQL with ratings from MongoDB",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Numeric film ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Complete film data object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompleteFilm"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid film ID format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "PostgreSQL service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/films/search/full": {
+      "get": {
+        "tags": ["Search"],
+        "summary": "Full-text film search",
+        "description": "Proxies search request to PostgreSQL service with pagination",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Search query (min 2 chars)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "0-based page number",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 15
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedFilms"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Search service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/films/search/autocomplete": {
+      "get": {
+        "tags": ["Search"],
+        "summary": "Film title autocomplete",
+        "description": "Fast prefix-based autocomplete suggestions",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Partial search query (min 2 chars)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of autocomplete suggestions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AutocompleteSuggestion"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Autocomplete service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oscars/search": {
+      "post": {
+        "tags": ["Oscars"],
+        "summary": "Search Oscar nominations",
+        "description": "Retrieves Oscar nominations data filtered by film and/or year",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OscarSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Array of Oscar nominations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OscarNomination"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Oscar data service failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/films/{title}/reviews": {
+      "get": {
+        "tags": ["Reviews"],
+        "summary": "Get film reviews",
+        "description": "Retrieves and filters reviews from MongoDB with pagination",
+        "parameters": [
+          {
+            "name": "title",
+            "in": "path",
+            "required": true,
+            "description": "Film title (URL encoded)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max results per page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Pagination offset",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "minRating",
+            "in": "query",
+            "description": "Minimum review rating (0-5 scale)",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5
+            }
+          },
+          {
+            "name": "maxRating",
+            "in": "query",
+            "description": "Maximum review rating (0-5 scale)",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated reviews with stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "MongoDB service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/advanced-search": {
+      "get": {
+        "tags": ["Search"],
+        "summary": "Advanced unified search",
+        "description": "Complex search across films and reviews with multiple filters",
+        "parameters": [
+          {
+            "name": "searchType",
+            "in": "query",
+            "required": true,
+            "description": "Type of search ('films' or 'reviews')",
+            "schema": {
+              "type": "string",
+              "enum": ["films", "reviews"]
+            }
+          },
+          {
+            "name": "minRating",
+            "in": "query",
+            "description": "Minimum rating filter (0-5)",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5,
+              "default": 0
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Sorting criteria (field_direction)",
+            "schema": {
+              "type": "string",
+              "example": "rating_desc"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Pagination offset",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedFilms"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PaginatedReviews"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid search parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Search execution error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/by-genre": {
+      "get": {
+        "tags": ["Films"],
+        "summary": "Get films by genre",
+        "description": "Retrieves films filtered by genre with rating enrichment",
+        "parameters": [
+          {
+            "name": "genre",
+            "in": "query",
+            "required": true,
+            "description": "Genre to filter by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max results to return",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 15
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of films sorted by rating",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GenreFilm"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Genre search failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CarouselFilm": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Film ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "Film title"
+          },
+          "posterUrl": {
+            "type": "string",
+            "description": "URL to poster image"
+          },
+          "rating": {
+            "type": "number",
+            "description": "Average rating (0-5 scale)",
+            "minimum": 0,
+            "maximum": 5
+          }
+        }
+      },
+      "CompleteFilm": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Film ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "Film title"
+          },
+          "year": {
+            "type": "integer",
+            "description": "Release year"
+          },
+          "plot": {
+            "type": "string",
+            "description": "Film plot summary"
+          },
+          "posterUrl": {
+            "type": "string",
+            "description": "URL to poster image"
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of genres"
+          },
+          "rating": {
+            "type": "number",
+            "description": "Average rating from MongoDB (0-5 scale)",
+            "minimum": 0,
+            "maximum": 5
+          }
+        }
+      },
+      "PaginatedFilms": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompleteFilm"
+            }
+          },
+          "pageable": {
+            "type": "object",
+            "properties": {
+              "pageNumber": {
+                "type": "integer"
+              },
+              "pageSize": {
+                "type": "integer"
+              },
+              "offset": {
+                "type": "integer"
+              }
+            }
+          },
+          "totalElements": {
+            "type": "integer"
+          },
+          "totalPages": {
+            "type": "integer"
+          }
+        }
+      },
+      "AutocompleteSuggestion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer"
+          }
+        }
+      },
+      "OscarSearchRequest": {
+        "type": "object",
+        "properties": {
+          "filmName": {
+            "type": "string",
+            "description": "Film name to search"
+          },
+          "year": {
+            "type": "integer",
+            "description": "Optional ceremony year filter"
+          }
+        },
+        "required": ["filmName"]
+      },
+      "OscarNomination": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Oscar category"
+          },
+          "year": {
+            "type": "integer",
+            "description": "Ceremony year"
+          },
+          "isWinner": {
+            "type": "boolean",
+            "description": "Whether nomination won"
+          },
+          "nominee": {
+            "type": "string",
+            "description": "Nominee name"
+          }
+        }
+      },
+      "ReviewResponse": {
+        "type": "object",
+        "properties": {
+          "reviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Review"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "integer"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer"
+              }
+            }
+          },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "avgRating": {
+                "type": "number"
+              },
+              "minRating": {
+                "type": "number"
+              },
+              "maxRating": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "Review": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Review ID"
+          },
+          "critic": {
+            "type": "string",
+            "description": "Critic name"
+          },
+          "publisher": {
+            "type": "string",
+            "description": "Publication source"
+          },
+          "score": {
+            "type": "number",
+            "description": "Normalized score (0-5)",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Review date"
+          },
+          "content": {
+            "type": "string",
+            "description": "Review text"
+          },
+          "isFresh": {
+            "type": "boolean",
+            "description": "Fresh/Rotten rating"
+          }
+        }
+      },
+      "PaginatedReviews": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Review"
+            }
+          },
+          "pageable": {
+            "type": "object",
+            "properties": {
+              "pageNumber": {
+                "type": "integer"
+              },
+              "pageSize": {
+                "type": "integer"
+              }
+            }
+          },
+          "totalElements": {
+            "type": "integer"
+          },
+          "totalPages": {
+            "type": "integer"
+          },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "avgRating": {
+                "type": "number"
+              },
+              "topCriticsCount": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "GenreFilm": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer"
+          },
+          "posterUrl": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "number"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "details": {
+            "type": "string",
+            "description": "Additional error details (development only)"
+          }
+        }
+      }
+    }
+  }
+}

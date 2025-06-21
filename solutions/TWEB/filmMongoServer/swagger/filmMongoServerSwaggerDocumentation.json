@@ -16,7 +16,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3002",
+      "url": "http://localhost:3002/api",
       "description": "Movie ratings and reviews data service"
     }
   ],
@@ -35,7 +35,7 @@
     }
   ],
   "paths": {
-    "/advanced-search/reviews": {
+    "/api/advanced-search/reviews": {
       "post": {
         "tags": ["Reviews"],
         "summary": "Advanced review search with multiple filters",
@@ -87,7 +87,7 @@
         }
       }
     },
-    "/films/{title}/reviews": {
+    "/api/films/{title}/reviews": {
       "get": {
         "tags": ["Reviews"],
         "summary": "Get reviews for specific movie",
@@ -167,7 +167,7 @@
         }
       }
     },
-    "/films/ratings": {
+    "/api/films/ratings": {
       "get": {
         "tags": ["Ratings"],
         "summary": "Find films by rating range",
@@ -246,7 +246,7 @@
         }
       }
     },
-    "/films/{id}": {
+    "/api/films/{id}": {
       "get": {
         "tags": ["Ratings"],
         "summary": "Get rating for specific movie",
@@ -312,7 +312,7 @@
         }
       }
     },
-    "/ratings/batch": {
+    "/api/ratings/batch": {
       "post": {
         "tags": ["Ratings"],
         "summary": "Get ratings for multiple films",
@@ -367,7 +367,7 @@
         }
       }
     },
-    "/upload-db": {
+    "/api/upload-db": {
       "post": {
         "tags": ["Admin"],
         "summary": "Upload CSV data to database",

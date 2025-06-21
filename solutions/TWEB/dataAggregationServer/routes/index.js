@@ -10,7 +10,12 @@ const SERVICES = {
   aggregation: process.env.AGGREGATION_SERVICE || 'http://localhost:3003' // Aggiunto
 };
 
-//usa curl "http://localhost:3003/api/carousel?limit=15"
+/**
+ * GET /carousel - Retrieves highly rated films for homepage carousel
+ * @param {number} [limit=15] - Max results to return (max 20)
+ * @returns {Object[]} 200 - Array of carousel items with poster and rating
+ * @throws {502} If dependent services are unavailable
+ */
 router.get('/carousel', async (req, res, next) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 15, 20); // Aumentato a 15 di default
@@ -57,7 +62,13 @@ router.get('/carousel', async (req, res, next) => {
   }
 });
 
-// Route per i dettagli completi del film
+/**
+ * GET /films/:id - Aggregates complete film details from multiple services
+ * @param {number} id - Numeric film identifier
+ * @returns {Object} 200 - Combined film data with PostgreSQL details and MongoDB rating
+ * @throws {400} Invalid film ID format
+ * @throws {502} If PostgreSQL service is unavailable
+ */
 router.get('/films/:id', async (req, res, next) => {
   try {
     const filmId = parseInt(req.params.id);
@@ -92,9 +103,14 @@ router.get('/films/:id', async (req, res, next) => {
   }
 });
 
-///usa powershell:$query = [System.Uri]::EscapeDataString("Twin Peaks")
-// Invoke-RestMethod -Uri "http://localhost:3003/api/films/search/full?q=$query"
-// Nuova route per la ricerca completa
+/**
+ * GET /films/search/full - Full-text film search with pagination
+ * @param {string} q - Search query (URL encoded)
+ * @param {number} [page=0] - Pagination offset (0-based)
+ * @param {number} [size=15] - Items per page
+ * @returns {Object} 200 - Paginated search results with Spring Data format
+ * @throws {500} If search service fails
+ */
 router.get('/films/search/full', async (req, res, next) => {
   try {
     const { q, page = 0, size = 15 } = req.query;
@@ -138,7 +154,12 @@ router.get('/films/search/full', async (req, res, next) => {
     });
   }
 });
-
+/**
+ * GET /films/search/autocomplete - Fast autocomplete suggestions
+ * @param {string} q - Partial search query
+ * @returns {Object[]} 200 - Array of autocomplete suggestions
+ * @throws {500} If autocomplete service fails
+ */
 router.get('/films/search/autocomplete', async (req, res, next) => {
   try {
     const { q } = req.query;
@@ -162,17 +183,23 @@ router.get('/films/search/autocomplete', async (req, res, next) => {
     });
   }
 });
-
+/**
+ * POST /oscars/search - Searches for Oscar nominations
+ * @param {string} filmName - Film name to search
+ * @param {number} [year] - Optional ceremony year filter
+ * @returns {Object[]} 200 - Array of Oscar nominations
+ * @throws {500} If Oscar data service fails
+ */
 router.post('/oscars/search', async (req, res) => {
   try {
     const { filmName, year } = req.body;
 
-    // 1. Chiamata al Postgres Server (già testata con curl)
+    // 1. Chiamata al Postgres Server
     const response = await axios.get(`${SERVICES.postgres}/api/oscars/search`, {
       params: { filmName, year }
     });
 
-    // 2. Formatta la risposta (opzionale)
+    // 2. Formatta la risposta
     const formattedOscars = response.data.map(oscar => ({
       category: oscar.category,
       year: oscar.yearCeremony,
@@ -187,15 +214,14 @@ router.post('/oscars/search', async (req, res) => {
 });
 
 /**
- * @api {get} /films/:title/reviews Recupera recensioni filtrate
- * @apiName GetFilmReviews
- * @apiGroup Aggregation
- *
- * @apiParam {String} title Titolo del film (URL-encoded)
- * @apiQuery {Number} [limit=10] Numero di risultati
- * @apiQuery {Number} [offset=0] Offset paginazione
- * @apiQuery {Number} [minRating] Filtro rating minimo (0-5)
- * @apiQuery {Number} [maxRating] Filtro rating massimo (0-5)
+ * GET /films/:title/reviews - Aggregates and filters film reviews
+ * @param {string} title - URL encoded film title
+ * @param {number} [limit=10] - Max results per page (max 50)
+ * @param {number} [offset=0] - Pagination offset
+ * @param {number} [minRating] - Minimum review rating (0-5)
+ * @param {number} [maxRating] - Maximum review rating (0-5)
+ * @returns {Object} 200 - Reviews with pagination and stats
+ * @throws {502} If MongoDB service is unavailable
  */
 router.get('/films/:title/reviews', async (req, res, next) => {
   try {
@@ -245,7 +271,17 @@ router.get('/films/:title/reviews', async (req, res, next) => {
     }
   }
 });
-
+/**
+ * GET /advanced-search - Unified advanced search across multiple services
+ * @param {string} searchType - 'films' or 'reviews'
+ * @param {number} [minRating=0] - Minimum rating filter
+ * @param {string} [sortBy] - Sorting criteria (field_direction)
+ * @param {number} [page=0] - Pagination offset
+ * @param {number} [size=15] - Items per page
+ * @returns {Object} 200 - Paginated results with original service structure
+ * @throws {400} Invalid search parameters
+ * @throws {500} Search execution error
+ */
 router.get('/advanced-search', async (req, res) => {
   console.log('DAS - Parametri ricevuti:', req.query);
 
@@ -411,7 +447,12 @@ router.get('/advanced-search', async (req, res) => {
   }
 })
 
-// Aggiungi questa funzione helper per tradurre il parametro sortBy
+/**
+ * Translates sort parameter for PostgreSQL compatibility
+ * @private
+ * @param {string} sortBy - Original sort parameter
+ * @returns {string} Translated sort parameter
+ */
 function translateSortParam(sortBy) {
   if (!sortBy) return 'date_desc'; // Default: più recenti prima
 
@@ -422,7 +463,12 @@ function translateSortParam(sortBy) {
 
   return `${field}_${direction}`; // Es: date_desc o date_asc
 }
-// helpers/reviewSortHelper.js
+/**
+ * Builds MongoDB sort object from query parameter
+ * @private
+ * @param {string} sortBy - Sort parameter (field_direction)
+ * @returns {Object} MongoDB sort object
+ */
 function buildReviewSortObject(sortBy) {
   if (!sortBy) return { review_date: -1 }; // Default: più recenti prima
 
@@ -439,7 +485,13 @@ function buildReviewSortObject(sortBy) {
   }
 }
 
-
+/**
+ * GET /by-genre - Gets films by genre with rating enrichment
+ * @param {string} genre - Genre to filter by
+ * @param {number} [limit=15] - Max results to return
+ * @returns {Object[]} 200 - Films sorted by rating
+ * @throws {500} If genre search fails
+ */
 router.get('/by-genre', async (req, res) => {
   const { genre, limit = 15 } = req.query;
   console.log(`DAS - Ricerca film per genere: ${genre}, limit: ${limit}`);

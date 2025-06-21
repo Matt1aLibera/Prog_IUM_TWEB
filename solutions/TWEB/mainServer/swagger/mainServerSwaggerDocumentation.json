@@ -406,7 +406,7 @@
         }
       }
     },
-    "/chat": {
+    "/sio/chat": {
       "get": {
         "tags": ["Public Pages", "Chat Rooms"],
         "description": "Renders chat interface (SPA) with two modes: AJAX request returns only chat content, normal request returns full page with layout",
@@ -434,7 +434,7 @@
         }
       }
     },
-    "/chat/createRoom": {
+    "/sio/chat/createRoom": {
       "post": {
         "tags": ["Chat Rooms"],
         "description": "Creates new chat room",
@@ -513,7 +513,7 @@
         }
       }
     },
-    "/chat/active-rooms": {
+    "/sio/chat/active-rooms": {
       "get": {
         "tags": ["Chat Rooms"],
         "description": "List active rooms for Socket.IO",
@@ -563,7 +563,7 @@
         }
       }
     },
-    "/chat/deleteRoom/{code}": {
+    "/sio/chat/deleteRoom/{code}": {
       "delete": {
         "tags": ["Chat Rooms"],
         "description": "Deletes a room (called by Socket.IO)",
@@ -618,7 +618,7 @@
         }
       }
     },
-    "/forms": {
+    "/auth/forms": {
       "get": {
         "tags": ["Authentication"],
         "description": "Renders authentication forms (login/register)",
@@ -648,7 +648,7 @@
         }
       }
     },
-    "/login": {
+    "/auth/login": {
       "post": {
         "tags": ["Authentication"],
         "description": "User authentication with multi-tab support",
@@ -719,7 +719,7 @@
         }
       }
     },
-    "/register": {
+    "/auth/register": {
       "post": {
         "tags": ["Authentication"],
         "description": "Registers new user",
@@ -776,7 +776,7 @@
         }
       }
     },
-    "/logout": {
+    "/auth/logout": {
       "post": {
         "tags": ["Authentication"],
         "description": "Ends session for specific tab or globally",
@@ -804,7 +804,7 @@
         }
       }
     },
-    "/check": {
+    "/auth/check": {
       "get": {
         "tags": ["Authentication"],
         "description": "Verifies authentication status for a tab",

@@ -17,6 +17,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/auth', authRoutes); // Tutte le route inizieranno con /auth
 app.use('/chat', chatRoutes); // Route delle chat
 
+const swaggerUi = require('swagger-ui-express');
+const openApiDocumentation = require('./swagger/userMongoServerSwaggerDocumentation.json');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDocumentation));
+
 // Configurazione view engine (se necessario, altrimenti rimuovere)
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');

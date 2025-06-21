@@ -37,7 +37,9 @@
   "paths": {
     "/auth/register": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Register a new user",
         "requestBody": {
           "required": true,
@@ -101,7 +103,9 @@
     },
     "/auth/logout": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Terminate user session",
         "responses": {
           "200": {
@@ -127,9 +131,11 @@
         }
       }
     },
-    "/auth/{id}": {
+    "/auth/user/{id}": {
       "get": {
-        "tags": ["User Management"],
+        "tags": [
+          "User Management"
+        ],
         "summary": "Get user by ID",
         "parameters": [
           {
@@ -177,7 +183,9 @@
     },
     "/auth/verify": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Verify user credentials",
         "requestBody": {
           "required": true,
@@ -185,7 +193,10 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["username", "password"],
+                "required": [
+                  "username",
+                  "password"
+                ],
                 "properties": {
                   "username": {
                     "type": "string",
@@ -238,33 +249,17 @@
         }
       }
     },
-    "/chat/rooms": {
+    "/chat/createRoom": {
       "post": {
         "tags": ["Chat Rooms"],
         "summary": "Create a new chat room",
+        "operationId": "createRoom",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": ["name", "topic", "code"],
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "example": "Film Discussion"
-                  },
-                  "topic": {
-                    "type": "string",
-                    "enum": ["film", "attore", "crew", "personaggio", "generale"],
-                    "example": "film"
-                  },
-                  "code": {
-                    "type": "string",
-                    "description": "Unique room identifier",
-                    "example": "film-discussion-123"
-                  }
-                }
+                "$ref": "#/components/schemas/RoomCreateRequest"
               }
             }
           }
@@ -275,34 +270,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "room": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "example": "507f1f77bcf86cd799439011"
-                        },
-                        "code": {
-                          "type": "string",
-                          "example": "film-discussion-123"
-                        },
-                        "name": {
-                          "type": "string",
-                          "example": "Film Discussion"
-                        },
-                        "topic": {
-                          "type": "string",
-                          "example": "film"
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/RoomSuccessResponse"
                 }
               }
             }
@@ -332,51 +300,20 @@
             }
           }
         }
-      },
+      }
+    },
+    "/chat/getRooms": {
       "get": {
         "tags": ["Chat Rooms"],
         "summary": "Get all chat rooms",
+        "operationId": "getRooms",
         "responses": {
           "200": {
             "description": "List of rooms retrieved",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "db": {
-                      "type": "string",
-                      "example": "chatRoomDB"
-                    },
-                    "count": {
-                      "type": "integer",
-                      "example": 5
-                    },
-                    "rooms": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "example": "Film Discussion"
-                          },
-                          "topic": {
-                            "type": "string",
-                            "example": "film"
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/RoomsListResponse"
                 }
               }
             }
@@ -394,10 +331,11 @@
         }
       }
     },
-    "/chat/rooms/{code}": {
+    "/chat/deleteRoom/{code}": {
       "delete": {
         "tags": ["Chat Rooms"],
         "summary": "Delete a chat room by its code",
+        "operationId": "deleteRoom",
         "parameters": [
           {
             "name": "code",
@@ -415,38 +353,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Stanza eliminata"
-                    },
-                    "deletedRoom": {
-                      "type": "object",
-                      "properties": {
-                        "_id": {
-                          "type": "string",
-                          "example": "507f1f77bcf86cd799439011"
-                        },
-                        "code": {
-                          "type": "string",
-                          "example": "film-discussion-123"
-                        },
-                        "name": {
-                          "type": "string",
-                          "example": "Film Discussion"
-                        },
-                        "topic": {
-                          "type": "string",
-                          "example": "film"
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/RoomDeleteResponse"
                 }
               }
             }
@@ -574,6 +481,103 @@
           "details": {
             "type": "string",
             "example": "Additional error details"
+          }
+        }
+      },
+      "RoomCreateRequest": {
+        "type": "object",
+        "required": ["name", "topic", "code"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Film Discussion"
+          },
+          "topic": {
+            "type": "string",
+            "enum": ["film", "attore", "crew", "personaggio", "generale"],
+            "example": "film"
+          },
+          "code": {
+            "type": "string",
+            "description": "Unique room identifier",
+            "example": "film-discussion-123"
+          }
+        }
+      },
+      "RoomResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "code": {
+            "type": "string",
+            "example": "film-discussion-123"
+          },
+          "name": {
+            "type": "string",
+            "example": "Film Discussion"
+          },
+          "topic": {
+            "type": "string",
+            "example": "film"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-01T00:00:00Z"
+          }
+        }
+      },
+      "RoomSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "room": {
+            "$ref": "#/components/schemas/RoomResponse"
+          }
+        }
+      },
+      "RoomsListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "db": {
+            "type": "string",
+            "example": "chatRoomDB"
+          },
+          "count": {
+            "type": "integer",
+            "example": 5
+          },
+          "rooms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoomResponse"
+            }
+          }
+        }
+      },
+      "RoomDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Stanza eliminata"
+          },
+          "deletedRoom": {
+            "$ref": "#/components/schemas/RoomResponse"
           }
         }
       }

@@ -20,6 +20,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api', apiRoutes);
 
+const swaggerUi = require('swagger-ui-express');
+const openApiDocumentation = require('./swagger/filmMongoServerSwaggerDocumentation.json');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDocumentation));
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));

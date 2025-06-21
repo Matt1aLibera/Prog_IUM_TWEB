@@ -7,14 +7,18 @@ var session = require('express-session');
 require('passport');
 const flash = require('connect-flash');
 const MongoStore = require('connect-mongo');
-
+var app = express();
 // Route imports
 var indexRouter = require('./routes/index');
 var loginRouter = require('./routes/auth');
 var adminRouter =require ('./routes/admin')
 var chatRouter =require('./routes/chatRoom')
 
-var app = express();
+const swaggerUi = require('swagger-ui-express');
+const openApiDocumentation = require('./swagger/mainServerSwaggerDocumentation.json');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDocumentation));
+
+
 
 // Configurazione Handlebars
 const { engine } = require('express-handlebars');
