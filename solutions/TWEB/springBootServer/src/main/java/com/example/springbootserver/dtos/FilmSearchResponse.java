@@ -1,5 +1,8 @@
 package com.example.springbootserver.dtos;
-
+/**
+ * Movie search result with basic info and poster
+ * Used for search results and autocomplete suggestions
+ */
 public class FilmSearchResponse {
     private Long id;
     private String name;
@@ -45,8 +48,6 @@ public class FilmSearchResponse {
         this.posterLink = posterLink;
     }
 
-    // Costruttori, getter e setter
     public FilmSearchResponse() {}
 
-    // ... aggiungi getter e setter per tutti i campi
 }

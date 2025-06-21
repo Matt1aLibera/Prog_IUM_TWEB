@@ -17,6 +17,11 @@ import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
 import java.util.List;
+/**
+ * Service for loading movie studio data from CSV into database
+ * Handles CSV parsing, validation and batch insertion of studio information
+ * including movie ID and studio name
+ */
 @Service
 public class StudiosCsvServ {
     private static final Logger logger = LoggerFactory.getLogger(StudiosCsvServ.class);
@@ -26,7 +31,13 @@ public class StudiosCsvServ {
     private final Resource csvFile;
     private final EntityManager entityManager;
     private final JdbcTemplate jdbcTemplate;
-
+    /**
+     * Initialize service with required dependencies
+     * @param studioRepo Repository for studio data
+     * @param csvFile CSV resource file from classpath (studios.csv)
+     * @param entityManager JPA EntityManager for batch operations
+     * @param jdbcTemplate JDBC template for DDL operations
+     */
     public StudiosCsvServ(
             StudioRepo studioRepo,
             @Value("classpath:csv/studios.csv") Resource csvFile,
@@ -37,7 +48,11 @@ public class StudiosCsvServ {
         this.entityManager = entityManager;
         this.jdbcTemplate = jdbcTemplate;
     }
-
+    /**
+     * Check if studio data is already loaded in database
+     * @return true if table exists and contains data, false otherwise
+     * @throws Exception if database check fails
+     */
     @Transactional(readOnly = true)
     public boolean isAlreadyLoaded() {
         try {
@@ -50,7 +65,11 @@ public class StudiosCsvServ {
             return false;
         }
     }
-
+    /**
+     * Check if database table exists
+     * @param tableName Name of table to check (case insensitive)
+     * @return true if table exists in schema
+     */
     private boolean tableExists(String tableName) {
         try {
             Long count = (Long) entityManager.createNativeQuery(
@@ -63,7 +82,13 @@ public class StudiosCsvServ {
             return false;
         }
     }
-
+    /**
+     * Main method to load studio data from CSV
+     * Performs: table creation, CSV parsing, validation and batch insert
+     * Expected CSV format: movie_id,studio
+     * Required fields: both movie_id (numeric) and studio name
+     * @throws RuntimeException if file access fails or table creation fails
+     */
     @Transactional
     public void loadStudios() {
         if (isAlreadyLoaded()) {
@@ -140,6 +165,12 @@ public class StudiosCsvServ {
         }
     }
 
+    /**
+     * Create studio table if not exists with required columns
+     * Uses direct JDBC for DDL operations with columns:
+     * id (auto-increment), movie_id (FK to movie), studio (name)
+     * @throws RuntimeException if table creation fails
+     */
     private void createTableIfNotExists() {
         try {
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS studio (" +

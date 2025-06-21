@@ -1,5 +1,9 @@
 package com.example.springbootserver.services.CsvServices;
-
+/**
+ * Service for loading movie languages data from CSV into database
+ * Handles CSV parsing, validation and batch insertion of language information
+ * including language type (original/spoken) and language name
+ */
 import com.example.springbootserver.models.ActorAppearance;
 import com.example.springbootserver.models.Language;
 import com.example.springbootserver.repositories.ActorAppearanceRepo;
@@ -27,7 +31,13 @@ public class LanguagesCsvServ {
     private final Resource csvFile;
     private final EntityManager entityManager;
     private final JdbcTemplate jdbcTemplate;
-
+    /**
+     * Initialize service with required dependencies
+     * @param languageRepo Repository for language data
+     * @param csvFile CSV resource file from classpath (languages.csv)
+     * @param entityManager JPA EntityManager for batch operations
+     * @param jdbcTemplate JDBC template for DDL operations
+     */
     public LanguagesCsvServ(
             LanguageRepo languageRepo,
             @Value("classpath:csv/languages.csv") Resource csvFile,
@@ -38,7 +48,11 @@ public class LanguagesCsvServ {
         this.entityManager = entityManager;
         this.jdbcTemplate = jdbcTemplate;
     }
-
+    /**
+     * Check if language data is already loaded in database
+     * @return true if table exists and contains data, false otherwise
+     * @throws Exception if database check fails
+     */
     @Transactional(readOnly = true)
     public boolean isAlreadyLoaded() {
         try {
@@ -51,7 +65,11 @@ public class LanguagesCsvServ {
             return false;
         }
     }
-
+    /**
+     * Check if database table exists
+     * @param tableName Name of table to check
+     * @return true if table exists in schema
+     */
     private boolean tableExists(String tableName) {
         try {
             Long count = (Long) entityManager.createNativeQuery(
@@ -64,7 +82,12 @@ public class LanguagesCsvServ {
             return false;
         }
     }
-
+    /**
+     * Main method to load language data from CSV
+     * Performs: table creation, CSV parsing, validation and batch insert
+     * Expected CSV format: movie_id,type,language
+     * @throws RuntimeException if file access fails or table creation fails
+     */
     @Transactional
     public void loadLanguages() {
         if (isAlreadyLoaded()) {
@@ -142,7 +165,11 @@ public class LanguagesCsvServ {
             throw new RuntimeException("Errore di lettura file CSV", e);
         }
     }
-
+    /**
+     * Create language table if not exists
+     * Uses direct JDBC for DDL operations with separate columns for type and language
+     * @throws RuntimeException if table creation fails
+     */
     private void createTableIfNotExists() {
         try {
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS language (" +

@@ -9,6 +9,4 @@ import java.util.List;
 @Repository
 public interface CrewRepo extends JpaRepository<Crew, Long> {
     List<Crew> findByMovieId(Long movieId);
-    List<Crew> findByNameContainingIgnoreCase(String name);
-    List<Crew> findByRoleAndMovieId(String role, Long movieId);
 }

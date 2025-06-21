@@ -1,5 +1,8 @@
 package com.example.springbootserver.dtos;
-
+/**
+ * Projection of minimal movie info
+ * Used for lightweight genre-based queries
+ */
 public class MovieInfoProjection {
     private Long id;
     private String name;

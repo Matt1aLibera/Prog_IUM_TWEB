@@ -21,7 +21,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
+/**
+ * Service for loading movie data from CSV into database
+ * Handles CSV parsing, validation and batch insertion of movie information
+ * including title, release date, tagline, description and runtime
+ */
 @Service
 public class MovieCsvServ {
     private static final Logger logger = LoggerFactory.getLogger(MovieCsvServ.class);
@@ -31,7 +35,13 @@ public class MovieCsvServ {
     private final EntityManager entityManager;
     private final JdbcTemplate jdbcTemplate; // Aggiunto questo campo
 
-    // Unico costruttore con tutti i parametri necessari
+    /**
+     * Initialize service with required dependencies
+     * @param movieRepository Repository for movie data
+     * @param csvFile CSV resource file from classpath (movies.csv)
+     * @param entityManager JPA EntityManager for database operations
+     * @param jdbcTemplate JDBC template for DDL operations
+     */
     public MovieCsvServ(MovieRepo movieRepository,
                         @Value("classpath:csv/movies.csv") Resource csvFile,
                         EntityManager entityManager,
@@ -41,7 +51,11 @@ public class MovieCsvServ {
         this.entityManager = entityManager;
         this.jdbcTemplate = jdbcTemplate;
     }
-
+    /**
+     * Check if movie data is already loaded in database
+     * @return true if table exists and contains data, false otherwise
+     * @throws Exception if database check fails
+     */
     @Transactional(readOnly = true)
     public boolean isAlreadyLoaded() {
         try {
@@ -55,7 +69,11 @@ public class MovieCsvServ {
             return false;
         }
     }
-
+    /**
+     * Check if database table exists
+     * @param tableName Name of table to check (case insensitive)
+     * @return true if table exists in schema
+     */
     private boolean tableExists(String tableName) {
         try {
             Long count = (Long) entityManager.createNativeQuery(
@@ -68,7 +86,13 @@ public class MovieCsvServ {
             return false;
         }
     }
-
+    /**
+     * Main method to load movie data from CSV
+     * Performs: table creation, CSV parsing, validation and batch insert
+     * Expected CSV format: id,name,date,tagline,description,minute
+     * Required fields: id and name (others have default values if missing/invalid)
+     * @throws RuntimeException if file access fails or table creation fails
+     */
     @Transactional
     public void loadMovies() {
         if (isAlreadyLoaded()) {
@@ -163,6 +187,12 @@ public class MovieCsvServ {
         }
     }
 
+    /**
+     * Create movie table if not exists with all required columns
+     * Uses direct JDBC for DDL operations with columns:
+     * id (PK), name, date, tagline, description, minute
+     * @throws RuntimeException if table creation fails
+     */
     private void createMovieTableIfNotExists() {
         try {
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS movie (" +  // Nota: qui usiamo "movie" non "movies"

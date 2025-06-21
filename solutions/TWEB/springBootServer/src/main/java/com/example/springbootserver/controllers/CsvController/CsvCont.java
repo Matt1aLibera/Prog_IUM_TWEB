@@ -9,7 +9,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
-
+/**
+ * CSV Data Loading Controller - Handles bulk import of movie data
+ * Provides endpoint for initializing database from CSV files
+ * Cross-origin requests allowed from all origins
+ */
 @RestController
 @CrossOrigin(origins = "*")
 @RequestMapping("/api")
@@ -27,6 +31,20 @@ public class CsvCont {
     private final ThemeCsvServ themeCsvServ;
     private final OscarCsvServ oscarCsvServ;
 
+    /**
+     * Initializes CSV loading controller with all required services
+     * @param movieCsvServ - Movie data loading service
+     * @param actorCsvServ - Actor data loading service
+     * @param countryCsvServ - Country data loading service
+     * @param crewCsvServ - Crew data loading service
+     * @param genreCsvServ - Genre data loading service
+     * @param languagesCsvServ - Language data loading service
+     * @param posterCsvServ - Poster data loading service
+     * @param releasesCsvServ - Release data loading service
+     * @param studiosCsvServ - Studio data loading service
+     * @param themeCsvServ - Theme data loading service
+     * @param oscarCsvServ - Oscar data loading service
+     */
     @Autowired
     public CsvCont(MovieCsvServ movieCsvServ, ActorCsvServ actorCsvServ, CountryCsvServ countryCsvServ, CrewCsvServ crewCsvServ, GenreCsvServ genreCsvServ, LanguagesCsvServ languagesCsvServ,PosterCsvServ posterCsvServ, ReleasesCsvServ releasesCsvServ, StudiosCsvServ studiosCsvServ, ThemeCsvServ themeCsvServ, OscarCsvServ oscarCsvServ) {
         this.movieCsvServ = movieCsvServ;
@@ -41,6 +59,13 @@ public class CsvCont {
         this.themeCsvServ = themeCsvServ;
         this.oscarCsvServ = oscarCsvServ;
     }
+
+    /**
+     * POST /api/upload-db - Loads all movie data from CSV files into database
+     * @returns {JSON} 200 - Success message with loading status
+     * @returns {JSON} 500 - Error details if loading fails
+     * @throws {Exception} - Database errors or file parsing issues
+     */
     @PostMapping("/upload-db")
     public ResponseEntity<?> uploadDatabase() {
         try {

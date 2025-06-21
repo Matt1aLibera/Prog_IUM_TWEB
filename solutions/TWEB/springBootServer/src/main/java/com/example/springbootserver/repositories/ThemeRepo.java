@@ -8,5 +8,4 @@ import java.util.List;
 @Repository
 public interface ThemeRepo extends JpaRepository<Theme, Long> {
     List<Theme> findByMovieId(Long movieId);
-    List<Theme> findByThemeContainingIgnoreCase(String theme);
 }

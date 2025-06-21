@@ -8,6 +8,4 @@ import java.util.List;
 @Repository
 public interface LanguageRepo extends JpaRepository<Language, Long> {
     List<Language> findByMovieId(Long movieId);
-    List<Language> findByMovieIdAndType(Long movieId, String type);
-    List<Language> findByLanguageContainingIgnoreCase(String language);
 }

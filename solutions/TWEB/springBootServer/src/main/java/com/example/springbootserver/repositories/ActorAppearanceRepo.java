@@ -25,6 +25,4 @@ public interface ActorAppearanceRepo extends JpaRepository<ActorAppearance, Long
     @Query(value = "SELECT * FROM actor_appearances WHERE movie_id IN :movieIds ORDER BY actor_name", nativeQuery = true)
     List<ActorAppearance> findByMovieIdsInOrderByActorName(@Param("movieIds") List<Long> movieIds);
 
-    // Conta le apparizioni per film
-    long countByMovieId(Long movieId);
 }

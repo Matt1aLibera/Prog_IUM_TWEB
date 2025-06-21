@@ -15,10 +15,12 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-
+/**
+ * Service for aggregating film data from multiple repositories.
+ * Handles complex queries and data composition for film-related operations,
+ * including search, details retrieval, and Oscar award analysis.
+ */
 @Service
 public class FilmAggregationService {
     private static final Logger log = LoggerFactory.getLogger(FilmAggregationService.class); // per il logger
@@ -33,7 +35,20 @@ public class FilmAggregationService {
     private final ReleaseRepo releaseRepo;
     private final StudioRepo studioRepo;
     private final ThemeRepo themeRepo;
-
+    /**
+     * Constructs service with all required repositories
+     * @param oscarAwardRepo Repository for Oscar award data
+     * @param movieRepo Repository for movie data
+     * @param posterRepo Repository for poster data
+     * @param actorAppearanceRepo Repository for actor appearances
+     * @param countryRepo Repository for country data
+     * @param crewRepo Repository for crew data
+     * @param genreRepo Repository for genre data
+     * @param languageRepo Repository for language data
+     * @param releaseRepo Repository for release data
+     * @param studioRepo Repository for studio data
+     * @param themeRepo Repository for theme data
+     */
     @Autowired
     public FilmAggregationService(
             OscarAwardRepo oscarAwardRepo,
@@ -59,7 +74,11 @@ public class FilmAggregationService {
         this.studioRepo = studioRepo;
         this.themeRepo = themeRepo;
     }
-
+    /**
+     * Retrieves posters for multiple films by their IDs
+     * @param movieIds List of movie IDs to retrieve posters for
+     * @return List of FilmPosterResponse objects containing movie ID, name and poster link
+     */
     public List<FilmPosterResponse> getFilmsPosters(List<Long> movieIds) {
         return movieRepo.findByIdIn(movieIds).stream()
                 .map(movie -> {
@@ -74,7 +93,12 @@ public class FilmAggregationService {
                 })
                 .collect(Collectors.toList());
     }
-
+    /**
+     * Retrieves complete details for a specific film
+     * @param movieId ID of the movie to retrieve details for
+     * @return FilmDetailsResponse containing all related data
+     * @throws RuntimeException if movie is not found
+     */
     public FilmDetailsResponse getFilmDetails(Long movieId) {
         // Recupera il film principale
         Movie movie = movieRepo.findById(movieId)
@@ -108,7 +132,9 @@ public class FilmAggregationService {
         );
     }
 
-    // Metodo unico per entrambe le ricerche
+    /**
+     * Internal method to search movies with result limit
+     */
     private List<FilmSearchResponse> searchFilms(String query, int limit) {
         String searchTerm = query.toLowerCase().trim(); // Trim per rimuovere spazi extra
         List<Movie> results = new ArrayList<>();
@@ -143,11 +169,20 @@ public class FilmAggregationService {
                 })
                 .collect(Collectors.toList());
     }
-
+    /**
+     * Performs autocomplete search for films with a limit of 5 results
+     * @param query Search term
+     * @return List of matching films with basic info and poster
+     */
     public List<FilmSearchResponse> searchFilmsAutocomplete(String query) {
         return searchFilms(query, 5);
     }
-
+    /**
+     * Performs full-text search for films with pagination
+     * @param query Search term
+     * @param pageable Pagination information
+     * @return Page of matching films with basic info and poster
+     */
     public Page<FilmSearchResponse> searchFilmsFull(String query, Pageable pageable) {
         String searchTerm = query.toLowerCase().trim();
         int pageSize = pageable.getPageSize();
@@ -206,6 +241,22 @@ public class FilmAggregationService {
                 totalCombined
         );
     }
+    /**
+     * Performs advanced film search with multiple filters
+     * @param title Title filter (partial match)
+     * @param actor Actor name filter
+     * @param character Character name filter
+     * @param crew Crew member name filter
+     * @param studio Studio name filter
+     * @param genres List of genres to filter by
+     * @param yearFrom Minimum release year
+     * @param yearTo Maximum release year
+     * @param oscarStatus Oscar status filter ("winner" or "nominee")
+     * @param sort Sorting criteria
+     * @param pageable Pagination information
+     * @return Page of matching films with basic info and poster
+     * @throws IllegalArgumentException if multiple relation filters are specified
+     */
     public Page<FilmSearchResponse> advancedSearchFilms(
             String title,
             String actor, String character, String crew, String studio,
@@ -238,7 +289,10 @@ public class FilmAggregationService {
         // 6. Applica paginazione MANUALE
         return paginateList(allMovies, pageable, sortObj);
     }
-    // Nuovo metodo per costruire l'oggetto Sort
+
+    /**
+     * Creates Sort object from sort parameters
+     */
     private Sort buildSort(String sortParam) {
         if (sortParam == null || sortParam.isEmpty()) {
             return Sort.by(Sort.Direction.ASC, "id");
@@ -256,7 +310,10 @@ public class FilmAggregationService {
 
         return Sort.by(direction, property).and(Sort.by("id"));
     }
-    // Helper per l'ordinamento
+
+    /**
+     * Creates comparator for movie sorting
+     */
     private Comparator<Movie> createMovieComparator(Sort sort) {
         List<Comparator<Movie>> comparators = new ArrayList<>();
 
@@ -282,6 +339,10 @@ public class FilmAggregationService {
                 .reduce(Comparator::thenComparing)
                 .orElse((m1, m2) -> 0);
     }
+
+    /**
+     * Applies manual pagination to movie list
+     */
     private Page<FilmSearchResponse> paginateList(List<Movie> movies, Pageable pageable, Sort sort) {
         int totalElements = movies.size();
         int pageSize = pageable.getPageSize();
@@ -302,6 +363,10 @@ public class FilmAggregationService {
                 totalElements
         );
     }
+
+    /**
+     * Checks if movie has Oscar wins/nominations
+     */
     private boolean hasOscarMatch(Movie movie, String oscarStatus) {
         List<OscarAward> awards = oscarAwardRepo.findByFilmContainingIgnoreCaseAndYearFilmBetween(
                 movie.getName(),
@@ -313,6 +378,10 @@ public class FilmAggregationService {
                 ? awards.stream().anyMatch(OscarAward::getWinner)
                 : !awards.isEmpty();
     }
+
+    /**
+     * Creates base specification for title and year filters
+     */
     private Specification<Movie> createBaseSpec(String title, Integer yearFrom, Integer yearTo) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -330,7 +399,9 @@ public class FilmAggregationService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
-
+    /**
+    Creates specification for entity relationships
+    */
     private Specification<Movie> createRelationSpec(String actor, String character, String crew,
                                                     String studio, List<String> genres) {
         return (root, query, cb) -> {
@@ -369,7 +440,9 @@ public class FilmAggregationService {
             return predicates.isEmpty() ? null : cb.and(predicates.toArray(new Predicate[0]));
         };
     }
-
+    /**
+    Creates predicate for relationship filtering
+    */
     private Predicate createRelationPredicate(Root<Movie> root, CriteriaQuery<?> query, CriteriaBuilder cb,
                                               Class<?> entityClass, String fieldName, String searchTerm) {
         Subquery<Long> subquery = query.subquery(Long.class);
@@ -380,7 +453,9 @@ public class FilmAggregationService {
                         .where(cb.like(cb.lower(entityRoot.get(fieldName)), "%" + searchTerm.toLowerCase() + "%"))
         );
     }
-
+    /**
+    Creates predicate for genre filtering
+    */
     private Predicate createGenrePredicate(Root<Movie> root, CriteriaQuery<?> query, CriteriaBuilder cb, List<String> genres) {
         Subquery<Long> subquery = query.subquery(Long.class);
         Root<Genre> genreRoot = subquery.from(Genre.class);
@@ -390,7 +465,9 @@ public class FilmAggregationService {
                         .where(genreRoot.get("genre").in(genres))
         );
     }
-
+    /**
+    Converts Movie to FilmSearchResponse DTO
+    */
     private FilmSearchResponse mapToFilmSearchResponse(Movie movie) {
         FilmSearchResponse response = new FilmSearchResponse();
         response.setId(movie.getId());
@@ -401,7 +478,12 @@ public class FilmAggregationService {
         return response;
     }
 
-
+    /**
+     * Retrieves films of a specific genre with Oscar award information
+     * @param genre Genre to filter by
+     * @param limit Maximum number of results to return
+     * @return List of OscarFilmResponse objects sorted by Oscar wins then nominations
+     */
    public List<OscarFilmResponse> getFilmsByGenreWithOscars(String genre, int limit) {
        // 1. Carica tutti gli Oscar in memoria
        List<OscarAward> allAwards = oscarAwardRepo.findAll();

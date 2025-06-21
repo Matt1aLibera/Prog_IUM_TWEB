@@ -11,6 +11,4 @@ import java.util.List;
 @Repository
 public interface ReleaseRepo extends JpaRepository<Release, Long> {
     List<Release> findByMovieId(Long movieId);
-    List<Release> findByMovieIdAndCountry(Long movieId, String country);
-    List<Release> findByDateBetween(LocalDate start, LocalDate end);
 }

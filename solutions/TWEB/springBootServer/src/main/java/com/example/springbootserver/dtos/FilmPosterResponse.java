@@ -1,5 +1,8 @@
 package com.example.springbootserver.dtos;
-
+/**
+ * Basic movie info with poster link
+ * Used for displaying movie lists with thumbnails
+ */
 public class FilmPosterResponse {
     private Long id;
     private String name;

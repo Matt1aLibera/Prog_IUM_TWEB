@@ -18,6 +18,11 @@ import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
 import java.util.List;
+/**
+ * Service for loading movie theme data from CSV into database
+ * Handles CSV parsing, validation and batch insertion of thematic information
+ * including movie ID and theme classification
+ */
 @Service
 public class ThemeCsvServ {
     private static final Logger logger = LoggerFactory.getLogger(ThemeCsvServ.class);
@@ -27,7 +32,13 @@ public class ThemeCsvServ {
     private final Resource csvFile;
     private final EntityManager entityManager;
     private final JdbcTemplate jdbcTemplate;
-
+    /**
+     * Initialize service with required dependencies
+     * @param themeRepo Repository for theme data
+     * @param csvFile CSV resource file from classpath (themes.csv)
+     * @param entityManager JPA EntityManager for batch operations
+     * @param jdbcTemplate JDBC template for DDL operations
+     */
     public ThemeCsvServ(
             ThemeRepo themeRepo,
             @Value("classpath:csv/themes.csv") Resource csvFile,
@@ -38,7 +49,11 @@ public class ThemeCsvServ {
         this.entityManager = entityManager;
         this.jdbcTemplate = jdbcTemplate;
     }
-
+    /**
+     * Check if theme data is already loaded in database
+     * @return true if table exists and contains data, false otherwise
+     * @throws Exception if database check fails
+     */
     @Transactional(readOnly = true)
     public boolean isAlreadyLoaded() {
         try {
@@ -51,7 +66,11 @@ public class ThemeCsvServ {
             return false;
         }
     }
-
+    /**
+     * Check if database table exists
+     * @param tableName Name of table to check (case insensitive)
+     * @return true if table exists in schema
+     */
     private boolean tableExists(String tableName) {
         try {
             Long count = (Long) entityManager.createNativeQuery(
@@ -64,7 +83,13 @@ public class ThemeCsvServ {
             return false;
         }
     }
-
+    /**
+     * Main method to load theme data from CSV
+     * Performs: table creation, CSV parsing, validation and batch insert
+     * Expected CSV format: movie_id,theme
+     * Required fields: both movie_id (numeric) and theme (textual classification)
+     * @throws RuntimeException if file access fails or table creation fails
+     */
     @Transactional
     public void loadThemes() {
         if (isAlreadyLoaded()) {
@@ -140,7 +165,12 @@ public class ThemeCsvServ {
             throw new RuntimeException("Errore di lettura file CSV", e);
         }
     }
-
+    /**
+     * Create theme table if not exists with required columns
+     * Uses direct JDBC for DDL operations with columns:
+     * id (auto-increment), movie_id (FK to movie), theme (textual classification)
+     * @throws RuntimeException if table creation fails
+     */
     private void createTableIfNotExists() {
         try {
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS theme (" +

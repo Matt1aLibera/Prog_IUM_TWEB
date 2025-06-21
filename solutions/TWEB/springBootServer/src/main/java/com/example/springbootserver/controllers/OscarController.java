@@ -13,18 +13,31 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
+/**
+ * Oscar Awards Controller - Handles Oscar-related data operations
+ * Provides endpoints for searching and filtering Oscar award records
+ */
 @RestController
 @RequestMapping("/api/oscars")
 public class OscarController {
 
     private final OscarAwardRepo oscarAwardRepo;
-
+    /**
+     * Initializes controller with Oscar award repository
+     * @param oscarAwardRepo - Repository for Oscar award data access
+     */
     @Autowired
     public OscarController(OscarAwardRepo oscarAwardRepo) {
         this.oscarAwardRepo = oscarAwardRepo;
     }
-
+    /**
+     * GET /api/oscars/search - Searches Oscar awards by film name and optional year
+     * @param {string} filmName - Partial film name to search (case insensitive)
+     * @param {number} [year] - Optional year to filter awards
+     * @returns {OscarAward[]} 200 - List of matching Oscar awards
+     * @description Performs expanded year search if no exact matches found (+/- 1 year)
+     * @description Returns results ordered by year when no year specified
+     */
     @GetMapping("/search")
     public ResponseEntity<List<OscarAward>> searchOscars(
             @RequestParam String filmName,
@@ -54,7 +67,12 @@ public class OscarController {
 
         return ResponseEntity.ok(results);
     }
-
+    /**
+     * Filters duplicate Oscar awards by category
+     * @param awards - List of awards to filter
+     * @returns {List<OscarAward>} - Filtered list with unique categories
+     * @description Keeps only the first award for each category
+     */
     private List<OscarAward> filterDuplicates(List<OscarAward> awards) {
         Map<String, OscarAward> uniqueAwards = new LinkedHashMap<>();
 

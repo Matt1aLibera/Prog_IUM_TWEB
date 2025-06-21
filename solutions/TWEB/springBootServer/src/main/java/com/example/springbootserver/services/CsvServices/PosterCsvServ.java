@@ -17,6 +17,11 @@ import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
 import java.util.List;
+/**
+ * Service for loading movie posters data from CSV into database
+ * Handles CSV parsing, validation and batch insertion of poster information
+ * including movie ID and poster image URL
+ */
 @Service
 public class PosterCsvServ {
     private static final Logger logger = LoggerFactory.getLogger(PosterCsvServ.class);
@@ -26,7 +31,13 @@ public class PosterCsvServ {
     private final Resource csvFile;
     private final EntityManager entityManager;
     private final JdbcTemplate jdbcTemplate;
-
+    /**
+     * Initialize service with required dependencies
+     * @param posterRepo Repository for poster data
+     * @param csvFile CSV resource file from classpath (posters.csv)
+     * @param entityManager JPA EntityManager for batch operations
+     * @param jdbcTemplate JDBC template for DDL operations
+     */
     public PosterCsvServ(
             PosterRepo posterRepo,
             @Value("classpath:csv/posters.csv") Resource csvFile,
@@ -37,7 +48,11 @@ public class PosterCsvServ {
         this.entityManager = entityManager;
         this.jdbcTemplate = jdbcTemplate;
     }
-
+    /**
+     * Check if poster data is already loaded in database
+     * @return true if table exists and contains data, false otherwise
+     * @throws Exception if database check fails
+     */
     @Transactional(readOnly = true)
     public boolean isAlreadyLoaded() {
         try {
@@ -50,7 +65,11 @@ public class PosterCsvServ {
             return false;
         }
     }
-
+    /**
+     * Check if database table exists
+     * @param tableName Name of table to check (case insensitive)
+     * @return true if table exists in schema
+     */
     private boolean tableExists(String tableName) {
         try {
             Long count = (Long) entityManager.createNativeQuery(
@@ -63,7 +82,13 @@ public class PosterCsvServ {
             return false;
         }
     }
-
+    /**
+     * Main method to load poster data from CSV
+     * Performs: table creation, CSV parsing, validation and batch insert
+     * Expected CSV format: movie_id,link
+     * Required fields: both movie_id (numeric) and link (URL)
+     * @throws RuntimeException if file access fails or table creation fails
+     */
     @Transactional
     public void loadPosters() {
         if (isAlreadyLoaded()) {
@@ -139,7 +164,12 @@ public class PosterCsvServ {
             throw new RuntimeException("Errore di lettura file CSV", e);
         }
     }
-
+    /**
+     * Create poster table if not exists with required columns
+     * Uses direct JDBC for DDL operations with columns:
+     * id (auto-increment), movie_id (FK to movie), link (URL)
+     * @throws RuntimeException if table creation fails
+     */
     private void createTableIfNotExists() {
         try {
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS poster (" +

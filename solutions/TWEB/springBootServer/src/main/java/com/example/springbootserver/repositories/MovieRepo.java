@@ -15,6 +15,7 @@ import java.util.List;
 
 @Repository
 public interface MovieRepo extends JpaRepository<Movie, Long>, JpaSpecificationExecutor<Movie> {
+    // Cerca film per nome (parziale), anno e genere specifico
     @Query("SELECT m FROM Movie m JOIN Genre g ON m.id = g.movieId " +
             "WHERE LOWER(m.name) LIKE LOWER(concat('%', :name, '%')) " +
             "AND m.date = :year AND g.genre = :genre")
@@ -23,12 +24,17 @@ public interface MovieRepo extends JpaRepository<Movie, Long>, JpaSpecificationE
             @Param("year") int year,
             @Param("genre") String genre);
 
+    // Cerca film che contengono la query (case insensitive) con paginazione
     @Query("SELECT m FROM Movie m WHERE LOWER(m.name) LIKE LOWER(CONCAT('%', :query, '%')) ORDER BY m.name ASC, m.id ASC")
     Page<Movie> findByNameContaining(@Param("query") String query, Pageable pageable);
+    // Trova film per lista di ID
     List<Movie> findByIdIn(List<Long> ids);
+
+    // Cerca film che iniziano con la query (case insensitive) con paginazione
     @Query("SELECT m FROM Movie m WHERE LOWER(m.name) LIKE LOWER(CONCAT(:query, '%')) ORDER BY m.name ASC, m.id ASC")
     Page<Movie> findByNameStartingWith(@Param("query") String query, Pageable pageable);
 
+    // Trova informazioni base sui film per genere specifico (query nativa)
     @Query(nativeQuery = true, value = """
         SELECT m.id, m.name, m.date 
         FROM movie m
@@ -38,8 +44,11 @@ public interface MovieRepo extends JpaRepository<Movie, Long>, JpaSpecificationE
             AND LOWER(g.genre) = LOWER(:genre))
         """)
     List<MovieInfoProjection> findMoviesByGenre(@Param("genre") String genre); @Query("SELECT m FROM Movie m WHERE LOWER(m.name) LIKE LOWER(CONCAT('%', :query, '%')) AND LOWER(m.name) NOT LIKE LOWER(CONCAT(:query, '%')) ORDER BY m.name ASC, m.id ASC")
+
+        // Cerca film che contengono ma non iniziano con la query (case insensitive)
     Page<Movie> findByNameContainingButNotStartingWith(@Param("query") String query, Pageable pageable);
 
+    // Ricerca avanzata con clausole WHERE e ORDER BY dinamiche (query nativa)
     @Query(value = """
             SELECT 
                 m.id as id,

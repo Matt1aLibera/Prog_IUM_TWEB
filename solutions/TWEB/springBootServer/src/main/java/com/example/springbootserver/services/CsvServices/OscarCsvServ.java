@@ -15,7 +15,11 @@ import java.io.InputStreamReader;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
-
+/**
+ * Service for loading Oscar awards data from CSV into database
+ * Handles CSV parsing, validation and batch insertion of award information
+ * including ceremony details, categories, nominees, films and winners
+ */
 @Service
 public class OscarCsvServ {
     private static final Logger logger = LoggerFactory.getLogger(OscarCsvServ.class);
@@ -25,6 +29,13 @@ public class OscarCsvServ {
     private final EntityManager entityManager;
     private final JdbcTemplate jdbcTemplate;
 
+    /**
+     * Initialize service with required dependencies
+     * @param oscarAwardRepo Repository for Oscar award data
+     * @param csvFile CSV resource file from classpath (the_oscar_awards.csv)
+     * @param entityManager JPA EntityManager for batch operations
+     * @param jdbcTemplate JDBC template for DDL operations
+     */
     public OscarCsvServ(
             OscarAwardRepo oscarAwardRepo,
             @Value("classpath:csv/the_oscar_awards.csv") Resource csvFile,
@@ -35,7 +46,11 @@ public class OscarCsvServ {
         this.entityManager = entityManager;
         this.jdbcTemplate = jdbcTemplate;
     }
-
+    /**
+     * Check if Oscar awards data is already loaded in database
+     * @return true if table exists and contains data, false otherwise
+     * @throws Exception if database check fails
+     */
     @Transactional(readOnly = true)
     public boolean isAlreadyLoaded() {
         try {
@@ -48,7 +63,11 @@ public class OscarCsvServ {
             return false;
         }
     }
-
+    /**
+     * Check if database table exists
+     * @param tableName Name of table to check (case insensitive)
+     * @return true if table exists in schema
+     */
     private boolean tableExists(String tableName) {
         try {
             Long count = (Long) entityManager.createNativeQuery(
@@ -61,7 +80,14 @@ public class OscarCsvServ {
             return false;
         }
     }
-
+    /**
+     * Main method to load Oscar awards data from CSV
+     * Performs: table creation, CSV parsing, validation and batch insert
+     * Expected CSV format: year_film,year_ceremony,ceremony,category,name,film,winner
+     * Required fields: name and film (others have default values if missing/invalid)
+     * Special handling for winner field (accepts multiple true/false formats)
+     * @throws RuntimeException if file access fails or table creation fails
+     */
     @Transactional
     public void loadOscarAwards() {
         if (isAlreadyLoaded()) {
@@ -158,7 +184,13 @@ public class OscarCsvServ {
             throw new RuntimeException("Errore di lettura file CSV", e);
         }
     }
-
+    /**
+     * Create oscar_awards table if not exists with all required columns
+     * Uses direct JDBC for DDL operations with columns:
+     * id (auto-increment), year_film, year_ceremony, ceremony, category,
+     * name, film, winner (boolean)
+     * @throws RuntimeException if table creation fails
+     */
     private void createTableIfNotExists() {
         try {
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS oscar_awards (" +

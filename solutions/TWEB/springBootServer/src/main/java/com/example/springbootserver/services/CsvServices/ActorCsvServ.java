@@ -16,7 +16,10 @@ import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
 import java.util.List;
-
+/**
+ * Service for loading actor appearances data from CSV into database
+ * Handles CSV parsing, data validation and batch database operations
+ */
 @Service
 public class ActorCsvServ {
     private static final Logger logger = LoggerFactory.getLogger(ActorCsvServ.class);
@@ -25,7 +28,13 @@ public class ActorCsvServ {
     private final Resource csvFile;
     private final EntityManager entityManager;
     private final JdbcTemplate jdbcTemplate;
-
+    /**
+     * Initialize service with required dependencies
+     * @param actorAppearanceRepo Repository for actor appearances
+     * @param csvFile CSV resource file from classpath
+     * @param entityManager JPA EntityManager for batch operations
+     * @param jdbcTemplate JDBC template for DDL operations
+     */
     public ActorCsvServ(
             ActorAppearanceRepo actorAppearanceRepo,
             @Value("classpath:csv/actors.csv") Resource csvFile,
@@ -36,7 +45,10 @@ public class ActorCsvServ {
         this.entityManager = entityManager;
         this.jdbcTemplate = jdbcTemplate;
     }
-
+    /**
+     * Check if data is already loaded in database
+     * @return true if table exists and contains data, false otherwise
+     */
     @Transactional(readOnly = true)
     public boolean isAlreadyLoaded() {
         try {
@@ -49,7 +61,11 @@ public class ActorCsvServ {
             return false;
         }
     }
-
+    /**
+     * Check if database table exists
+     * @param tableName Name of table to check
+     * @return true if table exists in schema
+     */
     private boolean tableExists(String tableName) {
         try {
             Long count = (Long) entityManager.createNativeQuery(
@@ -62,7 +78,11 @@ public class ActorCsvServ {
             return false;
         }
     }
-
+    /**
+     * Main method to load actor appearances from CSV
+     * Performs: table creation, CSV parsing, validation and batch insert
+     * @throws RuntimeException if file access fails or table creation fails
+     */
     @Transactional
     public void loadActorAppearances() {
         if (isAlreadyLoaded()) {
@@ -139,7 +159,11 @@ public class ActorCsvServ {
             throw new RuntimeException("Errore di lettura file CSV", e);
         }
     }
-
+    /**
+     * Create actor_appearances table if not exists
+     * Uses direct JDBC for DDL operations
+     * @throws RuntimeException if table creation fails
+     */
     private void createTableIfNotExists() {
         try {
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS actor_appearances (" +

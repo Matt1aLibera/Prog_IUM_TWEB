@@ -3,8 +3,10 @@ package com.example.springbootserver.dtos;
 import com.example.springbootserver.models.*;
 
 import java.util.List;
-
-// FilmDetailsResponse.java
+/**
+ * Contains complete movie details including all related entities
+ * Used for movie detail page responses
+ */
 public class FilmDetailsResponse {
     private Movie movie;
     private Poster poster;

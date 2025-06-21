@@ -1,5 +1,9 @@
 package com.example.springbootserver.dtos;
 
+/**
+ * Movie info with Oscar award statistics
+ * Used for displaying top movies by Oscar wins/nominations
+ */
 public class OscarFilmResponse {
     private Long id;
     private String title;

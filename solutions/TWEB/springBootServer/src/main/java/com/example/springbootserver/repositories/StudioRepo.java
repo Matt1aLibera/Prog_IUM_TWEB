@@ -9,5 +9,4 @@ import java.util.List;
 @Repository
 public interface StudioRepo extends JpaRepository<Studio, Long> {
     List<Studio> findByMovieId(Long movieId);
-    List<Studio> findByStudioContainingIgnoreCase(String studio);
 }

@@ -18,6 +18,11 @@ import java.time.LocalDate;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
 import java.util.List;
+/**
+ * Service for loading movie release data from CSV into database
+ * Handles CSV parsing, validation and batch insertion of international release information
+ * including country, release date, release type and rating
+ */
 @Service
 public class ReleasesCsvServ {
     private static final Logger logger = LoggerFactory.getLogger(ReleasesCsvServ.class);
@@ -27,7 +32,13 @@ public class ReleasesCsvServ {
     private final Resource csvFile;
     private final EntityManager entityManager;
     private final JdbcTemplate jdbcTemplate;
-
+    /**
+     * Initialize service with required dependencies
+     * @param releaseRepo Repository for release data
+     * @param csvFile CSV resource file from classpath (releases.csv)
+     * @param entityManager JPA EntityManager for batch operations
+     * @param jdbcTemplate JDBC template for DDL operations
+     */
     public ReleasesCsvServ(
             ReleaseRepo releaseRepo,
             @Value("classpath:csv/releases.csv") Resource csvFile,
@@ -38,7 +49,11 @@ public class ReleasesCsvServ {
         this.entityManager = entityManager;
         this.jdbcTemplate = jdbcTemplate;
     }
-
+    /**
+     * Check if release data is already loaded in database
+     * @return true if table exists and contains data, false otherwise
+     * @throws Exception if database check fails
+     */
     @Transactional(readOnly = true)
     public boolean isAlreadyLoaded() {
         try {
@@ -51,7 +66,11 @@ public class ReleasesCsvServ {
             return false;
         }
     }
-
+    /**
+     * Check if database table exists
+     * @param tableName Name of table to check (case insensitive)
+     * @return true if table exists in schema
+     */
     private boolean tableExists(String tableName) {
         try {
             Long count = (Long) entityManager.createNativeQuery(
@@ -64,7 +83,14 @@ public class ReleasesCsvServ {
             return false;
         }
     }
-
+    /**
+     * Main method to load release data from CSV
+     * Performs: table creation, CSV parsing, validation and batch insert
+     * Expected CSV format: movie_id,country,date,type,rating
+     * Required fields: movie_id (numeric) and country
+     * Optional fields: date (ISO format), type, rating
+     * @throws RuntimeException if file access fails or table creation fails
+     */
     @Transactional
     public void loadReleases() {
         if (isAlreadyLoaded()) {
@@ -160,7 +186,12 @@ public class ReleasesCsvServ {
             throw new RuntimeException("Errore di lettura file CSV", e);
         }
     }
-
+    /**
+     * Create release table if not exists with all columns
+     * Uses direct JDBC for DDL operations with columns:
+     * id (auto-increment), movie_id (FK), country, date, type, rating
+     * @throws RuntimeException if table creation fails
+     */
     private void createTableIfNotExists() {
         try {
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS release (" +

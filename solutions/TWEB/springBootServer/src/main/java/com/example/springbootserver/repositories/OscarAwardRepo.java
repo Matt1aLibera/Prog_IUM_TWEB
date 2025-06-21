@@ -10,11 +10,11 @@ import java.util.List;
 
 @Repository
 public interface OscarAwardRepo extends JpaRepository<OscarAward, Long> {
-    List<OscarAward> findByWinnerTrue();
-
+    // Trova premi Oscar per nome film (parziale) e intervallo anni
     List<OscarAward> findByFilmContainingIgnoreCaseAndYearFilmBetween(
             String filmName, int startYear, int endYear);
 
+    // Trova premi Oscar per lista di film (query nativa)
     @Query(nativeQuery = true, value = """
         SELECT o.* FROM oscar_awards o
         WHERE EXISTS (
@@ -24,14 +24,18 @@ public interface OscarAwardRepo extends JpaRepository<OscarAward, Long> {
             AND m.id IN (:movieIds)
         """)
     List<OscarAward> findOscarsForMovies(@Param("movieIds") List<Long> movieIds);List<OscarAward> findByFilmContainingIgnoreCaseAndYearFilm(String filmName, Integer year);
+
+    // Trova premi Oscar per nome film (parziale) e anno specifico
     List<OscarAward> findByFilmContainingIgnoreCaseOrderByYearFilmDesc(String filmName);
-    // metodo per la ricerca allargata
+
+    // Trova premi Oscar per nome film (parziale) e intervallo anni (versione allargata)
     List<OscarAward> findByFilmContainingIgnoreCaseAndYearFilmBetween(
             String filmName,
             Integer startYear,
             Integer endYear
     );
 
+    // Trova premi Oscar per nome film esatto e anno ±1 (query nativa)
     @Query(nativeQuery = true, value = """
         SELECT o.* FROM oscar_awards o
         WHERE (LOWER(o.film), o.year_film) IN (
@@ -42,6 +46,7 @@ public interface OscarAwardRepo extends JpaRepository<OscarAward, Long> {
         """)
     List<OscarAward> findByMovieNameAndYear(String filmName, Integer year);
 
+    // Trova premi Oscar per lista di nomi film e anni (query nativa)
     @Query(nativeQuery = true, value = """
         SELECT o.* FROM oscar_awards o, 
         (VALUES (:params)) AS movies(name, year)
@@ -52,11 +57,4 @@ public interface OscarAwardRepo extends JpaRepository<OscarAward, Long> {
         )
         """)
     List<OscarAward> findByMovieNamesAndYears(@Param("params") List<Object[]> movieParams);
-    // Alternativa più efficiente per DB grandi:
-
-    List<OscarAward> findByCategory(String category);
-    List<OscarAward> findByWinner(Boolean winner);
-    List<OscarAward> findByYearFilmBetween(Integer startYear, Integer endYear);
-    List<OscarAward> findByFilmContainingIgnoreCase(String filmName);
-    List<OscarAward> findByNameContainingIgnoreCase(String name);
 }

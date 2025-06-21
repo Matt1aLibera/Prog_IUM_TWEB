@@ -17,6 +17,10 @@ import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
 import java.util.List;
+/**
+ * Service for loading movie genres data from CSV into database
+ * Handles CSV parsing, validation and batch insertion of genre information
+ */
 @Service
 public class GenreCsvServ {
     private static final Logger logger = LoggerFactory.getLogger(GenreCsvServ.class);
@@ -26,7 +30,13 @@ public class GenreCsvServ {
     private final Resource csvFile;
     private final EntityManager entityManager;
     private final JdbcTemplate jdbcTemplate;
-
+    /**
+     * Initialize service with required dependencies
+     * @param genreRepo Repository for genre data
+     * @param csvFile CSV resource file from classpath (genres.csv)
+     * @param entityManager JPA EntityManager for batch operations
+     * @param jdbcTemplate JDBC template for DDL operations
+     */
     public GenreCsvServ(
             GenreRepo genreRepo,
             @Value("classpath:csv/genres.csv") Resource csvFile,
@@ -37,7 +47,11 @@ public class GenreCsvServ {
         this.entityManager = entityManager;
         this.jdbcTemplate = jdbcTemplate;
     }
-
+    /**
+     * Check if genre data is already loaded in database
+     * @return true if table exists and contains data, false otherwise
+     * @throws Exception if database check fails
+     */
     @Transactional(readOnly = true)
     public boolean isAlreadyLoaded() {
         try {
@@ -50,7 +64,11 @@ public class GenreCsvServ {
             return false;
         }
     }
-
+    /**
+     * Check if database table exists
+     * @param tableName Name of table to check
+     * @return true if table exists in schema
+     */
     private boolean tableExists(String tableName) {
         try {
             Long count = (Long) entityManager.createNativeQuery(
@@ -63,7 +81,12 @@ public class GenreCsvServ {
             return false;
         }
     }
-
+    /**
+     * Main method to load genre data from CSV
+     * Performs: table creation, CSV parsing, validation and batch insert
+     * Expected CSV format: movie_id,genre
+     * @throws RuntimeException if file access fails or table creation fails
+     */
     @Transactional
     public void loadGenres() {
         if (isAlreadyLoaded()) {
@@ -140,6 +163,11 @@ public class GenreCsvServ {
         }
     }
 
+    /**
+     * Create genre table if not exists
+     * Uses direct JDBC for DDL operations with TEXT column for genre names
+     * @throws RuntimeException if table creation fails
+     */
     private void createTableIfNotExists() {
         try {
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS genre (" +

@@ -18,6 +18,10 @@ import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
 import java.util.List;
+/**
+ * Service for loading movie crew data from CSV into database
+ * Handles CSV parsing, validation and batch insertion of crew members information
+ */
 @Service
 public class CrewCsvServ {
     private static final Logger logger = LoggerFactory.getLogger(CrewCsvServ.class);
@@ -27,7 +31,13 @@ public class CrewCsvServ {
     private final Resource csvFile;
     private final EntityManager entityManager;
     private final JdbcTemplate jdbcTemplate;
-
+    /**
+     * Initialize service with required dependencies
+     * @param crewRepo Repository for crew data
+     * @param csvFile CSV resource file from classpath (crew.csv)
+     * @param entityManager JPA EntityManager for batch operations
+     * @param jdbcTemplate JDBC template for DDL operations
+     */
     public CrewCsvServ(
             CrewRepo crewRepo,
             @Value("classpath:csv/crew.csv") Resource csvFile,
@@ -38,7 +48,11 @@ public class CrewCsvServ {
         this.entityManager = entityManager;
         this.jdbcTemplate = jdbcTemplate;
     }
-
+    /**
+     * Check if crew data is already loaded in database
+     * @return true if table exists and contains data, false otherwise
+     * @throws Exception if database check fails
+     */
     @Transactional(readOnly = true)
     public boolean isAlreadyLoaded() {
         try {
@@ -51,7 +65,11 @@ public class CrewCsvServ {
             return false;
         }
     }
-
+    /**
+     * Check if database table exists
+     * @param tableName Name of table to check
+     * @return true if table exists in schema
+     */
     private boolean tableExists(String tableName) {
         try {
             Long count = (Long) entityManager.createNativeQuery(
@@ -64,7 +82,11 @@ public class CrewCsvServ {
             return false;
         }
     }
-
+    /**
+     * Main method to load crew data from CSV
+     * Performs: table creation, CSV parsing, validation and batch insert
+     * @throws RuntimeException if file access fails or table creation fails
+     */
     @Transactional
     public void loadCrewData() {
         if (isAlreadyLoaded()) {
@@ -141,7 +163,11 @@ public class CrewCsvServ {
             throw new RuntimeException("Errore di lettura file CSV", e);
         }
     }
-
+    /**
+     * Create crew table if not exists
+     * Uses direct JDBC for DDL operations with TEXT columns for variable-length strings
+     * @throws RuntimeException if table creation fails
+     */
     private void createTableIfNotExists() {
         try {
             jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS crew (" +
