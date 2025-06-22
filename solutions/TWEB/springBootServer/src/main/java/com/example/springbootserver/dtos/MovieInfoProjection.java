@@ -1,12 +1,33 @@
 package com.example.springbootserver.dtos;
-/**
- * Projection of minimal movie info
- * Used for lightweight genre-based queries
- */
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(
+        name = "MovieInfoProjection",
+        description = "Minimal movie information projection for efficient genre-based queries"
+)
 public class MovieInfoProjection {
+    @Schema(
+            description = "Unique identifier of the movie",
+            //example = "123",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Long id;
+    @Schema(
+            description = "Title of the movie",
+            //example = "Inception",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            maxLength = 255
+    )
     private String name;
+    @Schema(
+            description = "Release year of the movie"//,
+            //example = "2010",
+            //minimum = "1900",
+            //maximum = "2100"
+    )
     private Integer date;
+    // Nasconde il costruttore dalla documentazione
 
     public MovieInfoProjection(Long id, String name, Integer date) {
         this.id = id;

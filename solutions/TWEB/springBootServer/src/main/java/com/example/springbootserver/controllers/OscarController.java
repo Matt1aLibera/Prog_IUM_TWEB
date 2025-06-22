@@ -2,21 +2,26 @@ package com.example.springbootserver.controllers;
 
 import com.example.springbootserver.models.OscarAward;
 import com.example.springbootserver.repositories.OscarAwardRepo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-/**
- * Oscar Awards Controller - Handles Oscar-related data operations
- * Provides endpoints for searching and filtering Oscar award records
- */
+
+@Tag(name = "Oscar Awards", description = "Manage Oscar award data and search operations")
 @RestController
 @RequestMapping("/api/oscars")
 public class OscarController {
@@ -30,17 +35,26 @@ public class OscarController {
     public OscarController(OscarAwardRepo oscarAwardRepo) {
         this.oscarAwardRepo = oscarAwardRepo;
     }
-    /**
-     * GET /api/oscars/search - Searches Oscar awards by film name and optional year
-     * @param {string} filmName - Partial film name to search (case insensitive)
-     * @param {number} [year] - Optional year to filter awards
-     * @returns {OscarAward[]} 200 - List of matching Oscar awards
-     * @description Performs expanded year search if no exact matches found (+/- 1 year)
-     * @description Returns results ordered by year when no year specified
-     */
+
+    @Operation(
+            summary = "Search Oscar awards",
+            description = "Searches awards by film name with optional year filter. Expands search to adjacent years if no exact match found.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "List of matching Oscar awards",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    array = @ArraySchema(schema = @Schema(implementation = OscarAward.class))
+                            )
+                    )
+            }
+    )
     @GetMapping("/search")
     public ResponseEntity<List<OscarAward>> searchOscars(
+            @Parameter(description = "Partial film name (case insensitive)", example = "godfather", required = true)
             @RequestParam String filmName,
+            @Parameter(description = "Optional release year filter", example = "1972")
             @RequestParam(required = false) Integer year) {
 
         List<OscarAward> results;

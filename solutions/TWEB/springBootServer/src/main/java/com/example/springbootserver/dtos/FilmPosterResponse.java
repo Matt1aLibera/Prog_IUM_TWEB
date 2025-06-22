@@ -1,11 +1,30 @@
 package com.example.springbootserver.dtos;
-/**
- * Basic movie info with poster link
- * Used for displaying movie lists with thumbnails
- */
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(
+        name = "FilmPosterResponse",
+        description = "Contains basic movie information with poster URL for thumbnail displays"
+)
 public class FilmPosterResponse {
+    @Schema(
+            description = "Unique identifier of the movie",
+            //example = "1000001",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Long id;
+    @Schema(
+            description = "Title of the movie",
+            //example = "The Shawshank Redemption",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            maxLength = 255
+    )
     private String name;
+    @Schema(
+            description = "URL to the movie poster image",
+            example = "https://example.com/posters/1000001.jpg",
+            nullable = true
+    )
     private String posterLink;
 
     public FilmPosterResponse() {

@@ -128,7 +128,7 @@ router.get('/films/ratings', async (req, res) => {
         }
 
         // Chiamata al controller
-        const films = getFilmsByRatingRange(minRating, maxRating, limit);
+        const films = await getFilmsByRatingRange(minRating, maxRating, limit);
         res.json(films);
     } catch (error) {
         console.error('Errore route /films/ratings:', error);
@@ -193,7 +193,7 @@ router.post('/ratings/batch', async (req, res) => {
         }
 
         // Utilizza il controller invece della logica diretta
-        const ratings = getRatingsBatch(filmIds);
+        const ratings =await getRatingsBatch(filmIds);
 
         res.json(ratings);
     } catch (error) {

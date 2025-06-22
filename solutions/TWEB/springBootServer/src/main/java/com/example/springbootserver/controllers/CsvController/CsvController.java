@@ -17,7 +17,7 @@ import java.util.Map;
 @RestController
 @CrossOrigin(origins = "*")
 @RequestMapping("/api")
-public class CsvCont {
+public class CsvController {
 
     private final MovieCsvServ movieCsvServ;
     private final ActorCsvServ actorCsvServ;
@@ -46,7 +46,7 @@ public class CsvCont {
      * @param oscarCsvServ - Oscar data loading service
      */
     @Autowired
-    public CsvCont(MovieCsvServ movieCsvServ, ActorCsvServ actorCsvServ, CountryCsvServ countryCsvServ, CrewCsvServ crewCsvServ, GenreCsvServ genreCsvServ, LanguagesCsvServ languagesCsvServ,PosterCsvServ posterCsvServ, ReleasesCsvServ releasesCsvServ, StudiosCsvServ studiosCsvServ, ThemeCsvServ themeCsvServ, OscarCsvServ oscarCsvServ) {
+    public CsvController(MovieCsvServ movieCsvServ, ActorCsvServ actorCsvServ, CountryCsvServ countryCsvServ, CrewCsvServ crewCsvServ, GenreCsvServ genreCsvServ, LanguagesCsvServ languagesCsvServ, PosterCsvServ posterCsvServ, ReleasesCsvServ releasesCsvServ, StudiosCsvServ studiosCsvServ, ThemeCsvServ themeCsvServ, OscarCsvServ oscarCsvServ) {
         this.movieCsvServ = movieCsvServ;
         this.actorCsvServ = actorCsvServ;
         this.countryCsvServ = countryCsvServ;
@@ -84,7 +84,7 @@ public class CsvCont {
             return ResponseEntity.ok().body(
                     Map.of(
                             "success", true,
-                            "message", "Caricamento completato con alcuni errori",
+                            "message", "Caricamento completato",
                             "details", "Verificare i log per dettagli"
                     )
             );

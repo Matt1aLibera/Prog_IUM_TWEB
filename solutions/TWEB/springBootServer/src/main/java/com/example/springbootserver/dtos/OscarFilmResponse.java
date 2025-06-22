@@ -1,15 +1,50 @@
 package com.example.springbootserver.dtos;
 
-/**
- * Movie info with Oscar award statistics
- * Used for displaying top movies by Oscar wins/nominations
- */
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(
+        name = "OscarFilmResponse",
+        description = "Contains movie information with Oscar award statistics including wins and nominations"
+)
 public class OscarFilmResponse {
+    @Schema(
+            description = "Unique identifier of the movie",
+            //example = "12345",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Long id;
+    @Schema(
+            description = "Title of the movie",
+            //example = "The Godfather",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            maxLength = 255
+    )
     private String title;
+    @Schema(
+            description = "Release year of the movie"//,
+            //example = "1972",
+            //minimum = "1927",  // Primo anno degli Oscar
+            //maximum = "2100"
+    )
     private Integer year;
+    @Schema(
+            description = "URL to the movie poster image",
+            //example = "https://example.com/posters/godfather.jpg",
+            format = "uri",
+            nullable = true
+    )
     private String posterUrl;
+    @Schema(
+            description = "Number of Academy Awards won"//,
+            //example = "3",
+            //minimum = "0"
+    )
     private int oscarWins;
+    @Schema(
+            description = "Total number of Oscar nominations"//,
+            //example = "9",
+            //minimum = "0"
+    )
     private int oscarNominations;
 
     public OscarFilmResponse(Long id, String title, Integer year, String posterUrl, int oscarWins, int oscarNominations) {
