@@ -4,11 +4,41 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="27870a37-2061-4479-94f5-36de5b48f953" name="Changes" comment="" />
+    <list default="true" id="27870a37-2061-4479-94f5-36de5b48f953" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/actors.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/countries.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/crew.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/genres.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/languages.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/movies.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/posters.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/releases.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/studios.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/dataSets/mainDataSet/themes.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/modules/actor_by_most_films_analysis.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/modules/actor_genre_analysis/actor_genre_analysis.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/modules/actors_analysis.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/modules/country_rating_analysis.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/modules/durataMediaFilmAnnoRating.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/modules/film_rating_plot.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/modules/genre_country_duration_heatmap.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/modules/genre_country_heatmap.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/modules/genre_country_treemap.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IUM/modules/genre_temporal_analysis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/MattiaLiberatoreIUMSolution.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/IUM/MattiaLiberatoreIUMSolution.ipynb" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -32,6 +62,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "run.code.analysis.last.selected.profile": "aDefault",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -65,6 +96,7 @@
       <workItem from="1748449720989" duration="13000" />
       <workItem from="1748451180457" duration="24000" />
       <workItem from="1749916865317" duration="3970000" />
+      <workItem from="1750621115996" duration="24300000" />
     </task>
     <servers />
   </component>
