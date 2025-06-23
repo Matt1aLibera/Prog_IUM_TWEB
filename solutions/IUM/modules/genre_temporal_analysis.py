@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import seaborn as sns
 from typing import Dict, List
 import pandas as pd
 
@@ -21,10 +20,10 @@ def plot_genre_temporal_analysis(
         palette: Lista di colori per i generi
         figsize: Dimensioni figura (default: (20, 18))
     """
-    # Crea una figura con un layout personalizzato (commento originale)
+    # Crea una figura con un layout personalizzato
     fig = plt.figure(figsize=figsize)
 
-    # --- Grafico 1: Barplot raggruppato --- (commento originale)
+    # Grafico 1: Barplot raggruppato
     ax1 = plt.subplot2grid((4, 1), (0, 0), rowspan=2)
     barplot_data.plot(kind='bar', stacked=True, ax=ax1, color=palette, width=0.8, alpha=0.7)
 
@@ -34,7 +33,7 @@ def plot_genre_temporal_analysis(
     ax1.legend(title='Genere', bbox_to_anchor=(1.05, 0.5), loc='center left')
     ax1.tick_params(axis='x', rotation=45)
 
-    # --- Grafico 2: Lineplot durata --- (commento originale)
+    # Grafico 2: Lineplot durata
     ax2 = plt.subplot2grid((4, 2), (2, 0), colspan=1)
     for i, genre in enumerate(duration_data.columns):
         ax2.plot(duration_data.index, duration_data[genre],
@@ -44,7 +43,7 @@ def plot_genre_temporal_analysis(
     ax2.set_ylabel('Durata Media (minuti)')
     ax2.legend(title='Genere', bbox_to_anchor=(0.5, -0.3), loc='upper center', ncol=3)
 
-    # --- Grafico 3: Lineplot attori --- (commento originale)
+    # Grafico 3: Lineplot attori
     ax3 = plt.subplot2grid((4, 2), (2, 1), colspan=1)
     for i, genre in enumerate(actors_data.columns):
         ax3.plot(actors_data.index, actors_data[genre],

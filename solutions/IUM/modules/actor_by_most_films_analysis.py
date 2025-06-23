@@ -22,10 +22,10 @@ def plot_actor_stats(
         actors_to_analyse: Numero di attori da visualizzare
         figsize: Dimensioni della figura (default: (12, 10))
     """
-    # 13. Crea il grafico (commento originale)
+    # Crea il grafico
     fig, ax1 = plt.subplots(figsize=figsize)
 
-    # Barplot orizzontale per il numero di film (commento originale)
+    # Barplot orizzontale per il numero di film
     bars = sns.barplot(
         x='film_count',
         y='actor',
@@ -35,12 +35,12 @@ def plot_actor_stats(
         label='Numero di Film'
     )
 
-    # Imposta le etichette e il titolo (commento originale)
+    # Imposta le etichette e il titolo
     ax1.set_xlabel('Numero di Film')
     ax1.set_ylabel('Attore')
     ax1.set_title(f'Attori con più film, nazione più frequente e rating medio (Top {actors_to_analyse})')
 
-    # Aggiungi la nazione più frequente come annotazione SULLA BARRA (commento originale)
+    # Aggiungi la nazione più frequente come annotazione SULLA BARRA
     for i, (bar, actor, country) in enumerate(zip(
             bars.patches,
             actor_stats_filtered['actor'],
@@ -57,10 +57,10 @@ def plot_actor_stats(
             fontweight='bold'
         )
 
-    # 14. Aggiungi un nuovo asse verticale per il rating medio (commento originale)
+    # Aggiungi un nuovo asse verticale per il rating medio
     ax2 = ax1.twiny()
 
-    # Sposta il linegraph del rating medio ulteriormente a destra (commento originale)
+    # Sposta il linegraph del rating medio ulteriormente a destra
     rating_offset = max(actor_stats_filtered['film_count']) * 1.4
     ax2.plot(
         actor_stats_filtered.set_index('actor').loc[top_actors, 'avg_rating'] + rating_offset,
@@ -72,7 +72,7 @@ def plot_actor_stats(
         label='Rating Medio (per attore)'
     )
 
-    # Aggiungi la scritta del rating medio per ogni attore sul linegraph (commento originale)
+    # Aggiungi la scritta del rating medio per ogni attore sul linegraph
     for i, (actor, avg_rating) in enumerate(zip(
             top_actors,
             actor_stats_filtered.set_index('actor').loc[top_actors, 'avg_rating']
@@ -87,11 +87,11 @@ def plot_actor_stats(
             color='red'
         )
 
-    # Imposta i limiti dell'asse x per il linegraph del rating (commento originale)
+    # Imposta i limiti dell'asse x per il linegraph del rating
     ax2.set_xlim(-2 + rating_offset, 5 + rating_offset)
     ax2.set_xticks([])
 
-    # 15. Aggiungi una linea verticale per il rating medio globale (commento originale)
+    # Aggiungi una linea verticale per il rating medio globale
     ax2.axvline(
         global_avg_rating + rating_offset,
         color='green',
@@ -100,7 +100,7 @@ def plot_actor_stats(
         label='Rating Medio Globale'
     )
 
-    # Aggiungi un'annotazione per il rating medio globale (commento originale)
+    # Aggiungi un'annotazione per il rating medio globale
     ax2.text(
         global_avg_rating + rating_offset + 0.1,
         len(top_actors) + 1,
@@ -112,7 +112,7 @@ def plot_actor_stats(
         fontweight='bold'
     )
 
-    # Mostra la legenda (commento originale)
+    # Mostra la legenda
     ax1.legend(loc='upper left', bbox_to_anchor=(1.02, 1))
     ax2.legend(loc='upper left', bbox_to_anchor=(1.02, 0.9))
 

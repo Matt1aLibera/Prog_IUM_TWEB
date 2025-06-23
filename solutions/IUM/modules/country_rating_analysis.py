@@ -12,7 +12,7 @@ def plot_country_ratings(df_pivot, rating_medio_per_nazione, durata_media_per_na
     # Applichiamo i colori corretti (senza convertire in stringhe)
     colors = [custom_palette[col] for col in df_pivot.columns]
 
-    # Crea il grafico a barre orizzontali stacked (come originale)
+    # Crea il grafico a barre orizzontali stacked
     fig, ax1 = plt.subplots(figsize=(12, 7))
     df_pivot.plot(kind='barh', stacked=True, color=colors, ax=ax1)
 
@@ -20,14 +20,14 @@ def plot_country_ratings(df_pivot, rating_medio_per_nazione, durata_media_per_na
     ax1.set_xlabel('Numero di film')
     ax1.set_ylabel('Nazione')
 
-    # Creiamo il secondo asse X per il rating medio (come originale)
+    # Creiamo il secondo asse X per il rating medio
     ax2 = ax1.twiny()
     ax2.plot(rating_medio_per_nazione, df_pivot.index,
              color='black', marker='o', linestyle='-',
              linewidth=2, label='Rating Medio')
     ax2.grid(False)
 
-    # Creiamo il terzo asse X per la durata media (come originale)
+    # Creiamo il terzo asse X per la durata media
     ax3 = ax1.twiny()
     ax3.spines['top'].set_position(('outward', 40))
     ax3.plot(durata_media_per_nazione, df_pivot.index,
@@ -35,7 +35,7 @@ def plot_country_ratings(df_pivot, rating_medio_per_nazione, durata_media_per_na
              linewidth=2, label='Durata Media')
     ax3.set_xticks([])
 
-    # Aggiungi valori alle linee (come originale)
+    # Aggiungi valori alle linee
     for country, rating in zip(df_pivot.index, rating_medio_per_nazione):
         ax2.text(rating + 0.01, country, f'{rating:.1f}',
                  va='center', ha='left',
@@ -46,7 +46,7 @@ def plot_country_ratings(df_pivot, rating_medio_per_nazione, durata_media_per_na
                  va='center', ha='left',
                  color='blue', fontsize=10, fontweight='bold')
 
-    # Legenda rating groups (CODICE ORIGINALE ESATTO)
+    # Legenda rating groups
     legend_patches = []
     for interval, color in custom_palette.items():
         if isinstance(interval, pd.Interval):
@@ -55,14 +55,14 @@ def plot_country_ratings(df_pivot, rating_medio_per_nazione, durata_media_per_na
             label = str(interval)
         legend_patches.append(mpatches.Patch(color=color, label=label))
 
-    # Inversione legenda (come originale)
+    # Inversione legenda
     legend_patches = legend_patches[::-1]
     ax1.legend(handles=legend_patches,
                title='Gruppo di rating',
                bbox_to_anchor=(1.05, 1),
                loc='upper left')
 
-    # Legenda linee (CODICE ORIGINALE ESATTO)
+    # Legenda linee
     ax3.legend(handles=[
         plt.Line2D([0], [0], color='black', marker='o', linestyle='-', linewidth=2, label='Rating Medio'),
         plt.Line2D([0], [0], color='blue', marker='s', linestyle='-', linewidth=2, label='Durata Media (minuti)')

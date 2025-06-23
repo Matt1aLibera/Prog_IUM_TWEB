@@ -17,36 +17,36 @@ def plot_actors_violin(
                     - 'minute' (durata in minuti)
         figsize: Dimensioni della figura (default: (16, 6))
     """
-    # Impostiamo lo stile di Seaborn (commento originale)
+    # Impostiamo lo stile di Seaborn
     sns.set(style="whitegrid")
 
-    # Creiamo una figura con due subplot (commento originale)
+    # Creiamo una figura con due subplot
     fig, axes = plt.subplots(1, 2, figsize=figsize)
 
-    # 1. Violin Plot: Rating vs Numero di Attori (commento originale)
+    # Violin Plot: Rating vs Numero di Attori
     sns.violinplot(
         data=df_filtered,
         x='actor_group',
         y='rating',
-        inner="quartile",  # Mostra i quartili all'interno del violin plot (commento originale)
+        inner="quartile",  # Mostra i quartili all'interno del violin plot
         ax=axes[0]
     )
     axes[0].set_title("Distribuzione del Rating in Base al Numero di Attori")  # Titolo originale
     axes[0].set_xlabel("Numero di Attori")  # Etichetta originale
     axes[0].set_ylabel("Rating")  # Etichetta originale
 
-    # 2. Violin Plot: Durata vs Numero di Attori (commento originale)
+    # Violin Plot: Durata vs Numero di Attori
     sns.violinplot(
         data=df_filtered,
         x='actor_group',
         y='minute',
-        inner="quartile",  # Mostra i quartili all'interno del violin plot (commento originale)
+        inner="quartile",  # Mostra i quartili all'interno del violin plot
         ax=axes[1]
     )
     axes[1].set_title("Distribuzione della Durata in Base al Numero di Attori")  # Titolo originale
     axes[1].set_xlabel("Numero di Attori")  # Etichetta originale
     axes[1].set_ylabel("Durata (minuti)")  # Etichetta originale
 
-    # Mostra il grafico (commento originale)
+    # Mostra il grafico
     plt.tight_layout()
     plt.show()
