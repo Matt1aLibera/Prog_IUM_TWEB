@@ -80,7 +80,6 @@ def plot_distribution_map(
 ) -> None:
     """
     Crea la mappa interattiva di distribuzione dei film.
-    Mantiene tutti i commenti e la formattazione originale.
 
     Args:
         coordinates: Dizionario delle coordinate paese

@@ -4,31 +4,38 @@ from typing import Dict, List
 import pandas as pd
 
 def plot_actor_genre_composition(
-        top_actors: List[str],
-        actor_stats_with_genre: pd.DataFrame,
-        actor_avg_release_year: pd.DataFrame,
-        unique_genres: List[str],
-        genre_colors: Dict[str, tuple],
-        global_avg_release_year: float,
-        actors_to_analyse: int,
-        figsize: tuple = (22, 25),
-        linegraph_offset: int = 750
+    top_actors: List[str],
+    actor_stats_with_genre: pd.DataFrame,
+    actor_avg_release_year: pd.DataFrame,
+    unique_genres: List[str],
+    genre_colors: Dict[str, tuple],
+    global_avg_release_year: float,
+    actors_to_analyse: int,
+    actor_film_count: pd.DataFrame,  # Aggiunto questo parametro
+    figsize: tuple = (22, 25),
+    linegraph_offset: int = 750
 ) -> None:
     """
-    Crea il grafico a barre orizzontali con composizione per genere e anno medio di rilascio.
-    Mantiene TUTTI i commenti originali.
-
-    Args:
-        top_actors: Lista degli attori top
-        actor_stats_with_genre: DataFrame con le statistiche per genere
-        actor_avg_release_year: DataFrame con gli anni medi di rilascio
-        unique_genres: Lista ordinata di generi univoci
-        genre_colors: Dizionario di colori per ogni genere
-        global_avg_release_year: Valore medio globale
-        actors_to_analyse: Numero di attori visualizzati
-        figsize: Dimensioni della figura
-        linegraph_offset: Offset per spostare il linegraph
-    """
+       Crea un grafico combinato che mostra:
+       - Barre orizzontali con la composizione percentuale per genere di ogni attore
+       - Lineplot con l'anno medio di rilascio dei film
+       - Media globale come linea di riferimento
+       Args:
+           top_actors (List[str]): Lista ordinata degli attori top (dal più al meno frequente)
+           actor_stats_with_genre (pd.DataFrame): DataFrame contenente:
+               - Colonne: 'actor', 'genre', 'genre_percentage'
+               - Righe: una per ogni combinazione attore-genere
+           actor_avg_release_year (pd.DataFrame): DataFrame con:
+               - Colonne: 'actor', 'avg_release_year'
+               - Deve contenere solo gli attori in top_actors
+           unique_genres (List[str]): Lista ordinata alfabeticamente di tutti i generi univoci
+           genre_colors (Dict[str, tuple]): Mappatura genere → colore (formato RGB/HSL)
+           global_avg_release_year (float): Anno medio di rilascio globale (per la linea di riferimento)
+           actors_to_analyse (int): Numero di attori visualizzati (usato solo per il titolo)
+           actor_film_count (pd.DataFrame): DataFrame con i conteggi corretti dei film per attore:
+           figsize (tuple, optional): Dimensioni della figura (width, height). Default: (22, 25)
+           linegraph_offset (int, optional): Offset per spostare il lineplot a destra. Default: 750
+       """
     # Crea il grafico
     fig, ax1 = plt.subplots(figsize=figsize)
 
@@ -55,7 +62,7 @@ def plot_actor_genre_composition(
 
     # Aggiungi il numero totale di film come annotazione
     for i, (actor, film_count) in enumerate(
-            zip(top_actors, actor_stats_with_genre.groupby('actor')['film_count'].first())):
+            zip(top_actors, actor_film_count.set_index('actor').loc[top_actors, 'film_count'])):
         ax1.text(105, i, f'{film_count} film', ha='left', va='center',
                  fontsize=9, color='black', fontweight='bold')
 

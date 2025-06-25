@@ -6,7 +6,6 @@ import pandas as pd
 def plot_country_ratings(df_pivot, rating_medio_per_nazione, durata_media_per_nazione, custom_palette):
     """
     Crea il grafico a barre orizzontali stacked con rating e durata media.
-    Replica esattamente il codice originale della cella.
     """
 
     # Applichiamo i colori corretti (senza convertire in stringhe)

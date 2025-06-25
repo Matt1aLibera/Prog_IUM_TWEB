@@ -12,8 +12,7 @@ def plot_actor_stats(
         figsize: Tuple[int, int] = (12, 10)
 ) -> None:
     """
-    Crea il grafico combinato di barre e lineplot per l'analisi degli attori.
-    Mantiene TUTTI i commenti originali della versione inline.
+    Crea il grafico combinato di barre e lineplot per l'analisi degli attori..
 
     Args:
         actor_stats_filtered: DataFrame filtrato con i dati degli attori
