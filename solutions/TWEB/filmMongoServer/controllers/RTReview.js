@@ -21,7 +21,7 @@ const uploadRTReviews = async (csvPath) => {
             };
         }
 
-        // 2. Funzione di normalizzazione (identica)
+        // 2. Funzione di normalizzazione
         const normalizeReviewScore = (score) => {
             if (!score) return null;
 
@@ -64,7 +64,7 @@ const uploadRTReviews = async (csvPath) => {
             return null;
         };
 
-        // 3. Process record function (identica)
+        // 3. Process record function
         const processRecord = (record) => {
             return {
                 ...record,
@@ -85,13 +85,13 @@ const uploadRTReviews = async (csvPath) => {
             throw new Error(result.error);
         }
 
-        // 5. Creazione indici (identica)
+        // 5. Creazione indici
         await RTReview.createIndexes([
             { name: 'movie_title_idx', key: { movie_title: 1 } },
             { name: 'normalized_score_idx', key: { normalized_score: -1 } }
         ]);
 
-        // 6. Statistiche (identica)
+        // 6. Statistiche
         const stats = await RTReview.aggregate([
             { $group: {
                     _id: "$review_type",

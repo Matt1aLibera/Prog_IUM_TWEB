@@ -10,7 +10,7 @@ const RTReviewSchema = new mongoose.Schema({
     publisher_name: String,
     review_type: String,
     review_score: String,
-    normalized_score: Number,  // Nuovo campo normalizzato
+    normalized_score: Number,
     review_date: Date,
     review_content: String
 }, { collection: 'rt_reviews' });
