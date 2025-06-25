@@ -6,9 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="27870a37-2061-4479-94f5-36de5b48f953" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/IUM/MattiaLiberatoreIUMSolution.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/IUM/MattiaLiberatoreIUMSolution.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/filmMongoServer/controllers/RTReview.js" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/filmMongoServer/controllers/RTReview.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TWEB/filmMongoServer/models/RTReview.js" beforeDir="false" afterPath="$PROJECT_DIR$/TWEB/filmMongoServer/models/RTReview.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/modules/country_rating_analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/IUM/modules/country_rating_analysis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/modules/durataMediaFilmAnnoRating.py" beforeDir="false" afterPath="$PROJECT_DIR$/IUM/modules/durataMediaFilmAnnoRating.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/modules/film_rating_plot.py" beforeDir="false" afterPath="$PROJECT_DIR$/IUM/modules/film_rating_plot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/modules/genre_country_duration_heatmap.py" beforeDir="false" afterPath="$PROJECT_DIR$/IUM/modules/genre_country_duration_heatmap.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IUM/modules/genre_country_heatmap.py" beforeDir="false" afterPath="$PROJECT_DIR$/IUM/modules/genre_country_heatmap.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -82,7 +84,7 @@
       <workItem from="1750621115996" duration="28918000" />
       <workItem from="1750762073968" duration="663000" />
       <workItem from="1750798541193" duration="9869000" />
-      <workItem from="1750878990276" duration="2702000" />
+      <workItem from="1750878990276" duration="4071000" />
     </task>
     <servers />
   </component>

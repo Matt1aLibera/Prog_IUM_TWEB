@@ -5,7 +5,20 @@ import pandas as pd
 
 def plot_country_ratings(df_pivot, rating_medio_per_nazione, durata_media_per_nazione, custom_palette):
     """
-    Crea il grafico a barre orizzontali stacked con rating e durata media.
+    Crea un grafico orizzontale complesso che mostra:
+    - Barre orizzontali stacked con il numero di film per gruppo di rating per ciascuna nazione
+    - Lineplot sovrapposto con il rating medio per nazione
+    - Lineplot secondario con la durata media per nazione
+
+    Il grafico evidenzia contemporaneamente la distribuzione dei film per rating,
+    la qualità media percepita (rating) e la durata media per paese.
+
+    Args:
+        df_pivot (pd.DataFrame): DataFrame pivot con le nazioni come indice e i gruppi di rating come colonne;
+                                 i valori rappresentano il numero di film.
+        rating_medio_per_nazione (pd.Series): Serie contenente il rating medio per ogni nazione.
+        durata_media_per_nazione (pd.Series): Serie contenente la durata media (in minuti) per ogni nazione.
+        custom_palette (Dict[Any, str]): Dizionario che mappa ciascun gruppo di rating a un colore.
     """
 
     # Applichiamo i colori corretti (senza convertire in stringhe)

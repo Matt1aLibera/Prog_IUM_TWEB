@@ -3,10 +3,37 @@ import plotly.graph_objects as go
 import pandas as pd
 
 
-def plot_heatmap(heatmap_data, rating_medio_per_genere, rating_medio_per_nazione, custom_palette):
+def plot_heatmap(
+        heatmap_data,
+        rating_medio_per_genere,
+        rating_medio_per_nazione,
+        custom_palette
+):
     """
-    Crea la visualizzazione della heatmap con Plotly.
-    Riceve i dati già processati e si occupa solo del rendering grafico.
+    Crea una heatmap interattiva (Plotly) che mostra il numero di film per combinazione
+    di nazione e genere, con annotazioni personalizzate basate sul rating medio.
+
+    La visualizzazione include:
+    - Heatmap del numero di film per nazione e genere
+    - Annotazioni testuali in ogni cella con il rating medio, colorate in base a una palette personalizzata
+    - Annotazioni aggiuntive per la media dei rating per genere (in alto) e per nazione (a destra)
+    - Legenda visiva per i gruppi di rating, generata dinamicamente
+
+    Args:
+        heatmap_data (pd.DataFrame): DataFrame contenente:
+            - 'genre': genere cinematografico
+            - 'country': nazione di produzione
+            - 'num_film': numero di film prodotti per combinazione nazione-genere
+            - 'rating_medio': rating medio associato alla combinazione
+        rating_medio_per_genere (pd.DataFrame): DataFrame con rating medi per ciascun genere.
+            - Colonne: 'genre', 'rating_medio_genere'
+        rating_medio_per_nazione (pd.DataFrame): DataFrame con rating medi per ciascuna nazione.
+            - Colonne: 'country', 'rating_medio_nazione'
+        custom_palette (Dict[pd.Interval, str]): Mappa di intervalli di rating → colori esadecimali,
+                                                 usata per colorare dinamicamente le annotazioni testuali.
+
+    Returns:
+        plotly.graph_objects.Figure: Oggetto Plotly contenente la heatmap interattiva completa.
     """
 
     def get_color_for_rating(rating):

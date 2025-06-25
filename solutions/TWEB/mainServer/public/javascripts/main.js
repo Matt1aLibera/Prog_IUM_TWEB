@@ -86,7 +86,7 @@ async function checkAuthState() {
             headers: {'Cache-Control': 'no-cache'}
         });
 
-        // 3. Verifica autenticazione e coerenza tabId (MODIFICA MINIMA)
+        // 3. Verifica autenticazione e coerenza tabId
         if (data.authenticated) {
             if (data.user?.tabId !== tabId) {
                 console.warn('Disallineamento tabId - accesso negato', {
@@ -1590,7 +1590,6 @@ function showCreateModal() {
             return;
         }
 
-        // Qui dovrai modificare joinOrCreateRoom per accettare i nuovi parametri
         createNewRoom({
             name: name,
             topic: topic,

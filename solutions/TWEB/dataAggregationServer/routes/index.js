@@ -243,7 +243,7 @@ router.get('/films/:title/reviews', async (req, res, next) => {
       timeout: 16000
     });
 
-    // Formattazione risposta (opzionale)
+    // Formattazione risposta
     const response = {
       reviews: data.reviews.map(r => ({
         id: r._id,
@@ -296,7 +296,7 @@ router.get('/advanced-search', async (req, res) => {
         yearFrom: params.yearFrom || null,
         yearTo: params.yearTo || null,
         oscarStatus: params.oscarStatus || null,
-        genres: params.genres || null, // Non trasformare in array qui
+        genres: params.genres || null,
         page: req.query.page || 0,
         size: req.query.size || 15,
         sort: translateSortParam(sortBy)
@@ -426,7 +426,6 @@ router.get('/advanced-search', async (req, res) => {
         content: response.data.data || [],
         totalElements: response.data.pagination?.totalItems || 0,
         totalPages: response.data.pagination?.totalPages || 1,
-        // Aggiungi stats se servono
         stats: response.data.stats,
         // Mantieni compatibilità con l'esistente
         pageable: {

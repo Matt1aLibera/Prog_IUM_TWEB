@@ -73,7 +73,6 @@ const uploadRTReviews = async (csvPath) => {
             };
         };
 
-        // 4. MODIFICA PRINCIPALE: Chiamata al service ottimizzato
         const result = await loadRTReviews(
             RTReview, // Passiamo il modello inizializzato
             csvPath,

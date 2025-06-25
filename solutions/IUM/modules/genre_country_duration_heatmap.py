@@ -10,6 +10,32 @@ def plot_duration_heatmap(
         legend_labels
 ):
     """
+    Crea una heatmap interattiva (Plotly) che mostra la durata media dei film per nazione e genere,
+    arricchita da annotazioni personalizzate che rappresentano il rating medio.
+
+    La visualizzazione include:
+    - Heatmap con la durata media dei film come valore centrale
+    - Annotazioni del rating medio per ogni combinazione nazione-genere (colore dinamico in base al rating)
+    - Media dei rating per genere (sopra la heatmap) e per nazione (a destra)
+    - Legenda dinamica con indicatori di colore per ciascun intervallo di rating
+
+    Args:
+        heatmap_data_durata (pd.DataFrame): DataFrame contenente le colonne:
+            - 'genre': genere cinematografico
+            - 'country': nazione di produzione
+            - 'durata_media': durata media dei film
+            - 'rating_medio': rating medio per combinazione nazione-genere
+        rating_medio_per_genere (pd.DataFrame): DataFrame con i rating medi per ciascun genere:
+            - Colonne: 'genre', 'rating_medio_genere'
+        rating_medio_per_nazione (pd.DataFrame): DataFrame con i rating medi per ciascuna nazione:
+            - Colonne: 'country', 'rating_medio_nazione'
+        custom_palette (Dict[pd.Interval, str]): Mappa degli intervalli di rating ai colori (esadecimali).
+        legend_labels (Dict[str, str]): Mappa testo-intervallo per creare la legenda custom dei rating.
+
+    Returns:
+        plotly.graph_objects.Figure: Oggetto figura contenente la heatmap interattiva completa.
+    """
+    """
     Crea la visualizzazione della heatmap della durata con Plotly.
     Riceve i dati già processati e si occupa solo del rendering grafico.
     """

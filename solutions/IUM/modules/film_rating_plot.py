@@ -4,7 +4,24 @@ import seaborn as sns
 
 def plot_combined_rating(df_bar, df_year_group, custom_palette, bins_anni):
     """
-    Genera il grafico combinato barre sovrapposte + linea del rating medio.
+    Crea un grafico combinato che mostra:
+    - Un istogramma stacked (barre sovrapposte) dei film rilasciati nel tempo, suddivisi per gruppi di rating
+    - Una linea con il rating medio per ciascun intervallo di anni, sovrapposta su un secondo asse Y
+
+    Il grafico permette di analizzare contemporaneamente la quantità di film prodotti e
+    l’andamento della qualità percepita (rating medio) nel tempo.
+
+    Args:
+        df_bar (pd.DataFrame): DataFrame contenente almeno le colonne 'release_year' e 'rating_group'.
+                               Usato per costruire le barre raggruppate per anno.
+        df_year_group (pd.DataFrame): DataFrame contenente le colonne:
+            - 'year_group_mid': punto centrale dell'intervallo temporale
+            - 'rating_medio': media dei rating per ciascun gruppo di anni
+        custom_palette (Dict[Any, str]): Mappa dei gruppi di rating ai colori.
+        bins_anni (List[int]): Lista di soglie per dividere gli anni in intervalli temporali.
+
+    Returns:
+        None
     """
     # Configurazione figura
     plt.figure(figsize=(16, 8))
