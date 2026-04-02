@@ -21,34 +21,34 @@ Il progetto si divide in due anime complementari:
 
 ### Architettura a Microservizi ("Costellazione")
 
-[cite_start]Il sistema è composto da diversi server indipendenti coordinati tra loro[cite: 31]:
+Il sistema è composto da diversi server indipendenti coordinati tra loro[cite: 31]:
 
-  * [cite_start]**Main Server (Express)**: Gestisce il routing principale e lo smistamento delle richieste[cite: 27, 36].
-  * [cite_start]**Data Aggregation Server**: Aggrega i dati provenienti dai database eterogenei prima di restituirli al client[cite: 30, 33].
-  * [cite_start]**Spring Boot Server**: Gestisce i dati statici su **PostgreSQL** tramite caricamento a batch scalabile[cite: 13, 20, 22].
-  * [cite_start]**Film Mongo Server**: Gestisce le recensioni e i rating dinamici su **MongoDB**[cite: 15, 22].
-  * [cite_start]**User Mongo Server**: Gestisce l'autenticazione, i profili utente e lo stato delle chat room[cite: 28, 45].
+  * **Main Server (Express)**: Gestisce il routing principale e lo smistamento delle richieste.
+  * **Data Aggregation Server**: Aggrega i dati provenienti dai database eterogenei prima di restituirli al client.
+  * **Spring Boot Server**: Gestisce i dati statici su **PostgreSQL** tramite caricamento a batch scalabile.
+  * **Film Mongo Server**: Gestisce le recensioni e i rating dinamici su **MongoDB**.
+  * **User Mongo Server**: Gestisce l'autenticazione, i profili utente e lo stato delle chat room.
 
 ### Funzionalità Chiave
 
-  * [cite_start]**Sistema di Chat**: Comunicazione real-time basata su **Socket.IO** con supporto a stanze tematiche[cite: 45, 46].
-  * [cite_start]**Gestione Sessioni Multi-Tab**: Implementazione personalizzata basata su `tabId` per permettere l'utilizzo di più account o sessioni indipendenti nello stesso browser[cite: 47, 53].
-  * [cite_start]**Dashboard Admin**: Accesso riservato per il caricamento e la normalizzazione automatica dei dataset tramite interfaccia web[cite: 29].
+  * **Sistema di Chat**: Comunicazione real-time basata su **Socket.IO** con supporto a stanze tematiche.
+  * **Gestione Sessioni Multi-Tab**: Implementazione personalizzata basata su `tabId` per permettere l'utilizzo di più account o sessioni indipendenti nello stesso browser[cite: 47, 53].
+  * **Dashboard Admin**: Accesso riservato per il caricamento e la normalizzazione automatica dei dataset tramite interfaccia web.
 
 -----
 
 ## 📊 2. Analisi Dati (IUM)
 
-[cite_start]L'analisi è stata condotta nel file `analisi_dati.ipynb` con un focus sulla pulizia profonda del dataset IMDB (periodo 1890-2023)[cite: 60, 65].
+L'analisi è stata condotta nel file `analisi_dati.ipynb` con un focus sulla pulizia profonda del dataset IMDB (periodo 1890-2023).
 
 ### Visualizzazioni Implementate
 
-[cite_start]Sono state realizzate oltre 12 tipologie di grafici per interpretare i trend del settore cinematografico[cite: 5, 79]:
+Sono state realizzate oltre 12 tipologie di grafici per interpretare i trend del settore cinematografico:
 
-  * [cite_start]**Geografiche**: Mappe di distribuzione della produzione globale[cite: 70].
-  * [cite_start]**Distribuzione**: Violin plot per i rating e Heat map multivariate[cite: 71, 72].
-  * [cite_start]**Gerarchiche**: Treemap per analizzare la relazione tra generi e produzioni[cite: 73].
-  * [cite_start]**Evolutive**: Scatter plot sulla variabilità qualitativa nel tempo[cite: 66].
+  * **Geografiche**: Mappe di distribuzione della produzione globale.
+  * **Distribuzione**: Violin plot per i rating e Heat map multivariate.
+  * **Gerarchiche**: Treemap per analizzare la relazione tra generi e produzioni.
+  * **Evolutive**: Scatter plot sulla variabilità qualitativa nel tempo.
 
 -----
 
@@ -56,30 +56,30 @@ Il progetto si divide in due anime complementari:
 
 ### Requisiti dei Dati
 
-[cite_start]Per il funzionamento del sistema, è necessario inserire i file CSV nelle seguenti directory (da creare se mancanti)[cite: 84]:
+Per il funzionamento del sistema, è necessario inserire i file CSV nelle seguenti directory (da creare se mancanti):
 
 **Per TWEB:**
 
-  * [cite_start]`solutions/TWEB/springBootServer/src/main/resources/csv`: actor, movies, oscar Awards, ecc[cite: 85].
-  * [cite_start]`solutions/TWEB/filmMongoServer/csv`: movies e rotten tomatoes reviews[cite: 86].
+  * `solutions/TWEB/springBootServer/src/main/resources/csv`: actor, movies, oscar Awards, ecc.
+  * `solutions/TWEB/filmMongoServer/csv`: movies e rotten tomatoes reviews.
 
 **Per IUM:**
 
-  * [cite_start]`solutions/IUM/dataSets/mainDataSet`: dataset IMDB completo[cite: 87].
+  * `solutions/IUM/dataSets/mainDataSet`: dataset IMDB completo.
 
 ### Avvio
 
 1.  Configurare le istanze di **PostgreSQL** e **MongoDB**.
 2.  Avviare i server della costellazione partendo dai database server verso il MainServer.
-3.  [cite_start]Accedere come `admin` per popolare i database tramite la navbar[cite: 29].
+3.  Accedere come `admin` per popolare i database tramite la navbar.
 
 -----
 
 ## ⚠️ Limitazioni Note
 
-  * [cite_start]**Performance**: La separazione dei rating (MongoDB) dai dati dei film (PostgreSQL) comporta un aumento della latenza nelle query aggregate[cite: 24, 33].
-  * [cite_start]**SSR**: Il rendering lato server è implementato parzialmente, il che può causare discrepanze visive in alcuni caricamenti diretti di pagina[cite: 38].
-  * [cite_start]**Sessioni**: Ogni nuova tab richiede un login separato per garantire la sicurezza del sistema di chat[cite: 57, 58].
+  * **Performance**: La separazione dei rating (MongoDB) dai dati dei film (PostgreSQL) comporta un aumento della latenza nelle query aggregate.
+  * **SSR**: Il rendering lato server è implementato parzialmente, il che può causare discrepanze visive in alcuni caricamenti diretti di pagina.
+  * **Sessioni**: Ogni nuova tab richiede un login separato per garantire la sicurezza del sistema di chat.
 
 -----
 
