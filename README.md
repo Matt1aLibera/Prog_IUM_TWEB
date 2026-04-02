@@ -112,4 +112,4 @@ Per il funzionamento del sistema, è necessario inserire i file CSV nelle seguen
 
 ### 📚 Bibliografia e Strumenti
 
-[cite_start]Nello sviluppo del progetto è stata utilizzata l'**Intelligenza Generativa** come supporto per la progettazione dell'architettura dei microservizi, l'implementazione del codice e il testing delle rotte[cite: 89, 90].
+Nello sviluppo del progetto è stata utilizzata l'**Intelligenza Generativa** come supporto per la progettazione dell'architettura dei microservizi, l'implementazione del codice e il testing delle rotte.
